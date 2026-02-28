@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://nadaraya:password@db:5432/content_machine
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - NODE_ENV=production
     depends_on:
       db:
@@ -16,13 +16,13 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      - POSTGRES_USER=nadaraya
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=content_machine
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nadaraya -d content_machine"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
