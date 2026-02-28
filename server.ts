@@ -592,6 +592,12 @@ async function startServer() {
     }
   });
 
+  app.get("/api/config", (req, res) => {
+    res.json({
+      bot_username: process.env.TELEGRAM_BOT_USERNAME || process.env.VITE_TELEGRAM_BOT_USERNAME || "YOUR_BOT_USERNAME"
+    });
+  });
+
   app.delete("/api/ad-plaques/:id", async (req, res) => {
     const { id } = req.params;
     await query("DELETE FROM ad_plaques WHERE id = $1", [id]);
