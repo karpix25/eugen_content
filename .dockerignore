@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.git
+*.log
+Dockerfile
+docker-compose.yml
+re_ingest_clips.ts
+README.md
+vizard_*.html

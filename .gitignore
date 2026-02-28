@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.DS_Store
+*.log
+vizard_*.html
+re_ingest_clips.ts
+metadata.json
