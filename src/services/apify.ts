@@ -109,7 +109,14 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 20, sc
         if (!datasetId) return [];
 
         const items = await getDatasetItems(datasetId);
-        return items.map((v: any, index: number) => {
+        if (items.length === 1 && items[0].error === 'NO_RESULTS') {
+            console.log(`Apify: No results found for ${channelUrl} with current filters.`);
+            return [];
+        }
+
+        return items
+          .filter((v: any) => !v.error) // Skip any error items
+          .map((v: any, index: number) => {
             let transcript = null;
             if (v.subtitles && Array.isArray(v.subtitles) && v.subtitles.length > 0) {
                 transcript = v.subtitles[0].plaintext || v.subtitles[0].text;
