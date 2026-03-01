@@ -87,5 +87,8 @@ export const initDb = async () => {
       jwt TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Migrations for existing tables
+    ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT;
   `);
 };
