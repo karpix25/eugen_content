@@ -24,6 +24,7 @@ export const initDb = async () => {
     CREATE TABLE IF NOT EXISTS channels (
       id TEXT PRIMARY KEY,
       name TEXT,
+      handle TEXT,
       thumbnail TEXT,
       subscribers BIGINT,
       last_checked TIMESTAMP,
@@ -93,6 +94,7 @@ export const initDb = async () => {
 
   try {
     await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT");
+    await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS handle TEXT");
     await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS scrape_days INTEGER DEFAULT 7");
     console.log("Database migrations applied successfully.");
   } catch (err) {

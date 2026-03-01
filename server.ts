@@ -72,10 +72,11 @@ function calculateNextCheck(interval: string): Date {
   return now;
 }
 
-const syncChannel = async (channelId: string, name: string, monitoringInterval: string, scrapeDays: number = 7) => {
-  console.log(`Syncing channel: ${name} (${channelId})`);
+const syncChannel = async (channelId: string, name: string, monitoringInterval: string, scrapeDays: number = 7, handle?: string) => {
+  console.log(`Syncing channel: ${name} (${channelId}) - Handle: ${handle || 'N/A'}`);
   try {
-    const discoveredVideos = await getLatestVideos(`https://www.youtube.com/channel/${channelId}`, 20, scrapeDays);
+    const searchUrl = handle ? `https://www.youtube.com/${handle.startsWith('@') ? handle : '@' + handle}` : `https://www.youtube.com/channel/${channelId}`;
+    const discoveredVideos = await getLatestVideos(searchUrl, 20, scrapeDays);
     for (const item of discoveredVideos) {
       const videoId = item.id;
       if (!videoId) {
@@ -125,7 +126,7 @@ const monitorChannels = async () => {
 
   for (const channel of channels.rows) {
     if (channel.monitoring_interval === 'manual') continue;
-    await syncChannel(channel.id, channel.name, channel.monitoring_interval, channel.scrape_days);
+    await syncChannel(channel.id, channel.name, channel.monitoring_interval, channel.scrape_days, channel.handle);
   }
 };
 
@@ -375,12 +376,12 @@ async function startServer() {
 
       const nextCheck = calculateNextCheck(monitoring_interval);
       await query(
-        "INSERT INTO channels (id, name, thumbnail, subscribers, monitoring_interval, next_check, scrape_days) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO UPDATE SET name = $2, thumbnail = $3, subscribers = $4, monitoring_interval = $5, next_check = $6, scrape_days = $7",
-        [channelData.id, channelData.name, channelData.thumbnail, channelData.subscribers, monitoring_interval, nextCheck, scrapeDays]
+        "INSERT INTO channels (id, name, handle, thumbnail, subscribers, monitoring_interval, next_check, scrape_days) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO UPDATE SET name = $2, handle = $3, thumbnail = $4, subscribers = $5, monitoring_interval = $6, next_check = $7, scrape_days = $8",
+        [channelData.id, channelData.name, channelData.handle, channelData.thumbnail, channelData.subscribers, monitoring_interval, nextCheck, scrapeDays]
       );
 
       // Trigger immediate sync without waiting for client response
-      syncChannel(channelData.id, channelData.name, monitoring_interval, scrapeDays).catch(err => console.error("Immediate sync failed:", err));
+      syncChannel(channelData.id, channelData.name, monitoring_interval, scrapeDays, channelData.handle).catch(err => console.error("Immediate sync failed:", err));
 
       res.json({ success: true, channel: channelData.name });
     } catch (error: any) {

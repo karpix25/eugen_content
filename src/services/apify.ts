@@ -54,7 +54,7 @@ export const getDatasetItems = async (datasetId: string): Promise<any[]> => {
     }
 };
 
-export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, name: string, thumbnail: string, subscribers: number } | null> => {
+export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, name: string, handle?: string, thumbnail: string, subscribers: number } | null> => {
     if (!APIFY_TOKEN) return null;
     try {
         console.log(`Fetching channel info via Apify for: ${channelUrl}`);
@@ -75,6 +75,7 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
             return {
                 id: item.channelId || item.id,
                 name: item.channelName || item.title,
+                handle: item.channelUsername || item.handle, // Apify usually calls it channelUsername
                 thumbnail: item.channelAvatarUrl || item.channelThumbnail || item.thumbnailUrl,
                 subscribers: item.numberOfSubscribers || 0
             };
