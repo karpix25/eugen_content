@@ -85,7 +85,7 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
     return null;
 };
 
-export const getLatestVideos = async (channelUrl: string, limit: number = 10, scrapeDays: number = 7): Promise<any[]> => {
+export const getLatestVideos = async (channelUrl: string, limit: number = 20, scrapeDays: number = 7): Promise<any[]> => {
     if (!APIFY_TOKEN) return [];
     try {
         console.log(`Fetching latest videos and transcripts via Apify for: ${channelUrl} (last ${scrapeDays} days)`);
