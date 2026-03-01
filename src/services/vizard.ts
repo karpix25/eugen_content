@@ -14,12 +14,14 @@ export const sendToVizard = async (videoUrl: string, videoId: string): Promise<s
     try {
         const payload = {
             videoUrl: videoUrl,
-            external_id: videoId, // Keep this if they use it for custom tracking
-            videoType: 2,
+            videoType: 2, // YouTube
             lang: 'auto', // Auto detection
-            preferLength: [2], // 30-60s (array of integers)
+            preferLength: [2], // 30-60s
             ratioOfClip: 1, // Vertical 9:16
-            output_format: 'mp4' // Using what the user requested
+            ext: 'mp4', // Required in OpenAPI spec
+            subtitleSwitch: 0, // Disable subtitles
+            headlineSwitch: 0, // Disable headlines
+            projectName: `Youtube_${videoId}`
         };
 
         console.log(`Sending payload to Vizard:`, JSON.stringify(payload, null, 2));
