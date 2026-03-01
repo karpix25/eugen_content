@@ -76,5 +76,15 @@ export const initDb = async () => {
       published_link TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      id UUID PRIMARY KEY,
+      status TEXT DEFAULT 'pending', -- pending, authorized
+      telegram_id BIGINT,
+      username TEXT,
+      first_name TEXT,
+      jwt TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 };

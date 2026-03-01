@@ -6,6 +6,7 @@ import multer from "multer";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import dotenv from "dotenv";
+import { v4 as uuidv4 } from "uuid";
 
 import { query, initDb } from "./src/lib/db.js";
 import { getTranscript, getChannelInfo, getLatestVideos } from "./src/services/apify.js";
@@ -215,6 +216,48 @@ async function startServer() {
   };
 
   // --- API Routes ---
+
+  // --- Deep Link Auth Endpoints ---
+  app.get("/api/auth/init", async (req, res) => {
+    const sessionId = uuidv4();
+    try {
+      await query("INSERT INTO auth_sessions (id, status) VALUES ($1, 'pending')", [sessionId]);
+      res.json({ sessionId });
+    } catch (err) {
+      console.error("Auth init error:", err);
+      res.status(500).json({ error: "Failed to init auth" });
+    }
+  });
+
+  app.get("/api/auth/check/:sessionId", async (req, res) => {
+    const { sessionId } = req.params;
+    try {
+      const result = await query("SELECT * FROM auth_sessions WHERE id = $1", [sessionId]);
+      if (result.rows.length === 0) return res.status(404).json({ error: "Session not found" });
+      
+      const session = result.rows[0];
+      if (session.status === 'authorized') {
+        // Return JWT and clean up session (optional but safer)
+        res.json({ 
+          status: 'authorized', 
+          token: session.jwt, 
+          user: { 
+            id: session.telegram_id, 
+            username: session.username, 
+            first_name: session.first_name 
+          } 
+        });
+        
+        // Clean up session after successful retrieval
+        await query("DELETE FROM auth_sessions WHERE id = $1", [sessionId]);
+      } else {
+        res.json({ status: 'pending' });
+      }
+    } catch (err) {
+      console.error("Auth check error:", err);
+      res.status(500).json({ error: "Check failed" });
+    }
+  });
 
   app.post("/api/auth/telegram", async (req, res) => {
     const { hash, ...data } = req.body;

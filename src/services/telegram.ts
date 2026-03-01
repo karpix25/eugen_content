@@ -1,5 +1,6 @@
-import { Telegraf, Context } from 'telegraf';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 import { query } from '../lib/db.js';
 
 dotenv.config();
@@ -29,6 +30,38 @@ const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
 
 bot.start(async (ctx) => {
     const from = ctx.from;
+    const startPayload = (ctx as any).startPayload;
+
+    // Handle deep-link login
+    if (startPayload && startPayload.startsWith('login_')) {
+        const sessionId = startPayload.replace('login_', '');
+        
+        try {
+            // Verify session exists and is pending
+            const sessionRes = await query('SELECT * FROM auth_sessions WHERE id = $1 AND status = \'pending\'', [sessionId]);
+            if (sessionRes.rows.length === 0) {
+                return ctx.reply('Срок действия сессии истек или ссылка недействительна. Попробуйте еще раз на сайте.');
+            }
+
+            // Mark session as authorized
+            const token = jwt.sign(
+                { id: from.id, username: from.username, first_name: from.first_name },
+                process.env.JWT_SECRET || 'fallback_secret',
+                { expiresIn: '24h' }
+            );
+
+            await query(
+                'UPDATE auth_sessions SET status = \'authorized\', telegram_id = $1, username = $2, first_name = $3, jwt = $4 WHERE id = $5',
+                [from.id, from.username, from.first_name, token, sessionId]
+            );
+
+            return ctx.reply('✅ Вы успешно авторизованы! Можете вернуться в браузер.');
+        } catch (err) {
+            console.error('Auth update error:', err);
+            return ctx.reply('Произошла ошибка при авторизации. Пожалуйста, попробуйте позже.');
+        }
+    }
+
     const res = await query('SELECT is_authorized FROM users WHERE telegram_id = $1', [from.id]);
 
     if (res.rows.length === 0) {

@@ -96,59 +96,58 @@ interface Task {
 }
 
 function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [botUsername, setBotUsername] = useState<string>("YOUR_BOT_USERNAME");
+  const [isPolling, setIsPolling] = useState(false);
+
   useEffect(() => {
-    // Standard Telegram widget doesn't play well with React re-renders, 
-    // so we manually inject the script after fetching the config.
-    const loadWidget = async () => {
+    const initAuth = async () => {
       try {
+        // Get config
         const configRes = await fetch('/api/config');
         const config = await configRes.json();
-        const botUsername = config.bot_username || "YOUR_BOT_USERNAME";
+        setBotUsername(config.bot_username || "YOUR_BOT_USERNAME");
 
-        const script = document.createElement('script');
-        script.src = "https://telegram.org/js/telegram-widget.js?22";
-        script.setAttribute('data-telegram-login', botUsername);
-        script.setAttribute('data-size', 'large');
-        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-        script.setAttribute('data-request-access', 'write');
-        script.async = true;
-        
-        const container = document.getElementById('telegram-widget-container');
-        if (container) {
-          container.innerHTML = ''; // Clear previous
-          container.appendChild(script);
-        }
+        // Init session
+        const sessionRes = await fetch('/api/auth/init');
+        const sessionData = await sessionRes.json();
+        setSessionId(sessionData.sessionId);
+        setIsPolling(true);
       } catch (err) {
-        console.error("Failed to load bot config:", err);
+        console.error("Failed to init auth:", err);
       }
     };
 
-    loadWidget();
+    initAuth();
+  }, []);
 
-    (window as any).onTelegramAuth = async (user: any) => {
+  useEffect(() => {
+    if (!sessionId || !isPolling) return;
+
+    const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/auth/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user)
-        });
+        const res = await fetch(`/api/auth/check/${sessionId}`);
         const data = await res.json();
-        if (data.token) {
+        
+        if (data.status === 'authorized') {
+          setIsPolling(false);
+          clearInterval(interval);
           onLogin(data.token, data.user);
-        } else {
-          alert('Ошибка записи: ' + data.error);
         }
       } catch (err) {
-        console.error(err);
-        alert('Ошибка при соединении с сервером');
+        console.error("Polling error:", err);
       }
-    };
+    }, 2000);
 
-    return () => {
-      if (container) container.innerHTML = '';
-      delete (window as any).onTelegramAuth;
-    };
-  }, [onLogin]);
+    return () => clearInterval(interval);
+  }, [sessionId, isPolling, onLogin]);
+
+  const handleLoginClick = () => {
+    if (sessionId) {
+      const url = `https://t.me/${botUsername}?start=login_${sessionId}`;
+      window.open(url, '_blank');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-6 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.05),transparent)]">
@@ -163,11 +162,24 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
         
         <div className="bg-white/5 border border-white/10 p-10 rounded-[2.5rem] backdrop-blur-2xl shadow-2xl relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-          <div id="telegram-widget-container" className="flex justify-center relative z-10" />
+          
+          <div className="relative z-10 space-y-4">
+            <button 
+              onClick={handleLoginClick}
+              disabled={!sessionId}
+              className="w-full h-14 bg-[#229ED9] hover:bg-[#1f8ebf] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-[#229ED9]/20"
+            >
+              <Send className="w-6 h-6 rotate-[-45deg]" />
+              <span>ВОЙТИ ЧЕРЕЗ TELEGRAM</span>
+            </button>
+            <p className="text-white/20 text-[10px] font-bold uppercase tracking-[0.2em]">Подтвердите вход в приложении</p>
+          </div>
+          
+          <div className="relative z-10 mt-6 pt-6 border-t border-white/5" />
           
           <button 
             onClick={() => onLogin('dev-token', { id: 'dev', first_name: 'Developer', username: 'dev' })}
-            className="w-full mt-6 py-3 bg-white/10 border border-white/10 rounded-xl text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-black transition-all relative z-20"
+            className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-black transition-all relative z-20"
           >
             Войти как разработчик (Local Dev)
           </button>
