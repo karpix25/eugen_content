@@ -78,6 +78,10 @@ const syncChannel = async (channelId: string, name: string, monitoringInterval: 
     const discoveredVideos = await getLatestVideos(`https://www.youtube.com/channel/${channelId}`, 20, scrapeDays);
     for (const item of discoveredVideos) {
       const videoId = item.id;
+      if (!videoId) {
+        console.warn(`Sync: Skipping video with missing ID: ${item.title}`);
+        continue;
+      }
       const existing = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
       if (existing.rows.length === 0) {
         console.log(`Sync: Discovered NEW video ${videoId} for ${name}`);

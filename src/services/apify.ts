@@ -109,7 +109,7 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 20, sc
         if (!datasetId) return [];
 
         const items = await getDatasetItems(datasetId);
-        return items.map((v: any) => {
+        return items.map((v: any, index: number) => {
             let transcript = null;
             if (v.subtitles && Array.isArray(v.subtitles) && v.subtitles.length > 0) {
                 transcript = v.subtitles[0].plaintext || v.subtitles[0].text;
@@ -117,13 +117,25 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 20, sc
                 transcript = v.subtitles;
             }
 
+            // Extract ID from URL if missing
+            let videoId = v.id || v.videoId || v.video_id;
+            if (!videoId && v.url) {
+                const match = v.url.match(/(?:v=|shorts\/|be\/)([\w-]{11})/);
+                if (match) videoId = match[1];
+            }
+
+            if (!videoId) {
+                console.warn(`Apify mapping: Undefined ID for item ${index}. Raw item keys: ${Object.keys(v).join(', ')}`);
+                if (index === 0) console.log("First item sample:", JSON.stringify(v).substring(0, 500));
+            }
+
             return {
-                id: v.id || v.videoId,
-                title: v.title,
-                description: v.description,
-                publishedAt: v.date || v.publishedAt,
-                thumbnail: v.thumbnailUrl || v.thumbnail,
-                transcript: transcript // Include transcript if available!
+                id: videoId,
+                title: v.title || v.text || v.name,
+                description: v.description || v.text || '',
+                publishedAt: v.date || v.publishedAt || v.publishedAtISO || v.createdAt,
+                thumbnail: v.thumbnailUrl || v.thumbnail || v.coverUrl,
+                transcript: transcript
             };
         });
     } catch (e) {

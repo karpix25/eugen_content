@@ -88,7 +88,14 @@ export const initDb = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- Migrations for existing tables
-    ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT;
+    -- Migrations handled separately below
   `);
+
+  try {
+    await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT");
+    await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS scrape_days INTEGER DEFAULT 7");
+    console.log("Database migrations applied successfully.");
+  } catch (err) {
+    console.error("Migration error:", err);
+  }
 };
