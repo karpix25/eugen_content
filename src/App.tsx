@@ -104,6 +104,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
         const configRes = await fetch('/api/config');
         const config = await configRes.json();
         const botUsername = config.bot_username || "YOUR_BOT_USERNAME";
+        console.log("Frontend loaded bot username:", botUsername);
 
         const script = document.createElement('script');
         script.src = "https://telegram.org/js/telegram-widget.js?22";

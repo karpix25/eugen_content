@@ -593,8 +593,10 @@ async function startServer() {
   });
 
   app.get("/api/config", (req, res) => {
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME || process.env.VITE_TELEGRAM_BOT_USERNAME || "YOUR_BOT_USERNAME";
+    console.log("Serving config: bot_username =", botUsername);
     res.json({
-      bot_username: process.env.TELEGRAM_BOT_USERNAME || process.env.VITE_TELEGRAM_BOT_USERNAME || "YOUR_BOT_USERNAME"
+      bot_username: botUsername
     });
   });
 
