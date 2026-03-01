@@ -85,19 +85,22 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
     return null;
 };
 
-export const getLatestVideos = async (channelUrl: string, limit: number = 5, publishedAfter?: string): Promise<any[]> => {
+export const getLatestVideos = async (channelUrl: string, limit: number = 10, scrapeDays: number = 7): Promise<any[]> => {
     if (!APIFY_TOKEN) return [];
     try {
-        console.log(`Fetching latest videos via Apify for: ${channelUrl} (after: ${publishedAfter || 'all time'})`);
+        console.log(`Fetching latest videos and transcripts via Apify for: ${channelUrl} (last ${scrapeDays} days)`);
 
         const payload: any = {
-            startUrls: [{ url: channelUrl }],
+            searchQueries: [channelUrl],
             maxResults: limit,
+            dateFilter: scrapeDays <= 1 ? 'today' : (scrapeDays <= 7 ? 'week' : (scrapeDays <= 31 ? 'month' : 'year')),
+            oldestPostDate: `${scrapeDays} days`,
+            sortVideosBy: "NEWEST",
+            downloadSubtitles: true,
+            subtitlesFormat: "plaintext",
+            subtitlesLanguage: "any",
+            videoType: "video"
         };
-
-        if (publishedAfter) {
-            payload.publishedAfter = publishedAfter;
-        }
 
         const runResponse = await apifyRequest('post', `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`, payload);
         const runId = runResponse.data.data.id;
@@ -106,13 +109,23 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 5, pub
         if (!datasetId) return [];
 
         const items = await getDatasetItems(datasetId);
-        return items.map((v: any) => ({
-            id: v.id || v.videoId,
-            title: v.title,
-            description: v.description,
-            publishedAt: v.date || v.publishedAt,
-            thumbnail: v.thumbnailUrl || v.thumbnail
-        }));
+        return items.map((v: any) => {
+            let transcript = null;
+            if (v.subtitles && Array.isArray(v.subtitles) && v.subtitles.length > 0) {
+                transcript = v.subtitles[0].plaintext || v.subtitles[0].text;
+            } else if (typeof v.subtitles === 'string') {
+                transcript = v.subtitles;
+            }
+
+            return {
+                id: v.id || v.videoId,
+                title: v.title,
+                description: v.description,
+                publishedAt: v.date || v.publishedAt,
+                thumbnail: v.thumbnailUrl || v.thumbnail,
+                transcript: transcript // Include transcript if available!
+            };
+        });
     } catch (e) {
         console.error("Apify latest videos error:", e);
     }

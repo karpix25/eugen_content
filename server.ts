@@ -72,11 +72,10 @@ function calculateNextCheck(interval: string): Date {
   return now;
 }
 
-const syncChannel = async (channelId: string, name: string, monitoringInterval: string) => {
+const syncChannel = async (channelId: string, name: string, monitoringInterval: string, scrapeDays: number = 7) => {
   console.log(`Syncing channel: ${name} (${channelId})`);
   try {
-    // Append /videos to explicitly get the newest videos, avoiding homepage layout mixups
-    const discoveredVideos = await getLatestVideos(`https://www.youtube.com/channel/${channelId}/videos`, 5);
+    const discoveredVideos = await getLatestVideos(`https://www.youtube.com/@${name.replace(/\s+/g, '')}`, 10, scrapeDays);
     for (const item of discoveredVideos) {
       const videoId = item.id;
       const existing = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
@@ -87,7 +86,12 @@ const syncChannel = async (channelId: string, name: string, monitoringInterval: 
           VALUES ($1, $2, $3, $4, $5, $6)
         `, [videoId, channelId, item.title, item.description, item.publishedAt, item.thumbnail]);
 
-        const transcript = await getTranscript(`https://www.youtube.com/watch?v=${videoId}`);
+        let transcript = item.transcript;
+        if (!transcript) {
+          console.log(`Sync: Transcript missing for ${videoId}, fetching solo...`);
+          transcript = await getTranscript(`https://www.youtube.com/watch?v=${videoId}`);
+        }
+
         if (transcript) {
           await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
           
@@ -117,7 +121,7 @@ const monitorChannels = async () => {
 
   for (const channel of channels.rows) {
     if (channel.monitoring_interval === 'manual') continue;
-    await syncChannel(channel.id, channel.name, channel.monitoring_interval);
+    await syncChannel(channel.id, channel.name, channel.monitoring_interval, channel.scrape_days);
   }
 };
 
@@ -372,7 +376,7 @@ async function startServer() {
       );
 
       // Trigger immediate sync without waiting for client response
-      syncChannel(channelData.id, channelData.name, monitoring_interval).catch(err => console.error("Immediate sync failed:", err));
+      syncChannel(channelData.id, channelData.name, monitoring_interval, scrapeDays).catch(err => console.error("Immediate sync failed:", err));
 
       res.json({ success: true, channel: channelData.name });
     } catch (error: any) {
