@@ -1,3 +1,4 @@
+import { Telegraf, Context, Markup } from 'telegraf';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
@@ -55,7 +56,11 @@ bot.start(async (ctx) => {
                 [from.id, from.username, from.first_name, token, sessionId]
             );
 
-            return ctx.reply('✅ Вы успешно авторизованы! Можете вернуться в браузер.');
+            const siteUrl = process.env.SITE_URL || 'https://eugen.karpix.com';
+            
+            return ctx.reply('✅ Вы успешно авторизованы!', Markup.inlineKeyboard([
+                Markup.button.url('Вернуться на сайт 🌐', siteUrl)
+            ]));
         } catch (err) {
             console.error('Auth update error:', err);
             return ctx.reply('Произошла ошибка при авторизации. Пожалуйста, попробуйте позже.');

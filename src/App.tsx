@@ -99,6 +99,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [botUsername, setBotUsername] = useState<string>("YOUR_BOT_USERNAME");
   const [isPolling, setIsPolling] = useState(false);
+  const [waitingConfirm, setWaitingConfirm] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -144,6 +145,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
 
   const handleLoginClick = () => {
     if (sessionId) {
+      setWaitingConfirm(true);
       const url = `https://t.me/${botUsername}?start=login_${sessionId}`;
       window.open(url, '_blank');
     }
@@ -164,15 +166,35 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           
           <div className="relative z-10 space-y-4">
-            <button 
-              onClick={handleLoginClick}
-              disabled={!sessionId}
-              className="w-full h-14 bg-[#229ED9] hover:bg-[#1f8ebf] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-[#229ED9]/20"
-            >
-              <Send className="w-6 h-6 rotate-[-45deg]" />
-              <span>ВОЙТИ ЧЕРЕЗ TELEGRAM</span>
-            </button>
-            <p className="text-white/20 text-[10px] font-bold uppercase tracking-[0.2em]">Подтвердите вход в приложении</p>
+            {!waitingConfirm ? (
+              <>
+                <button 
+                  onClick={handleLoginClick}
+                  disabled={!sessionId}
+                  className="w-full h-14 bg-[#229ED9] hover:bg-[#1f8ebf] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-[#229ED9]/20"
+                >
+                  <Send className="w-6 h-6 rotate-[-45deg]" />
+                  <span>ВОЙТИ ЧЕРЕЗ TELEGRAM</span>
+                </button>
+                <p className="text-white/20 text-[10px] font-bold uppercase tracking-[0.2em]">Подтвердите вход в приложении</p>
+              </>
+            ) : (
+              <div className="py-2 space-y-4">
+                <div className="flex justify-center">
+                  <div className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-white font-bold text-sm">Ждем подтверждения...</p>
+                  <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Откройте Telegram и нажмите Start</p>
+                </div>
+                <button 
+                  onClick={() => setWaitingConfirm(false)}
+                  className="text-emerald-500 text-[10px] font-bold uppercase tracking-wider hover:underline"
+                >
+                  Вернуться назад
+                </button>
+              </div>
+            )}
           </div>
           
           <div className="relative z-10 mt-6 pt-6 border-t border-white/5" />
