@@ -3,12 +3,12 @@ import { createServer as createViteServer } from "vite";
 import axios from "axios";
 import path from "path";
 import multer from "multer";
-import { S3Client } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
+import cors from "cors";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 
 import { query, initDb } from "./src/lib/db.js";
+import { s3Client, uploadToS3 } from "./src/lib/s3.js";
 import { getTranscript, getChannelInfo, getLatestVideos } from "./src/services/apify.js";
 import { evaluateContent } from "./src/services/openrouter.js";
 import { sendToVizard, getVizardProjectStatus } from "./src/services/vizard.js";
@@ -20,19 +20,8 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key-change-me";
 
-dotenv.config();
-
-// Initialize S3 Client
-const s3Client = new S3Client({
-  endpoint: process.env.S3_ENDPOINT,
-  region: process.env.S3_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
-  },
-  forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
-});
-
+const app = express();
+app.use(cors());
 const upload = multer({ storage: multer.memoryStorage() });
 
 async function getChannelIdFromUrl(url: string): Promise<{ id?: string, handle?: string } | null> {
@@ -133,28 +122,6 @@ const monitorChannels = async () => {
 // Run every hour
 cron.schedule('0 * * * *', monitorChannels);
 
-async function uploadToS3(file: Express.Multer.File): Promise<string> {
-  const fileName = `${Date.now()}-${file.originalname}`;
-  const bucketName = process.env.S3_BUCKET_NAME || "";
-
-  const upload = new Upload({
-    client: s3Client,
-    params: {
-      Bucket: bucketName,
-      Key: fileName,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      ACL: "public-read",
-    },
-  });
-
-  await upload.done();
-
-  const endpoint = process.env.S3_ENDPOINT?.replace(/\/$/, "");
-  if (process.env.S3_FORCE_PATH_STYLE === "true") {
-    return `${endpoint}/${bucketName}/${fileName}`;
-  } else {
-    return `https://${bucketName}.s3.${process.env.S3_REGION}.amazonaws.com/${fileName}`;
   }
 }
 
