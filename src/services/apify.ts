@@ -6,7 +6,7 @@ dotenv.config();
 const APIFY_TOKEN = process.env.APIFY_TOKEN;
 const ACTOR_ID = 'streamers~youtube-scraper';
 
-export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, name: string, thumbnail: string } | null> => {
+export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, name: string, thumbnail: string, subscribers: number } | null> => {
     if (!APIFY_TOKEN) return null;
     try {
         console.log(`Fetching channel info via Apify for: ${channelUrl}`);
@@ -37,7 +37,8 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
             return {
                 id: item.channelId || item.id,
                 name: item.channelName || item.title,
-                thumbnail: item.channelAvatarUrl || item.channelThumbnail || item.thumbnailUrl
+                thumbnail: item.channelAvatarUrl || item.channelThumbnail || item.thumbnailUrl,
+                subscribers: item.numberOfSubscribers || 0
             };
         }
     } catch (e) {

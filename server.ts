@@ -90,6 +90,16 @@ const syncChannel = async (channelId: string, name: string, monitoringInterval: 
         const transcript = await getTranscript(`https://www.youtube.com/watch?v=${videoId}`);
         if (transcript) {
           await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
+          
+          console.log(`[AI] Starting evaluation for video: ${item.title}`);
+          const evaluation = await evaluateContent(item.title, transcript, "Предприниматели, интересующиеся ИИ и автоматизацией");
+          if (evaluation) {
+            await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2 WHERE id = $3", 
+              [evaluation.score, evaluation.evaluation, videoId]);
+            console.log(`[AI] Evaluation complete for ${videoId}: Score ${evaluation.score}/100`);
+          } else {
+            console.error(`[AI] Evaluation failed for ${videoId}`);
+          }
         }
       }
     }
@@ -357,8 +367,8 @@ async function startServer() {
 
       const nextCheck = calculateNextCheck(monitoring_interval);
       await query(
-        "INSERT INTO channels (id, name, thumbnail, monitoring_interval, next_check, scrape_days) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO UPDATE SET name = $2, thumbnail = $3, monitoring_interval = $4, next_check = $5, scrape_days = $6",
-        [channelData.id, channelData.name, channelData.thumbnail, monitoring_interval, nextCheck, scrapeDays]
+        "INSERT INTO channels (id, name, thumbnail, subscribers, monitoring_interval, next_check, scrape_days) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO UPDATE SET name = $2, thumbnail = $3, subscribers = $4, monitoring_interval = $5, next_check = $6, scrape_days = $7",
+        [channelData.id, channelData.name, channelData.thumbnail, channelData.subscribers, monitoring_interval, nextCheck, scrapeDays]
       );
 
       // Trigger immediate sync without waiting for client response

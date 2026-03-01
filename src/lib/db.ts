@@ -25,6 +25,7 @@ export const initDb = async () => {
       id TEXT PRIMARY KEY,
       name TEXT,
       thumbnail TEXT,
+      subscribers BIGINT,
       last_checked TIMESTAMP,
       monitoring_interval TEXT DEFAULT 'daily', -- manual, daily, weekly
       next_check TIMESTAMP,

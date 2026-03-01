@@ -37,6 +37,7 @@ interface Channel {
   id: string;
   name: string;
   thumbnail: string;
+  subscribers?: number;
   monitoring_interval?: string;
   next_check?: string;
 }
@@ -94,6 +95,12 @@ interface Task {
   clip_thumbnail: string;
   clip_title: string;
 }
+
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+};
 
 function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -615,15 +622,22 @@ export default function App() {
                 </div>
                 {channels.map(channel => (
                   <div key={channel.id} className="relative bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center gap-4 group hover:bg-white/10 transition-colors">
-                    <img src={channel.thumbnail} className="w-12 h-12 rounded-full border border-white/10" alt="" />
+                    <img src={channel.thumbnail} className="w-12 h-12 rounded-full border border-white/10 object-cover" alt="" />
                     <div className="flex-1 min-w-0 pr-8">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="font-medium truncate">{channel.name}</h3>
+                        {channel.subscribers !== undefined && (
+                          <span className="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-full font-bold">
+                            {formatNumber(channel.subscribers)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
                         <span className="text-[10px] uppercase tracking-wider bg-white/5 px-2 py-0.5 rounded text-white/40">
                           {channel.monitoring_interval === 'daily' ? 'Ежедневно' : channel.monitoring_interval === 'weekly' ? 'Еженедельно' : 'Вручную'}
                         </span>
+                        <p className="text-[10px] text-white/20 truncate">{channel.id}</p>
                       </div>
-                      <p className="text-xs text-white/40 truncate">{channel.id}</p>
                       {channel.next_check && (
                         <p className="text-[10px] text-emerald-500/60 mt-1">
                           След. проверка: {format(new Date(channel.next_check), 'dd.MM HH:mm')}
