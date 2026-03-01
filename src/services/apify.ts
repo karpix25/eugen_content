@@ -23,6 +23,37 @@ const apifyRequest = async (method: 'get' | 'post', url: string, data?: any, ret
     }
 };
 
+const waitForRun = async (runId: string, timeoutMs: number = 300000): Promise<string | null> => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        try {
+            const statusRes = await apifyRequest('get', `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
+            const status = statusRes.data.data.status;
+            const datasetId = statusRes.data.data.defaultDatasetId;
+            console.log(`Apify Run ${runId} Status: ${status}`);
+            
+            if (status === 'SUCCEEDED') return datasetId;
+            if (['FAILED', 'ABORTED', 'TIMED-OUT'].includes(status)) return null;
+            
+            await new Promise(r => setTimeout(r, 5000));
+        } catch (e) {
+            console.warn(`Error polling run ${runId}, retrying...`);
+            await new Promise(r => setTimeout(r, 5000));
+        }
+    }
+    return null;
+};
+
+export const getDatasetItems = async (datasetId: string): Promise<any[]> => {
+    try {
+        const res = await apifyRequest('get', `https://api.apify.com/v2/datasets/${datasetId}/items?token=${APIFY_TOKEN}`);
+        return res.data;
+    } catch (e) {
+        console.error(`Error fetching dataset ${datasetId}:`, e);
+        return [];
+    }
+};
+
 export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, name: string, thumbnail: string, subscribers: number } | null> => {
     if (!APIFY_TOKEN) return null;
     try {
@@ -32,25 +63,15 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
             maxResultDeserializationLimit: 1
         });
         const runId = runResponse.data.data.id;
-        const defaultDatasetId = runResponse.data.data.defaultDatasetId;
         console.log(`Apify Channel Info Run ID: ${runId}`);
 
-        // Simple poll
-        let finished = false;
-        while (!finished) {
-            const statusRes = await apifyRequest('get', `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
-            const status = statusRes.data.data.status;
-            console.log(`Apify Run Status: ${status}`);
-            if (status === 'SUCCEEDED') finished = true;
-            else if (['FAILED', 'ABORTED', 'TIMED-OUT'].includes(status)) return null;
-            else await new Promise(r => setTimeout(r, 3000));
-        }
+        const datasetId = await waitForRun(runId);
+        if (!datasetId) return null;
 
-        const res = await apifyRequest('get', `https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`);
-        console.log(`Apify Dataset Items Count: ${res.data.length}`);
-        const item = res.data[0];
+        const items = await getDatasetItems(datasetId);
+        console.log(`Apify Dataset Items Count: ${items.length}`);
+        const item = items[0];
         if (item) {
-            console.log("Raw Apify Item [0]:", JSON.stringify(item, null, 2));
             return {
                 id: item.channelId || item.id,
                 name: item.channelName || item.title,
@@ -80,18 +101,12 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 5, pub
 
         const runResponse = await apifyRequest('post', `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`, payload);
         const runId = runResponse.data.data.id;
-        const defaultDatasetId = runResponse.data.data.defaultDatasetId;
 
-        let finished = false;
-        while (!finished) {
-            const statusRes = await apifyRequest('get', `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
-            if (statusRes.data.data.status === 'SUCCEEDED') finished = true;
-            else if (['FAILED', 'ABORTED', 'TIMED-OUT'].includes(statusRes.data.data.status)) return [];
-            else await new Promise(r => setTimeout(r, 5000));
-        }
+        const datasetId = await waitForRun(runId);
+        if (!datasetId) return [];
 
-        const res = await apifyRequest('get', `https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`);
-        return res.data.map((v: any) => ({
+        const items = await getDatasetItems(datasetId);
+        return items.map((v: any) => ({
             id: v.id || v.videoId,
             title: v.title,
             description: v.description,
@@ -105,15 +120,10 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 5, pub
 };
 
 export const getTranscript = async (videoUrl: string): Promise<string | null> => {
-    if (!APIFY_TOKEN) {
-        console.error('APIFY_TOKEN is not set');
-        return null;
-    }
-
+    if (!APIFY_TOKEN) return null;
     try {
         console.log(`Starting Apify YouTube Scraper for: ${videoUrl}`);
 
-        // Start the actor
         const runResponse = await apifyRequest('post', 
             `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`,
             {
@@ -127,40 +137,15 @@ export const getTranscript = async (videoUrl: string): Promise<string | null> =>
         );
 
         const runId = runResponse.data.data.id;
-        const defaultDatasetId = runResponse.data.data.defaultDatasetId;
+        console.log(`Apify transcript run started: ${runId}. Waiting for completion...`);
 
-        console.log(`Apify run started: ${runId}. Waiting for completion...`);
+        const datasetId = await waitForRun(runId);
+        if (!datasetId) return null;
 
-        // Poll for completion
-        let finished = false;
-        let attempts = 0;
-        while (!finished && attempts < 30) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            const statusResponse = await apifyRequest('get', 
-                `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`
-            );
-            const status = statusResponse.data.data.status;
-            if (status === 'SUCCEEDED') {
-                finished = true;
-            } else if (status === 'FAILED' || status === 'ABORTED' || status === 'TIMED-OUT') {
-                throw new Error(`Apify run ${status}`);
-            }
-            attempts++;
-        }
-
-        if (!finished) throw new Error('Apify run timed out');
-
-        // Get the results from dataset
-        const datasetResponse = await apifyRequest('get', 
-            `https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`
-        );
-
-        const items = datasetResponse.data;
+        const items = await getDatasetItems(datasetId);
         if (items && items.length > 0) {
             const videoData = items[0];
-            // The YouTube scraper returns subtitles in a generic format if requested
             if (videoData.subtitles && Array.isArray(videoData.subtitles)) {
-                // If it's a structural array of subtitles, flatten them out. If plaintext was successful, it might just be string.
                 if (typeof videoData.subtitles[0] === 'string') {
                     return videoData.subtitles.join('\n');
                 } else if (videoData.subtitles[0].text) {
@@ -171,10 +156,8 @@ export const getTranscript = async (videoUrl: string): Promise<string | null> =>
             } else if (typeof videoData.subtitles === 'string') {
                 return videoData.subtitles;
             }
-            // fallback
             return videoData.description || videoData.title || null;
         }
-
         return null;
     } catch (error) {
         console.error('Error fetching transcript from Apify:', error);
