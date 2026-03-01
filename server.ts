@@ -122,9 +122,6 @@ const monitorChannels = async () => {
 // Run every hour
 cron.schedule('0 * * * *', monitorChannels);
 
-  }
-}
-
 async function startServer() {
   const app = express();
   app.use(express.json());
@@ -457,6 +454,10 @@ async function startServer() {
 
         for (const item of discoveredVideos) {
           const videoId = item.id;
+          if (!videoId) {
+            console.warn(`Sync: Skipping video with missing ID: ${item.title}`);
+            continue;
+          }
 
           // STRICT DEDUPLICATION
           const existing = await query("SELECT id, status FROM videos WHERE id = $1", [videoId]);
