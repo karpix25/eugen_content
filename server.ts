@@ -72,39 +72,42 @@ function calculateNextCheck(interval: string): Date {
   return now;
 }
 
+const syncChannel = async (channelId: string, name: string, monitoringInterval: string) => {
+  console.log(`Syncing channel: ${name} (${channelId})`);
+  try {
+    // Append /videos to explicitly get the newest videos, avoiding homepage layout mixups
+    const discoveredVideos = await getLatestVideos(`https://www.youtube.com/channel/${channelId}/videos`, 5);
+    for (const item of discoveredVideos) {
+      const videoId = item.id;
+      const existing = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
+      if (existing.rows.length === 0) {
+        console.log(`Sync: Discovered NEW video ${videoId} for ${name}`);
+        await query(`
+          INSERT INTO videos (id, channel_id, title, description, published_at, thumbnail)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [videoId, channelId, item.title, item.description, item.publishedAt, item.thumbnail]);
+
+        const transcript = await getTranscript(`https://www.youtube.com/watch?v=${videoId}`);
+        if (transcript) {
+          await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
+        }
+      }
+    }
+
+    const nextCheck = calculateNextCheck(monitoringInterval);
+    await query("UPDATE channels SET last_checked = CURRENT_TIMESTAMP, next_check = $1 WHERE id = $2", [nextCheck, channelId]);
+  } catch (err) {
+    console.error(`Sync error for ${channelId}:`, err);
+  }
+};
+
 const monitorChannels = async () => {
   console.log("Running scheduled monitoring check...");
   const channels = await query("SELECT * FROM channels WHERE next_check <= CURRENT_TIMESTAMP OR next_check IS NULL");
 
   for (const channel of channels.rows) {
     if (channel.monitoring_interval === 'manual') continue;
-
-    console.log(`Scheduled monitor for channel: ${channel.name} (${channel.id})`);
-    try {
-      // Append /videos to explicitly get the newest videos, avoiding homepage layout mixups
-      const discoveredVideos = await getLatestVideos(`https://www.youtube.com/channel/${channel.id}/videos`, 5);
-      for (const item of discoveredVideos) {
-        const videoId = item.id;
-        const existing = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
-        if (existing.rows.length === 0) {
-          console.log(`Scheduled monitor: Discovered NEW video ${videoId}`);
-          await query(`
-            INSERT INTO videos (id, channel_id, title, description, published_at, thumbnail)
-            VALUES ($1, $2, $3, $4, $5, $6)
-          `, [videoId, channel.id, item.title, item.description, item.publishedAt, item.thumbnail]);
-
-          const transcript = await getTranscript(`https://www.youtube.com/watch?v=${videoId}`);
-          if (transcript) {
-            await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
-          }
-        }
-      }
-
-      const nextCheck = calculateNextCheck(channel.monitoring_interval);
-      await query("UPDATE channels SET last_checked = CURRENT_TIMESTAMP, next_check = $1 WHERE id = $2", [nextCheck, channel.id]);
-    } catch (err) {
-      console.error(`Scheduled monitor error for ${channel.id}:`, err);
-    }
+    await syncChannel(channel.id, channel.name, channel.monitoring_interval);
   }
 };
 
@@ -357,6 +360,9 @@ async function startServer() {
         "INSERT INTO channels (id, name, thumbnail, monitoring_interval, next_check, scrape_days) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO UPDATE SET name = $2, thumbnail = $3, monitoring_interval = $4, next_check = $5, scrape_days = $6",
         [channelData.id, channelData.name, channelData.thumbnail, monitoring_interval, nextCheck, scrapeDays]
       );
+
+      // Trigger immediate sync without waiting for client response
+      syncChannel(channelData.id, channelData.name, monitoring_interval).catch(err => console.error("Immediate sync failed:", err));
 
       res.json({ success: true, channel: channelData.name });
     } catch (error: any) {

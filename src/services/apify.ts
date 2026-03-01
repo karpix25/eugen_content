@@ -37,7 +37,7 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
             return {
                 id: item.channelId || item.id,
                 name: item.channelName || item.title,
-                thumbnail: item.channelThumbnail || item.thumbnailUrl
+                thumbnail: item.channelAvatarUrl || item.channelThumbnail || item.thumbnailUrl
             };
         }
     } catch (e) {
