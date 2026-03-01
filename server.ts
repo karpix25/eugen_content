@@ -22,6 +22,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key-change-me";
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 const upload = multer({ storage: multer.memoryStorage() });
 
 async function getChannelIdFromUrl(url: string): Promise<{ id?: string, handle?: string } | null> {
@@ -123,8 +124,6 @@ const monitorChannels = async () => {
 cron.schedule('0 * * * *', monitorChannels);
 
 async function startServer() {
-  const app = express();
-  app.use(express.json());
   const PORT = Number(process.env.PORT) || 3000;
 
   // Initialize DB and Bot (Gracefully skip if config is missing)
