@@ -75,7 +75,7 @@ function calculateNextCheck(interval: string): Date {
 const syncChannel = async (channelId: string, name: string, monitoringInterval: string, scrapeDays: number = 7) => {
   console.log(`Syncing channel: ${name} (${channelId})`);
   try {
-    const discoveredVideos = await getLatestVideos(`https://www.youtube.com/@${name.replace(/\s+/g, '')}`, 10, scrapeDays);
+    const discoveredVideos = await getLatestVideos(`https://www.youtube.com/channel/${channelId}`, 10, scrapeDays);
     for (const item of discoveredVideos) {
       const videoId = item.id;
       const existing = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
