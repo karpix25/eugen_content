@@ -6,11 +6,28 @@ dotenv.config();
 const APIFY_TOKEN = process.env.APIFY_TOKEN;
 const ACTOR_ID = 'streamers~youtube-scraper';
 
+const apifyRequest = async (method: 'get' | 'post', url: string, data?: any, retries: number = 3): Promise<any> => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            if (method === 'get') return await axios.get(url);
+            return await axios.post(url, data);
+        } catch (e: any) {
+            const status = e.response?.status;
+            if (i < retries - 1 && (status === 502 || status === 503 || status === 504 || !status)) {
+                console.warn(`Apify transient error (${status || 'network'}). Retrying ${i + 1}/${retries}...`);
+                await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+                continue;
+            }
+            throw e;
+        }
+    }
+};
+
 export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, name: string, thumbnail: string, subscribers: number } | null> => {
     if (!APIFY_TOKEN) return null;
     try {
         console.log(`Fetching channel info via Apify for: ${channelUrl}`);
-        const runResponse = await axios.post(`https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`, {
+        const runResponse = await apifyRequest('post', `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`, {
             startUrls: [{ url: channelUrl }],
             maxResultDeserializationLimit: 1
         });
@@ -21,7 +38,7 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
         // Simple poll
         let finished = false;
         while (!finished) {
-            const statusRes = await axios.get(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
+            const statusRes = await apifyRequest('get', `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
             const status = statusRes.data.data.status;
             console.log(`Apify Run Status: ${status}`);
             if (status === 'SUCCEEDED') finished = true;
@@ -29,7 +46,7 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
             else await new Promise(r => setTimeout(r, 3000));
         }
 
-        const res = await axios.get(`https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`);
+        const res = await apifyRequest('get', `https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`);
         console.log(`Apify Dataset Items Count: ${res.data.length}`);
         const item = res.data[0];
         if (item) {
@@ -61,19 +78,19 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 5, pub
             payload.publishedAfter = publishedAfter;
         }
 
-        const runResponse = await axios.post(`https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`, payload);
+        const runResponse = await apifyRequest('post', `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`, payload);
         const runId = runResponse.data.data.id;
         const defaultDatasetId = runResponse.data.data.defaultDatasetId;
 
         let finished = false;
         while (!finished) {
-            const statusRes = await axios.get(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
+            const statusRes = await apifyRequest('get', `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`);
             if (statusRes.data.data.status === 'SUCCEEDED') finished = true;
             else if (['FAILED', 'ABORTED', 'TIMED-OUT'].includes(statusRes.data.data.status)) return [];
             else await new Promise(r => setTimeout(r, 5000));
         }
 
-        const res = await axios.get(`https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`);
+        const res = await apifyRequest('get', `https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`);
         return res.data.map((v: any) => ({
             id: v.id || v.videoId,
             title: v.title,
@@ -97,7 +114,7 @@ export const getTranscript = async (videoUrl: string): Promise<string | null> =>
         console.log(`Starting Apify YouTube Scraper for: ${videoUrl}`);
 
         // Start the actor
-        const runResponse = await axios.post(
+        const runResponse = await apifyRequest('post', 
             `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`,
             {
                 startUrls: [{ url: videoUrl }],
@@ -119,7 +136,7 @@ export const getTranscript = async (videoUrl: string): Promise<string | null> =>
         let attempts = 0;
         while (!finished && attempts < 30) {
             await new Promise(resolve => setTimeout(resolve, 5000));
-            const statusResponse = await axios.get(
+            const statusResponse = await apifyRequest('get', 
                 `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`
             );
             const status = statusResponse.data.data.status;
@@ -134,7 +151,7 @@ export const getTranscript = async (videoUrl: string): Promise<string | null> =>
         if (!finished) throw new Error('Apify run timed out');
 
         // Get the results from dataset
-        const datasetResponse = await axios.get(
+        const datasetResponse = await apifyRequest('get', 
             `https://api.apify.com/v2/datasets/${defaultDatasetId}/items?token=${APIFY_TOKEN}`
         );
 
