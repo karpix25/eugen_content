@@ -120,11 +120,11 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                         filter: 'drawtext',
                         options: {
                             text: watermarkText,
-                            fontcolor: 'white@0.2',
+                            fontcolor: 'white@0.08',
                             fontsize: 64,
-                            x: 'W-tw-40',
-                            y: '40',
-                            shadowcolor: 'black@0.1',
+                            x: '(W-tw)/2',
+                            y: '(H-th)/2',
+                            shadowcolor: 'black@0.05',
                             shadowx: 2,
                             shadowy: 2
                         },
