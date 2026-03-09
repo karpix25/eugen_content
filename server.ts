@@ -732,11 +732,15 @@ async function startServer() {
       // Import the bot directly here since it might have side effects on global if top-level
       const { bot } = await import("./src/services/telegram.js");
 
-      // 3. Prepare watermark text
-      const watermarkText = user.username ? `@${user.username}` : user.first_name;
+      // 3. Prepare watermark settings
+      const defaultText = user.username ? `@${user.username}` : user.first_name;
+      const text = req.body.watermarkText !== undefined ? req.body.watermarkText : defaultText;
+      const opacity = req.body.opacity || 0.08;
+      const position = req.body.position || 'center';
 
-      // Pass skipS3Upload = true and watermarkText
-      const localFilePath = await processClip(id, clip.url, plaqueImageUrl, null, null, true, watermarkText);
+      // Pass skipS3Upload = true and watermark object
+      const watermarkConfig = text ? { text, opacity, position } : null;
+      const localFilePath = await processClip(id, clip.url, plaqueImageUrl, null, null, true, watermarkConfig as any);
 
       // Now send via Telegram directly
       const telegramId = user.telegram_id || user.id;

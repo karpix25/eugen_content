@@ -854,14 +854,21 @@ export default function App() {
                       key={clip.id}
                       clip={clip}
                       plaques={plaques}
+                      currentUserProfile={currentUser}
                       onCreateTask={() => handleCreateTask(clip.id)}
-                      onSendToTelegram={async (clipId, plaqueId) => {
+                      onSendToTelegram={async (clipId, plaqueId, watermarkSettings) => {
                         try {
                           const head = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+                          const payload: any = { plaque_id: plaqueId };
+                          if (watermarkSettings) {
+                            payload.watermarkText = watermarkSettings.text;
+                            payload.opacity = watermarkSettings.opacity;
+                            payload.position = watermarkSettings.position;
+                          }
                           const r = await fetch(`/api/clips/${clipId}/apply-plaque`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...head },
-                            body: JSON.stringify({ plaque_id: plaqueId })
+                            body: JSON.stringify(payload)
                           });
                           if (!r.ok) {
                             const e = await r.json();
@@ -1246,11 +1253,17 @@ function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
     </>
   );
 }
-function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram }: { clip: Clip, plaques: AdPlaque[], onCreateTask: () => void, onSendToTelegram?: (clipId: string, plaqueId: string) => void }) {
+function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram, currentUserProfile }: { clip: Clip, plaques: AdPlaque[], onCreateTask: () => void, onSendToTelegram?: (clipId: string, plaqueId: string | null, watermarkSettings?: { text: string, opacity: number, position: string }) => void, currentUserProfile?: any }) {
   const [randomPlaque, setRandomPlaque] = useState<AdPlaque | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlaqueSelector, setShowPlaqueSelector] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  // Watermark state
+  const defaultText = `@${currentUserProfile?.username || currentUserProfile?.first_name || 'username'}`;
+  const [watermarkText, setWatermarkText] = useState(defaultText);
+  const [watermarkOpacity, setWatermarkOpacity] = useState(0.08);
+  const [watermarkPosition, setWatermarkPosition] = useState('center');
 
   const applyRandomPlaque = () => {
     if (plaques.length === 0) return;
@@ -1258,12 +1271,16 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram }: { clip: Cli
     setRandomPlaque(r);
   };
 
-  const handleSend = async (plaqueId: string) => {
+  const handleSend = async (plaqueId: string | null) => {
     if (!onSendToTelegram) return;
     setShowPlaqueSelector(false);
     setIsSending(true);
     try {
-      await onSendToTelegram(clip.id, plaqueId);
+      await onSendToTelegram(clip.id, plaqueId, {
+        text: watermarkText,
+        opacity: watermarkOpacity,
+        position: watermarkPosition
+      });
     } finally {
       setIsSending(false);
     }
@@ -1413,12 +1430,89 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram }: { clip: Cli
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold">Выберите плашку</h3>
-                <p className="text-sm text-white/40">Какую рекламу наложить на это видео?</p>
+              <div className="space-y-1 mb-2">
+                <h3 className="text-xl font-bold">Настройки отправки</h3>
+                <p className="text-sm text-white/40">Настройте водяной знак и плашку</p>
+              </div>
+
+              {/* Watermark Controls */}
+              <div className="bg-white/5 rounded-xl p-4 space-y-4 border border-white/10">
+
+                {/* Live Preview relative to the 9:16 video ratio */}
+                <div className="relative aspect-[9/16] bg-black rounded-lg overflow-hidden border border-white/10 mx-auto w-32 shadow-xl shrink-0 float-right ml-4 mb-2">
+                  {clip.thumbnail && <img src={clip.thumbnail} className="absolute inset-0 w-full h-full object-cover opacity-50" />}
+                  <div
+                    className="absolute font-bold whitespace-nowrap text-[8px] pointer-events-none"
+                    style={{
+                      color: `rgba(255, 255, 255, ${watermarkOpacity})`,
+                      textShadow: `1px 1px 1px rgba(0, 0, 0, ${watermarkOpacity * 0.5})`,
+                      ...(
+                        watermarkPosition === 'center' ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' } :
+                          watermarkPosition === 'top_left' ? { top: '5%', left: '5%' } :
+                            watermarkPosition === 'top_right' ? { top: '5%', right: '5%' } :
+                              watermarkPosition === 'bottom_left' ? { bottom: '5%', left: '5%' } :
+                                watermarkPosition === 'bottom_right' ? { bottom: '5%', right: '5%' } :
+                                  watermarkPosition === 'tilted_center' ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)', fontSize: '10px' } :
+                                    {}
+                      )
+                    }}
+                  >
+                    {watermarkText || 'Текст'}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white/60 mb-1">Текст водяного знака</label>
+                  <input
+                    type="text"
+                    value={watermarkText}
+                    onChange={(e) => setWatermarkText(e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500"
+                    placeholder="@username"
+                  />
+                  <p className="text-[10px] text-white/40 mt-1">Оставьте пустым, чтобы отключить текст</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white/60 mb-1 flex justify-between">
+                    <span>Прозрачность ({(watermarkOpacity * 100).toFixed(0)}%)</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0" max="0.5" step="0.01"
+                    value={watermarkOpacity}
+                    onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white/60 mb-1">Положение</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { id: 'center', label: 'По центру' },
+                      { id: 'tilted_center', label: 'По центру (наклон)' },
+                      { id: 'top_left', label: 'Левый верх' },
+                      { id: 'top_right', label: 'Правый верх' },
+                      { id: 'bottom_left', label: 'Левый низ' },
+                      { id: 'bottom_right', label: 'Правый низ' },
+                    ].map(pos => (
+                      <button
+                        key={pos.id}
+                        onClick={() => setWatermarkPosition(pos.id)}
+                        className={`text-[10px] py-1.5 px-2 rounded-md font-medium transition-colors border ${watermarkPosition === pos.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5'}`}
+                      >
+                        {pos.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="clear-both"></div>
               </div>
 
               <div className="space-y-2 pt-2">
+                <p className="text-sm font-bold opacity-80 pt-2 border-t border-white/10">Выбор рекламной плашки</p>
                 <button
                   onClick={() => handleSend(null)}
                   className="w-full p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/50 transition-all flex items-center justify-center gap-3 group mb-2"

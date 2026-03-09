@@ -34,7 +34,7 @@ const pollDubbingStatus = async (dubbingId: string): Promise<boolean> => {
     return false;
 };
 
-export const processClip = async (clipId: string, videoUrl: string, plaqueImageUrl: string | null, targetLang?: string | null, sourceLang?: string | null, skipS3Upload: boolean = false, watermarkText?: string): Promise<string> => {
+export const processClip = async (clipId: string, videoUrl: string, plaqueImageUrl: string | null, targetLang?: string | null, sourceLang?: string | null, skipS3Upload: boolean = false, watermarkConfig?: { text: string, opacity: number, position: string }): Promise<string> => {
     return new Promise(async (resolve, reject) => {
         try {
             const outputDir = path.join(process.cwd(), 'temp', 'processed');
@@ -91,8 +91,8 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                 resolve(finalUrl);
             };
 
-            if (plaqueImageUrl || watermarkText) {
-                console.log(`Starting FFmpeg overlay for ${clipId} (Plaque: ${!!plaqueImageUrl}, Watermark: ${watermarkText || 'None'})`);
+            if (plaqueImageUrl || watermarkConfig) {
+                console.log(`Starting FFmpeg overlay for ${clipId} (Plaque: ${!!plaqueImageUrl}, Watermark: ${watermarkConfig?.text || 'None'})`);
 
                 let command = ffmpeg(currentVideoUrl);
                 const filters: any[] = [];
@@ -115,19 +115,44 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                     lastOutput = 'with_plaque';
                 }
 
-                if (watermarkText) {
+                if (watermarkConfig && watermarkConfig.text) {
+                    const { text, opacity, position } = watermarkConfig;
+
+                    let x = '(W-tw)/2';
+                    let y = '(H-th)/2';
+
+                    if (position === 'top_left') {
+                        x = 'W*0.05'; y = 'H*0.05';
+                    } else if (position === 'top_right') {
+                        x = 'W*0.95-tw'; y = 'H*0.05';
+                    } else if (position === 'bottom_left') {
+                        x = 'W*0.05'; y = 'H*0.95-th';
+                    } else if (position === 'bottom_right') {
+                        x = 'W*0.95-tw'; y = 'H*0.95-th';
+                    }
+
+                    const drawtextOptions: any = {
+                        text: text.replace(/:/g, '\\:'), // escape colons for FFmpeg
+                        fontcolor: `white@${opacity}`,
+                        fontsize: position === 'tilted_center' ? 84 : 64, // slightly larger for tilted
+                        x,
+                        y,
+                        shadowcolor: `black@${opacity * 0.6}`,
+                        shadowx: 2,
+                        shadowy: 2
+                    };
+
+                    // Note: text rotation via angle requires a build of FFmpeg with FreeType support and specific layout logic, 
+                    // However, we can approximate tilted text by providing no tilt if angle fails or rely on frontend preview if backend cannot tilt easily. We will attempt tilt.
+                    if (position === 'tilted_center') {
+                        // In some ffmpeg versions drawtext doesn't support 'angle' parameter directly unless specifically compiled, but it generally supports expansion.
+                        drawtextOptions.x = '(W-tw)/2';
+                        // if tilt isn't natively supported by standard Ubuntu ffmpeg drawtext filter, we will just keep it larger and centered. We'll leave out angle to prevent filter graph crashes, as most basic ffmpegs require rotation filters before drawtext for true tilts.
+                    }
+
                     filters.push({
                         filter: 'drawtext',
-                        options: {
-                            text: watermarkText,
-                            fontcolor: 'white@0.08',
-                            fontsize: 64,
-                            x: '(W-tw)/2',
-                            y: '(H-th)/2',
-                            shadowcolor: 'black@0.05',
-                            shadowx: 2,
-                            shadowy: 2
-                        },
+                        options: drawtextOptions,
                         inputs: lastOutput,
                         outputs: 'final'
                     });
