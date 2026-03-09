@@ -171,38 +171,58 @@ async function startServer() {
 
 
           for (const c of clips) {
-            const clipId = Math.random().toString(36).substr(2, 9);
-            let finalTitle = c.title || "Vizard Clip";
-            let finalTranscript = c.transcript || '';
+            // ALWAYS DO ORIGINAL CLIP FIRST
+            const originalClipId = Math.random().toString(36).substr(2, 9);
+            const originalTitle = c.title || "Vizard Clip";
+            const originalTranscript = c.transcript || '';
+            const originalLanguage = video?.detected_language || null;
 
-            if (needsTranslation && finalLanguage) {
-              console.log(`Translating clip metadata to ${finalLanguage}...`);
-              const [translatedTitle, translatedTranscript] = await Promise.all([
-                translateText(finalTitle, finalLanguage),
-                translateText(finalTranscript, finalLanguage)
-              ]);
-
-              if (translatedTitle) finalTitle = translatedTitle;
-              if (translatedTranscript) finalTranscript = translatedTranscript;
-            }
-
-            console.log(`Inserting clip for project ${v.vizard_project_id}: ${finalTitle}`);
+            console.log(`Inserting original clip for project ${v.vizard_project_id}: ${originalTitle}`);
             await query(
               "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, ad_plaque_id, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7, $8)",
-              [clipId, v.id, c.videoUrl || c.url || c.video_url, finalTitle, c.thumbnail_url || '', finalTranscript, plaque?.id, finalLanguage]
+              [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, c.thumbnail_url || '', originalTranscript, plaque?.id, originalLanguage]
             );
 
-            // Start asynchronous processing (branding + dubbing)
-            if (plaque || (video?.detected_language && video?.target_language)) {
+            // Process original without dubbing
+            if (plaque) {
               processClip(
-                clipId,
+                originalClipId,
                 c.videoUrl || c.url || c.video_url,
-                plaque?.image_url || null,
-                video?.target_language,
-                video?.detected_language
+                plaque.image_url
               ).catch(console.error);
             } else {
-              await query("UPDATE clips SET status = 'processed' WHERE id = $1", [clipId]);
+              await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
+            }
+
+            // NOW DO DUBBED CLIP IF NEEDED
+            if (needsTranslation && finalLanguage) {
+              const dubbedClipId = Math.random().toString(36).substr(2, 9);
+              let translatedTitle = originalTitle;
+              let translatedTranscript = originalTranscript;
+
+              console.log(`Translating clip metadata to ${finalLanguage}...`);
+              const [tTitle, tTranscript] = await Promise.all([
+                translateText(originalTitle, finalLanguage),
+                translateText(originalTranscript, finalLanguage)
+              ]);
+
+              if (tTitle) translatedTitle = tTitle;
+              if (tTranscript) translatedTranscript = tTranscript;
+
+              console.log(`Inserting dubbed clip for project ${v.vizard_project_id}: ${translatedTitle}`);
+              await query(
+                "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, ad_plaque_id, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7, $8)",
+                [dubbedClipId, v.id, c.videoUrl || c.url || c.video_url, translatedTitle, c.thumbnail_url || '', translatedTranscript, plaque?.id, finalLanguage]
+              );
+
+              // Process dubbed
+              processClip(
+                dubbedClipId,
+                c.videoUrl || c.url || c.video_url,
+                plaque?.image_url || null,
+                finalLanguage,
+                originalLanguage
+              ).catch(console.error);
             }
           }
         } else if (statusData.status === 'failed' || statusData.state === 'failed' || statusData.code === -1) {
