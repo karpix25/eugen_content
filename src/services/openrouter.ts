@@ -65,3 +65,37 @@ export const evaluateContent = async (
         return null;
     }
 };
+
+export const translateText = async (text: string, targetLanguage: string): Promise<string | null> => {
+    if (!OPENROUTER_API_KEY || !text) {
+        return null;
+    }
+
+    try {
+        const response = await axios.post(
+            'https://openrouter.ai/api/v1/chat/completions',
+            {
+                model: 'openai/gpt-4o-mini',
+                messages: [{
+                    role: 'system',
+                    content: `You are a professional translator. Translate the given text to the requested language code: ${targetLanguage}. Return ONLY the direct translation. Do not include markdown, quotes, explanations, or conversational text. If the text is empty or meaningless, just return it as is.`
+                }, {
+                    role: 'user',
+                    content: text
+                }],
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                    'HTTP-Referer': 'https://github.com/karlo-carousel',
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        return response.data.choices[0].message.content.trim();
+    } catch (error) {
+        console.error('Error translating text:', error);
+        return null;
+    }
+};

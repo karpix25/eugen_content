@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { query, initDb } from "./src/lib/db.js";
 import { s3Client, uploadToS3 } from "./src/lib/s3.js";
 import { getTranscript, getChannelInfo, getLatestVideos } from "./src/services/apify.js";
-import { evaluateContent } from "./src/services/openrouter.js";
+import { evaluateContent, translateText } from "./src/services/openrouter.js";
 import { sendToVizard, getVizardProjectStatus } from "./src/services/vizard.js";
 import { startBot } from "./src/services/telegram.js";
 import { processClip } from "./src/services/processor.js";
@@ -167,14 +167,29 @@ async function startServer() {
           const videoResult = await query("SELECT detected_language, target_language FROM videos WHERE id = $1", [v.id]);
           const video = videoResult.rows[0];
           const finalLanguage = video?.target_language || video?.detected_language || null;
+          const needsTranslation = video?.target_language && video?.detected_language && video.target_language !== video.detected_language;
 
 
           for (const c of clips) {
             const clipId = Math.random().toString(36).substr(2, 9);
-            console.log(`Inserting clip for project ${v.vizard_project_id}: ${c.title}`);
+            let finalTitle = c.title || "Vizard Clip";
+            let finalTranscript = c.transcript || '';
+
+            if (needsTranslation && finalLanguage) {
+              console.log(`Translating clip metadata to ${finalLanguage}...`);
+              const [translatedTitle, translatedTranscript] = await Promise.all([
+                translateText(finalTitle, finalLanguage),
+                translateText(finalTranscript, finalLanguage)
+              ]);
+
+              if (translatedTitle) finalTitle = translatedTitle;
+              if (translatedTranscript) finalTranscript = translatedTranscript;
+            }
+
+            console.log(`Inserting clip for project ${v.vizard_project_id}: ${finalTitle}`);
             await query(
               "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, ad_plaque_id, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7, $8)",
-              [clipId, v.id, c.videoUrl || c.url || c.video_url, c.title || "Vizard Clip", c.thumbnail_url || '', c.transcript || '', plaque?.id, finalLanguage]
+              [clipId, v.id, c.videoUrl || c.url || c.video_url, finalTitle, c.thumbnail_url || '', finalTranscript, plaque?.id, finalLanguage]
             );
 
             // Start asynchronous processing (branding + dubbing)
