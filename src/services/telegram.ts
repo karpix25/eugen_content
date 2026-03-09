@@ -48,7 +48,7 @@ bot.start(async (ctx) => {
             const token = jwt.sign(
                 { id: from.id, username: from.username, first_name: from.first_name },
                 process.env.JWT_SECRET || 'fallback_secret',
-                { expiresIn: '24h' }
+                { expiresIn: '12h' }
             );
 
             await query(

@@ -26,7 +26,8 @@ import {
   X,
   Trash2,
   Users,
-  LogOut
+  LogOut,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -225,7 +226,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'monitor' | 'clips' | 'ads' | 'tasks' | 'workers'>('monitor');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'tasks' | 'clips' | 'ads' | 'workers'>('clips');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelId, setNewChannelId] = useState('');
@@ -244,10 +245,13 @@ export default function App() {
 
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   useEffect(() => {
     if (authToken) {
       fetchData();
+    } else {
+      setIsAuthChecking(false);
     }
   }, [authToken]);
 
@@ -298,6 +302,7 @@ export default function App() {
 
       if (resData.some(d => d.error === 'Unauthorized' || d === 401)) {
         handleLogout();
+        setIsAuthChecking(false);
         return;
       }
 
@@ -307,8 +312,24 @@ export default function App() {
       setPlaques(resData[3]);
       setTasks(resData[4]);
       setUsers(resData[5]);
-    } catch (err) {
-      console.error("Failed to fetch data", err);
+
+      // If we got here, we're authorized. Let's explicitly check who we are if we don't know yet
+      if (!currentUser) {
+        try {
+          const authCheck = await fetch('/api/auth/check', { headers });
+          if (authCheck.ok) {
+            const userData = await authCheck.json();
+            setCurrentUser(userData.user);
+          }
+        } catch (e) {
+          console.error("Auth check failed", e);
+        }
+      }
+
+      setIsAuthChecking(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setIsAuthChecking(false);
     }
   };
 
@@ -489,6 +510,18 @@ export default function App() {
       setLoading(false);
     }
   };
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mb-6 animate-pulse">
+          <Zap className="w-8 h-8 text-emerald-500" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Загрузка системы...</h2>
+        <p className="text-white/40 text-sm">Проверяем доступы и подключаемся к серверу</p>
+      </div>
+    );
+  }
 
   if (!authToken) {
     return <AuthPage onLogin={(token, user) => {
