@@ -324,13 +324,52 @@ async function startServer() {
   });
 
   // Simple token verification / "Who am I" hydration
-  app.get("/api/auth/check", authenticateToken, (req: any, res) => {
-    res.json({
-      user: {
-        ...req.user,
-        is_admin: isAdmin(req.user.id)
+  app.get("/api/auth/check", authenticateToken, async (req: any, res) => {
+    try {
+      const userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [req.user.id]);
+      if (userRes.rows.length === 0) {
+        return res.json({
+          user: {
+            ...req.user,
+            is_admin: isAdmin(req.user.id)
+          }
+        });
       }
-    });
+      const dbUser = userRes.rows[0];
+      res.json({
+        user: {
+          ...req.user,
+          ...dbUser,
+          id: dbUser.telegram_id, // maintain frontend id
+          is_admin: isAdmin(req.user.id)
+        }
+      });
+    } catch (err) {
+      res.json({
+        user: {
+          ...req.user,
+          is_admin: isAdmin(req.user.id)
+        }
+      });
+    }
+  });
+
+  app.post("/api/users/settings", authenticateToken, async (req: any, res) => {
+    const { watermark_text, watermark_opacity, watermark_position } = req.body;
+    try {
+      await query(`
+        INSERT INTO users (telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (telegram_id) DO UPDATE SET 
+          watermark_text = EXCLUDED.watermark_text,
+          watermark_opacity = EXCLUDED.watermark_opacity,
+          watermark_position = EXCLUDED.watermark_position
+      `, [req.user.id, req.user.username || '', req.user.first_name || '', watermark_text, watermark_opacity, watermark_position]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Settings update error:", err);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
   });
 
   app.post("/api/auth/telegram", async (req, res) => {
@@ -732,18 +771,37 @@ async function startServer() {
       // Import the bot directly here since it might have side effects on global if top-level
       const { bot } = await import("./src/services/telegram.js");
 
-      // 3. Prepare watermark settings
+      // 3. Prepare watermark settings from Global DB Settings
+      const telegramId = user.telegram_id || user.id;
+
+      // Ensure user exists right here before grabbing settings, this fixes foreign key problems universally
+      await query(`
+        INSERT INTO users (telegram_id, username, first_name)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (telegram_id) DO NOTHING
+      `, [telegramId, user.username || '', user.first_name || 'Worker']);
+
+      const userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [telegramId]);
+      const dbUser = userRes.rows[0] || {};
+
       const defaultText = user.username ? `@${user.username}` : user.first_name;
-      const text = req.body.watermarkText !== undefined ? req.body.watermarkText : defaultText;
-      const opacity = req.body.opacity || 0.08;
-      const position = req.body.position || 'center';
+      // If dbUser.watermark_text is NULL but there IS a row, it could be empty string meaning turn it off. 
+      // If it is strictly undefined/null we fall back to default text.
+      const text = dbUser.watermark_text !== null && dbUser.watermark_text !== undefined
+        ? dbUser.watermark_text
+        : defaultText;
+
+      const opacity = dbUser.watermark_opacity !== null && dbUser.watermark_opacity !== undefined
+        ? parseFloat(dbUser.watermark_opacity)
+        : 0.08;
+
+      const position = dbUser.watermark_position || 'center';
 
       // Pass skipS3Upload = true and watermark object
       const watermarkConfig = text ? { text, opacity, position } : null;
       const localFilePath = await processClip(id, clip.url, plaqueImageUrl, null, null, true, watermarkConfig as any);
 
       // Now send via Telegram directly
-      const telegramId = user.telegram_id || user.id;
       if (telegramId !== 'dev') {
         const fs = await import('fs');
         // Send via Telegram
@@ -753,12 +811,7 @@ async function startServer() {
           caption: `🎥 ${clip.title}`
         });
         // 4. Log the publication
-        // Defensive check: Ensure user exists in DB to prevent foreign key violation
-        await query(`
-          INSERT INTO users (telegram_id, username, first_name)
-          VALUES ($1, $2, $3)
-          ON CONFLICT (telegram_id) DO NOTHING
-        `, [telegramId, user.username || '', user.first_name || 'Worker']);
+        // Defensive check already handled above.
 
         await query(`
           INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status)

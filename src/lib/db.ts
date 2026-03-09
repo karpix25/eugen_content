@@ -18,6 +18,9 @@ export const initDb = async () => {
       username TEXT,
       first_name TEXT,
       is_authorized BOOLEAN DEFAULT FALSE,
+      watermark_text TEXT,
+      watermark_opacity NUMERIC DEFAULT 0.08,
+      watermark_position TEXT DEFAULT 'center',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -113,6 +116,9 @@ export const initDb = async () => {
     await query("ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language VARCHAR(10)");
     await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS language VARCHAR(10)");
     await query("ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS user_id BIGINT");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_text TEXT");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_opacity NUMERIC DEFAULT 0.08");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_position TEXT DEFAULT 'center'");
     console.log("Database migrations applied successfully.");
   } catch (err) {
     console.error("Migration error:", err);
