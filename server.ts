@@ -159,13 +159,36 @@ async function startServer() {
 
           await query("UPDATE videos SET status = 'completed' WHERE id = $1", [v.id]);
 
+          // Get plaque to use for branding
+          const plaqueResult = await query("SELECT * FROM ad_plaques LIMIT 1");
+          const plaque = plaqueResult.rows[0];
+
+          // Get final language logic
+          const videoResult = await query("SELECT detected_language, target_language FROM videos WHERE id = $1", [v.id]);
+          const video = videoResult.rows[0];
+          const finalLanguage = video?.target_language || video?.detected_language || null;
+
+
           for (const c of clips) {
             const clipId = Math.random().toString(36).substr(2, 9);
             console.log(`Inserting clip for project ${v.vizard_project_id}: ${c.title}`);
             await query(
-              "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status) VALUES ($1, $2, $3, $4, $5, $6, 'raw')",
-              [clipId, v.id, c.videoUrl || c.url || c.video_url, c.title || "Vizard Clip", c.thumbnail_url || '', c.transcript || '']
+              "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, ad_plaque_id, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7, $8)",
+              [clipId, v.id, c.videoUrl || c.url || c.video_url, c.title || "Vizard Clip", c.thumbnail_url || '', c.transcript || '', plaque?.id, finalLanguage]
             );
+
+            // Start asynchronous processing (branding + dubbing)
+            if (plaque || (video?.detected_language && video?.target_language)) {
+              processClip(
+                clipId,
+                c.videoUrl || c.url || c.video_url,
+                plaque?.image_url || null,
+                video?.target_language,
+                video?.detected_language
+              ).catch(console.error);
+            } else {
+              await query("UPDATE clips SET status = 'processed' WHERE id = $1", [clipId]);
+            }
           }
         } else if (statusData.status === 'failed' || statusData.state === 'failed' || statusData.code === -1) {
           console.log(`Vizard project ${v.vizard_project_id} failed.`);
@@ -584,12 +607,14 @@ async function startServer() {
     const videoResult = await query("SELECT detected_language, target_language FROM videos WHERE id = $1", [videoId]);
     const video = videoResult.rows[0];
 
+    const finalLanguage = video?.target_language || video?.detected_language || null;
+
     for (const clip of clips) {
       const clipId = Math.random().toString(36).substr(2, 9);
       await query(`
-        INSERT INTO clips (id, video_id, url, thumbnail, title, ad_plaque_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `, [clipId, videoId, clip.url, clip.thumbnail, clip.title, plaque?.id]);
+        INSERT INTO clips (id, video_id, url, thumbnail, title, ad_plaque_id, language)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [clipId, videoId, clip.url, clip.thumbnail, clip.title, plaque?.id, finalLanguage]);
 
       // Start asynchronous processing (branding + dubbing + subs)
       if (plaque || (video?.detected_language && video?.target_language)) {
