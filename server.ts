@@ -711,8 +711,11 @@ async function startServer() {
       // Import the bot directly here since it might have side effects on global if top-level
       const { bot } = await import("./src/services/telegram.js");
 
-      // Pass skipS3Upload = true so it returns absolute local path and doesn't overwrite DB URL
-      const localFilePath = await processClip(id, clip.url, plaque.image_url, null, null, true);
+      // 3. Prepare watermark text
+      const watermarkText = user.username ? `@${user.username}` : user.first_name;
+
+      // Pass skipS3Upload = true and watermarkText
+      const localFilePath = await processClip(id, clip.url, plaque.image_url, null, null, true, watermarkText);
 
       // Now send via Telegram directly
       const telegramId = user.telegram_id || user.id;

@@ -34,7 +34,7 @@ const pollDubbingStatus = async (dubbingId: string): Promise<boolean> => {
     return false;
 };
 
-export const processClip = async (clipId: string, videoUrl: string, plaqueImageUrl: string | null, targetLang?: string | null, sourceLang?: string | null, skipS3Upload: boolean = false): Promise<string> => {
+export const processClip = async (clipId: string, videoUrl: string, plaqueImageUrl: string | null, targetLang?: string | null, sourceLang?: string | null, skipS3Upload: boolean = false, watermarkText?: string): Promise<string> => {
     return new Promise(async (resolve, reject) => {
         try {
             const outputDir = path.join(process.cwd(), 'temp', 'processed');
@@ -91,15 +91,51 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                 resolve(finalUrl);
             };
 
-            if (plaqueImageUrl) {
-                console.log(`Starting FFmpeg overlay for ${clipId}`);
-                ffmpeg(currentVideoUrl)
-                    .input(plaqueImageUrl)
-                    .complexFilter([
-                        '[1:v]scale=720:-1[plaque]',
-                        '[0:v][plaque]overlay=0:H-h-50[v]'
-                    ])
-                    .map('[v]')
+            if (plaqueImageUrl || watermarkText) {
+                console.log(`Starting FFmpeg overlay for ${clipId} (Plaque: ${!!plaqueImageUrl}, Watermark: ${watermarkText || 'None'})`);
+
+                let command = ffmpeg(currentVideoUrl);
+                const filters: any[] = [];
+                let lastOutput = '[0:v]';
+
+                if (plaqueImageUrl) {
+                    command = command.input(plaqueImageUrl);
+                    filters.push({
+                        filter: 'scale',
+                        options: '720:-1',
+                        inputs: '[1:v]',
+                        outputs: 'plaque'
+                    });
+                    filters.push({
+                        filter: 'overlay',
+                        options: '0:H-h-50',
+                        inputs: [lastOutput, 'plaque'],
+                        outputs: 'with_plaque'
+                    });
+                    lastOutput = 'with_plaque';
+                }
+
+                if (watermarkText) {
+                    filters.push({
+                        filter: 'drawtext',
+                        options: {
+                            text: watermarkText,
+                            fontcolor: 'white@0.6',
+                            fontsize: 36,
+                            x: 'W-tw-40',
+                            y: '40',
+                            shadowcolor: 'black',
+                            shadowx: 2,
+                            shadowy: 2
+                        },
+                        inputs: lastOutput,
+                        outputs: 'final'
+                    });
+                    lastOutput = 'final';
+                }
+
+                command
+                    .complexFilter(filters, lastOutput)
                     .videoCodec('libx264')
                     .on('end', () => finalizeUpload(outputPath))
                     .on('error', (err) => {
@@ -109,15 +145,11 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                     })
                     .save(outputPath);
             } else {
-                if (currentVideoUrl === tempDubbedFile) {
-                    await finalizeUpload(tempDubbedFile);
-                } else {
-                    await query('UPDATE clips SET status = \'processed\' WHERE id = $1', [clipId]);
-                    resolve(currentVideoUrl);
-                }
+                finalizeUpload(currentVideoUrl);
             }
-        } catch (e) {
-            reject(e);
+        } catch (err) {
+            console.error('Core process error:', err);
+            reject(err);
         }
     });
 };
