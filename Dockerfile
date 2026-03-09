@@ -14,6 +14,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install system dependencies
+RUN apk add --no-cache ffmpeg ttf-freefont
+
 COPY package*.json ./
 # Install production dependencies only
 RUN npm install --omit=dev
