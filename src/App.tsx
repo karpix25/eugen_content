@@ -68,6 +68,7 @@ interface Clip {
   downloaded_by: string | null;
   downloaded_at: string | null;
   transcript: string;
+  language: string | null;
 }
 
 interface User {
@@ -237,6 +238,9 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [targetAudience, setTargetAudience] = useState('Предприниматели, интересующиеся ИИ и автоматизацией');
+
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [languageFilter, setLanguageFilter] = useState<'all' | 'ru' | 'en'>('all');
 
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -700,19 +704,82 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'clips' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {clips.map(clip => (
-                <ClipCard key={clip.id} clip={clip} plaques={plaques} onCreateTask={() => handleCreateTask(clip.id)} />
-              ))}
-              {clips.length === 0 && (
-                <div className="col-span-full py-20 text-center text-white/20">
-                  <Video className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                  <p>Нарезок пока нет. Одобрите видео в мониторинге.</p>
+          {activeTab === 'clips' && (() => {
+            const visibleClips = clips.filter(c => {
+              // Availability filter
+              const statusMatch = showAvailableOnly ? c.is_available === true : true;
+
+              // Language filter
+              let langMatch = true;
+              if (languageFilter !== 'all') {
+                langMatch = c.language === languageFilter;
+              }
+
+              return statusMatch && langMatch;
+            });
+
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-1 flex">
+                      <button
+                        onClick={() => setShowAvailableOnly(true)}
+                        className={cn(
+                          "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                          showAvailableOnly ? "bg-white/10 text-white shadow-lg" : "text-white/40 hover:text-white"
+                        )}
+                      >
+                        Свободные клипы
+                      </button>
+                      <button
+                        onClick={() => setShowAvailableOnly(false)}
+                        className={cn(
+                          "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                          !showAvailableOnly ? "bg-white/10 text-white shadow-lg" : "text-white/40 hover:text-white"
+                        )}
+                      >
+                        Все клипы
+                      </button>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-1 flex items-center">
+                      <button
+                        onClick={() => setLanguageFilter('all')}
+                        className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all", languageFilter === 'all' ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5")}
+                      >
+                        Все 🌍
+                      </button>
+                      <div className="w-px h-4 bg-white/10 mx-1"></div>
+                      <button
+                        onClick={() => setLanguageFilter('ru')}
+                        className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all", languageFilter === 'ru' ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5")}
+                      >
+                        RU 🇷🇺
+                      </button>
+                      <button
+                        onClick={() => setLanguageFilter('en')}
+                        className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all", languageFilter === 'en' ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5")}
+                      >
+                        EN 🇺🇸
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {visibleClips.map(clip => (
+                    <ClipCard key={clip.id} clip={clip} plaques={plaques} onCreateTask={() => handleCreateTask(clip.id)} />
+                  ))}
+                  {visibleClips.length === 0 && (
+                    <div className="col-span-full py-20 text-center text-white/20">
+                      <Video className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                      <p>Подходящих нарезок пока нет.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {activeTab === 'ads' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1113,9 +1180,16 @@ function ClipCard({ clip, plaques, onCreateTask }: { clip: Clip, plaques: AdPlaq
       </div>
 
       <div className="p-4">
-        <h4 className="font-semibold text-sm mb-2 text-white line-clamp-2 leading-snug" title={clip.title}>
-          {clip.title}
-        </h4>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h4 className="font-semibold text-sm text-white line-clamp-2 leading-snug" title={clip.title}>
+            {clip.title}
+          </h4>
+          {clip.language && (
+            <span className="text-xs shrink-0 px-2 py-1 bg-white/10 rounded-md font-bold uppercase tracking-wider text-white/70" title={`Язык: ${clip.language}`}>
+              {clip.language === 'ru' ? '🇷🇺' : clip.language === 'en' ? '🇺🇸' : clip.language}
+            </span>
+          )}
+        </div>
 
         {clip.transcript && (
           <div className="mb-4 bg-black/20 rounded-lg p-2 border border-white/5">
