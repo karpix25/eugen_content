@@ -823,6 +823,30 @@ async function startServer() {
     }
   });
 
+  // Get all users (Admin only)
+  app.get('/api/users', authenticateToken, async (req, res) => {
+    if (!isAdmin(req.user.id)) return res.sendStatus(403);
+    try {
+      const result = await query(`
+        SELECT
+          u.*,
+          COUNT(p.id)::int as publication_count,
+          COALESCE(
+            (SELECT array_agg(link) FROM (SELECT unnest(social_links) as link FROM publications WHERE user_id = u.telegram_id) as links),
+            '{}'
+          ) as published_links
+        FROM users u
+        LEFT JOIN publications p ON u.telegram_id = p.user_id
+        GROUP BY u.telegram_id
+        ORDER BY u.created_at DESC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

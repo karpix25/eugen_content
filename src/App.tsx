@@ -20,6 +20,9 @@ import {
   ExternalLink,
   Loader2,
   ClipboardList,
+  AlertCircle,
+  HelpCircle,
+  ChevronRight,
   Send,
   Download,
   Menu,
@@ -90,7 +93,10 @@ interface User {
   username: string;
   first_name: string;
   is_authorized: boolean;
+  is_admin: boolean;
   created_at: string;
+  publication_count?: number;
+  published_links?: string[];
 }
 
 interface AdPlaque {
@@ -251,6 +257,7 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
+  const [selectedWorker, setSelectedWorker] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [targetAudience, setTargetAudience] = useState('Предприниматели, интересующиеся ИИ и автоматизацией');
 
@@ -950,6 +957,8 @@ export default function App() {
                 </div>
               )}
             </div>
+          )}
+
           {activeTab === 'workers' && (
             <div className="space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
@@ -958,18 +967,28 @@ export default function App() {
                     <tr className="border-b border-white/10 bg-white/5">
                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white/40">Пользователь</th>
                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white/40">Telegram ID</th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white/40 text-center">Всего видео</th>
                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white/40">Статус</th>
                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-white/40">Действия</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {users.map(user => (
-                      <tr key={user.telegram_id} className="hover:bg-white/5 transition-colors">
+                      <tr key={user.telegram_id} className="hover:bg-white/5 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="font-medium text-emerald-400">{user.first_name}</div>
                           <div className="text-xs text-white/40">@{user.username || 'n/a'}</div>
                         </td>
                         <td className="px-6 py-4 font-mono text-sm text-white/60">{user.telegram_id}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => setSelectedWorker(user)}
+                            className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 rounded-full transition-all"
+                          >
+                            <span className="font-bold text-sm text-white">{user.publication_count || 0}</span>
+                            <ChevronRight className="w-3 h-3 text-white/40 group-hover:text-emerald-500 transition-colors" />
+                          </button>
+                        </td>
                         <td className="px-6 py-4">
                           {user.is_authorized ? (
                             <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold uppercase">Авторизован</span>
@@ -978,15 +997,17 @@ export default function App() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <button
-                            onClick={() => handleAuthorize(user.telegram_id, !user.is_authorized)}
-                            className={cn(
-                              "px-3 py-1 rounded text-xs font-bold transition-colors",
-                              user.is_authorized ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-emerald-500 text-black hover:bg-emerald-400"
-                            )}
-                          >
-                            {user.is_authorized ? "Деавторизовать" : "Авторизовать"}
-                          </button>
+                          <div className="flex items-center gap-4">
+                            <button
+                              onClick={() => handleAuthorize(user.telegram_id, !user.is_authorized)}
+                              className={cn(
+                                "px-3 py-1 rounded text-xs font-bold transition-colors",
+                                user.is_authorized ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-emerald-500 text-black hover:bg-emerald-400"
+                              )}
+                            >
+                              {user.is_authorized ? "Деавторизовать" : "Авторизовать"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1004,6 +1025,43 @@ export default function App() {
           {activeTab === 'publications' && <PublicationsTab publications={publications} />}
         </div>
       </main>
+
+      <AnimatePresence>
+        {selectedWorker && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4 md:p-8">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-[#111] border border-white/10 rounded-3xl w-full max-w-4xl max-h-full flex flex-col shadow-2xl"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-lg font-bold text-emerald-500 border border-emerald-500/20">
+                    {selectedWorker.first_name[0]}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">{selectedWorker.first_name}</h3>
+                    <p className="text-white/40 text-sm">@{selectedWorker.username || 'n/a'} • {selectedWorker.publication_count || 0} видео</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedWorker(null)}
+                  className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                <PublicationsTab
+                  publications={publications.filter(p => p.user_id === selectedWorker.telegram_id)}
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1520,7 +1578,7 @@ function PublicationsTab({ publications }: { publications: Publication[] }) {
             </div>
 
             <div className="flex-1 min-w-0 space-y-4">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-4">
                 <div>
                   <h4 className="font-bold text-lg mb-1 line-clamp-1">{pub.clip_title}</h4>
                   <div className="flex items-center gap-2 text-sm text-white/40">
@@ -1534,39 +1592,21 @@ function PublicationsTab({ publications }: { publications: Publication[] }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-xs">
                   {pub.status === 'published' ? (
-                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 flex items-center gap-2">
-                      <CheckCircle className="w-3 h-3" /> Опубликовано
-                    </span>
+                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-full font-bold uppercase">Опубликовано</span>
                   ) : (
-                    <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-500/20 flex items-center gap-2">
-                      <Send className="w-3 h-3" /> Отправлено
-                    </span>
+                    <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full font-bold uppercase">Отправлено</span>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Ссылки на посты</p>
-                <div className="flex flex-wrap gap-2">
-                  {pub.social_links.length === 0 ? (
-                    <p className="text-xs text-white/20 italic">Пользователь еще не прислал ссылки</p>
-                  ) : (
-                    pub.social_links.map((link, i) => (
-                      <a
-                        key={i}
-                        href={link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-emerald-400 font-medium transition-colors group/link"
-                      >
-                        <ExternalLink className="w-3 h-3 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-                        Посмотреть пост {i + 1}
-                      </a>
-                    ))
-                  )}
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {pub.social_links.map((link, i) => (
+                  <a key={i} href={link} target="_blank" rel="noreferrer" className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs text-emerald-400 hover:bg-white/10 transition-colors inline-flex items-center gap-2">
+                    <ExternalLink className="w-3 h-3" /> Ссылка {i + 1}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
@@ -1575,4 +1615,7 @@ function PublicationsTab({ publications }: { publications: Publication[] }) {
     </div>
   );
 }
+
+
+
 
