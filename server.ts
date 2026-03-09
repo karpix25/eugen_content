@@ -5,6 +5,8 @@ import path from "path";
 import multer from "multer";
 import cors from "cors";
 import dotenv from "dotenv";
+dotenv.config();
+
 import { v4 as uuidv4 } from "uuid";
 
 import { query, initDb } from "./src/lib/db.js";
@@ -275,9 +277,18 @@ async function startServer() {
   });
 
   const isAdmin = (telegramId: string | number): boolean => {
-    if (String(telegramId) === 'dev') return true;
+    const tid = String(telegramId);
+    if (tid === 'dev') return true;
+
+    // Check plural IDs
     const adminIds = (process.env.ADMIN_TELEGRAM_IDS || "").split(",").map(id => id.trim());
-    return adminIds.includes(String(telegramId));
+    if (adminIds.includes(tid)) return true;
+
+    // Check singular ID
+    const singleAdminId = (process.env.ADMIN_TELEGRAM_ID || "").trim();
+    if (singleAdminId && tid === singleAdminId) return true;
+
+    return false;
   };
 
   app.get("/api/auth/check/:sessionId", async (req, res) => {
@@ -310,6 +321,16 @@ async function startServer() {
       console.error("Auth check error:", err);
       res.status(500).json({ error: "Check failed" });
     }
+  });
+
+  // Simple token verification / "Who am I" hydration
+  app.get("/api/auth/check", authenticateToken, (req: any, res) => {
+    res.json({
+      user: {
+        ...req.user,
+        is_admin: isAdmin(req.user.id)
+      }
+    });
   });
 
   app.post("/api/auth/telegram", async (req, res) => {
@@ -810,9 +831,6 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.join(process.cwd(), "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(process.cwd(), "dist", "index.html"));
-    });
   }
 
   // Fetch all publications for admins
@@ -855,6 +873,11 @@ async function startServer() {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch users" });
     }
+  });
+
+  // SPA fallback (Redirect all non-API routes to index.html)
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(process.cwd(), "dist", "index.html"));
   });
 
   app.listen(PORT, "0.0.0.0", () => {
