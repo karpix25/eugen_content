@@ -92,7 +92,6 @@ interface Task {
   created_at: string;
   clip_url: string;
   clip_thumbnail: string;
-  clip_thumbnail: string;
   clip_title: string;
 }
 
@@ -136,7 +135,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
       try {
         const res = await fetch(`/api/auth/check/${sessionId}`);
         const data = await res.json();
-        
+
         if (data.status === 'authorized') {
           setIsPolling(false);
           clearInterval(interval);
@@ -168,14 +167,14 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
           <h1 className="text-4xl font-black tracking-tighter text-white">CONTENT<span className="text-emerald-500">MACHINE</span></h1>
           <p className="text-white/40 font-medium">Авторизуйтесь через Telegram для доступа к платформе</p>
         </div>
-        
+
         <div className="bg-white/5 border border-white/10 p-10 rounded-[2.5rem] backdrop-blur-2xl shadow-2xl relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-          
+
           <div className="relative z-10 space-y-4">
             {!waitingConfirm ? (
               <>
-                <button 
+                <button
                   onClick={handleLoginClick}
                   disabled={!sessionId}
                   className="w-full h-14 bg-[#229ED9] hover:bg-[#1f8ebf] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-[#229ED9]/20"
@@ -194,7 +193,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
                   <p className="text-white font-bold text-sm">Ждем подтверждения...</p>
                   <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Откройте Telegram и нажмите Start</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setWaitingConfirm(false)}
                   className="text-emerald-500 text-[10px] font-bold uppercase tracking-wider hover:underline"
                 >
@@ -203,17 +202,17 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
               </div>
             )}
           </div>
-          
+
           <div className="relative z-10 mt-6 pt-6 border-t border-white/5" />
-          
-          <button 
+
+          <button
             onClick={() => onLogin('dev-token', { id: 'dev', first_name: 'Developer', username: 'dev' })}
             className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-black transition-all relative z-20"
           >
             Войти как разработчик (Local Dev)
           </button>
         </div>
-        
+
         <div className="flex items-center justify-center gap-2 text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold">
           <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Platform Secure Access
         </div>
@@ -236,7 +235,7 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [targetAudience, setTargetAudience] = useState('Предприниматели, интересующиеся ИИ и автоматизацией');
-  
+
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -263,7 +262,7 @@ export default function App() {
         fetch('/api/tasks', { headers }),
         fetch('/api/users', { headers })
       ]);
-      
+
       const resData = await Promise.all([
         chRes.json(),
         vidRes.json(),
@@ -517,7 +516,7 @@ export default function App() {
               <p className="text-sm font-medium truncate">{currentUser?.first_name || 'Admin User'}</p>
               <p className="text-xs text-white/40 truncate">@{currentUser?.username || 'admin'}</p>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
               className="p-2 hover:bg-white/10 rounded-lg text-white/40 hover:text-red-400 transition-colors group"
               title="Выйти"
@@ -819,12 +818,12 @@ export default function App() {
   );
 }
 
-function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: { 
-  video: VideoData, 
-  onEvaluate: () => void, 
-  onApprove: () => void, 
+function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
+  video: VideoData,
+  onEvaluate: () => void,
+  onApprove: () => void,
   onComplete: () => void,
-  loading: boolean 
+  loading: boolean
 }) {
   return (
     <motion.div
@@ -859,10 +858,15 @@ function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
 
         <div className="mt-auto flex flex-wrap items-center gap-4">
           {!video.ai_evaluation ? (
-            <div className="text-xs text-yellow-500/80 bg-yellow-500/10 px-3 py-1 rounded-full flex items-center gap-2">
-              <Loader2 className="w-3 h-3 animate-spin" />
+            <button
+              onClick={onEvaluate}
+              disabled={loading}
+              title="Перезапустить анализ, если он завис"
+              className="text-xs text-yellow-500/80 hover:text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1 rounded-full flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
               Анализ ИИ...
-            </div>
+            </button>
           ) : (
             <div className="flex-1 min-w-0">
               <div className="text-xs text-white/40 mb-1 uppercase tracking-widest font-bold">Оценка ИИ:</div>
@@ -874,15 +878,15 @@ function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
 
           {video.ai_evaluation && video.status === 'pending' && (
             <div className="flex gap-2 ml-auto">
-              <button 
-                onClick={onComplete} 
+              <button
+                onClick={onComplete}
                 title="Отметить как готовое"
                 className="p-2 bg-white/10 text-white/60 rounded-lg hover:bg-white/20 transition-colors"
               >
                 <CheckCircle className="w-5 h-5 text-white/40" />
               </button>
-              <button 
-                onClick={onApprove} 
+              <button
+                onClick={onApprove}
                 disabled={loading}
                 className={cn(
                   "p-2 bg-emerald-500 text-black rounded-lg hover:bg-emerald-400 transition-colors",
@@ -932,18 +936,18 @@ function ClipCard({ clip, plaques, onCreateTask }: { clip: Clip, plaques: AdPlaq
             {clip.thumbnail ? (
               <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
             ) : (
-              <video 
-                src={clip.url + '#t=0.1'} 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                muted 
+              <video
+                src={clip.url + '#t=0.1'}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                muted
                 playsInline
                 preload="metadata"
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-            
+
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-              <button 
+              <button
                 onClick={() => setIsPlaying(true)}
                 className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
               >
@@ -953,14 +957,14 @@ function ClipCard({ clip, plaques, onCreateTask }: { clip: Clip, plaques: AdPlaq
           </>
         ) : (
           <div className="w-full h-full relative">
-            <video 
-              src={clip.url} 
-              className="w-full h-full object-cover" 
-              controls 
-              autoPlay 
+            <video
+              src={clip.url}
+              className="w-full h-full object-cover"
+              controls
+              autoPlay
               onEnded={() => setIsPlaying(false)}
             />
-            <button 
+            <button
               onClick={() => setIsPlaying(false)}
               className="absolute top-4 right-4 p-2 bg-black/60 rounded-full text-white/80 hover:text-white"
             >
@@ -1008,7 +1012,7 @@ function ClipCard({ clip, plaques, onCreateTask }: { clip: Clip, plaques: AdPlaq
         <h4 className="font-semibold text-sm mb-2 text-white line-clamp-2 leading-snug" title={clip.title}>
           {clip.title}
         </h4>
-        
+
         {clip.transcript && (
           <div className="mb-4 bg-black/20 rounded-lg p-2 border border-white/5">
             <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Transcript</p>
