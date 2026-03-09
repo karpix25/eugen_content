@@ -6,7 +6,7 @@ import { query } from '../lib/db.js';
 
 dotenv.config();
 
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
+export const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
 
 // Authorization check middleware
 const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
@@ -36,7 +36,7 @@ bot.start(async (ctx) => {
     // Handle deep-link login
     if (startPayload && startPayload.startsWith('login_')) {
         const sessionId = startPayload.replace('login_', '');
-        
+
         try {
             // Verify session exists and is pending
             const sessionRes = await query('SELECT * FROM auth_sessions WHERE id = $1 AND status = \'pending\'', [sessionId]);
@@ -57,7 +57,7 @@ bot.start(async (ctx) => {
             );
 
             const siteUrl = process.env.SITE_URL || 'https://eugen.karpix.com';
-            
+
             return ctx.reply('✅ Вы успешно авторизованы!', Markup.inlineKeyboard([
                 Markup.button.url('Вернуться на сайт 🌐', siteUrl)
             ]));

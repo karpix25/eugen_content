@@ -276,7 +276,7 @@ export default function App() {
         fetch('/api/channels', { headers }),
         fetch('/api/videos', { headers }),
         fetch('/api/clips', { headers }),
-        fetch('/api/ad-plaques', { headers }),
+        fetch(`/api/ad-plaques${currentUser ? `?user_id=${currentUser.id}` : ''}`, { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/users', { headers })
       ]);
@@ -461,6 +461,9 @@ export default function App() {
   const handleAddPlaque = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    if (currentUser?.id) {
+      formData.append('user_id', currentUser.id);
+    }
 
     setLoading(true);
     try {
@@ -768,7 +771,31 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {visibleClips.map(clip => (
-                    <ClipCard key={clip.id} clip={clip} plaques={plaques} onCreateTask={() => handleCreateTask(clip.id)} />
+                    <ClipCard
+                      key={clip.id}
+                      clip={clip}
+                      plaques={plaques}
+                      onCreateTask={() => handleCreateTask(clip.id)}
+                      onSendToTelegram={async (clipId, plaqueId) => {
+                        try {
+                          const head = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+                          const r = await fetch(`/api/clips/${clipId}/apply-plaque`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...head },
+                            body: JSON.stringify({ plaque_id: plaqueId })
+                          });
+                          if (!r.ok) {
+                            const e = await r.json();
+                            alert(e.error || "Ошибка при генерации");
+                          } else {
+                            alert("Видео успешно отправлено вам в Telegram!");
+                            fetchData();
+                          }
+                        } catch (e) {
+                          alert("Ошибка сети при отправке видео");
+                        }
+                      }}
+                    />
                   ))}
                   {visibleClips.length === 0 && (
                     <div className="col-span-full py-20 text-center text-white/20">
@@ -1089,9 +1116,11 @@ function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
     </>
   );
 }
-function ClipCard({ clip, plaques, onCreateTask }: { clip: Clip, plaques: AdPlaque[], onCreateTask: () => void }) {
+function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram }: { clip: Clip, plaques: AdPlaque[], onCreateTask: () => void, onSendToTelegram?: (clipId: string, plaqueId: string) => void }) {
   const [randomPlaque, setRandomPlaque] = useState<AdPlaque | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showPlaqueSelector, setShowPlaqueSelector] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const applyRandomPlaque = () => {
     if (plaques.length === 0) return;
@@ -1099,125 +1128,184 @@ function ClipCard({ clip, plaques, onCreateTask }: { clip: Clip, plaques: AdPlaq
     setRandomPlaque(r);
   };
 
-  return (
-    <div className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300">
-      <div className="aspect-[9/16] bg-black relative overflow-hidden">
-        {!isPlaying ? (
-          <>
-            {clip.thumbnail ? (
-              <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
-            ) : (
-              <video
-                src={clip.url + '#t=0.1'}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                muted
-                playsInline
-                preload="metadata"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+  const handleSend = async (plaqueId: string) => {
+    if (!onSendToTelegram) return;
+    setShowPlaqueSelector(false);
+    setIsSending(true);
+    try {
+      await onSendToTelegram(clip.id, plaqueId);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+  return (
+    <>
+      <div className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300">
+        <div className="aspect-[9/16] bg-black relative overflow-hidden">
+          {!isPlaying ? (
+            <>
+              {clip.thumbnail ? (
+                <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
+              ) : (
+                <video
+                  src={clip.url + '#t=0.1'}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  muted
+                  playsInline
+                  preload="metadata"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                <button
+                  onClick={() => setIsPlaying(true)}
+                  className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+                >
+                  <Play className="w-8 h-8 fill-current ml-1" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full relative">
+              <video
+                src={clip.url}
+                className="w-full h-full object-cover"
+                controls
+                autoPlay
+                onEnded={() => setIsPlaying(false)}
+              />
               <button
-                onClick={() => setIsPlaying(true)}
-                className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+                onClick={() => setIsPlaying(false)}
+                className="absolute top-4 right-4 p-2 bg-black/60 rounded-full text-white/80 hover:text-white"
               >
-                <Play className="w-8 h-8 fill-current ml-1" />
+                <XCircle className="w-6 h-6" />
               </button>
             </div>
-          </>
-        ) : (
-          <div className="w-full h-full relative">
-            <video
-              src={clip.url}
-              className="w-full h-full object-cover"
-              controls
-              autoPlay
-              onEnded={() => setIsPlaying(false)}
-            />
-            <button
-              onClick={() => setIsPlaying(false)}
-              className="absolute top-4 right-4 p-2 bg-black/60 rounded-full text-white/80 hover:text-white"
-            >
-              <XCircle className="w-6 h-6" />
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* Ad Plaque Overlay Simulation */}
-        <AnimatePresence>
-          {randomPlaque && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute bottom-12 left-4 right-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-3 flex items-center gap-3 shadow-2xl z-20"
+          {/* Ad Plaque Overlay Simulation */}
+          <AnimatePresence>
+            {randomPlaque && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute bottom-12 left-4 right-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-3 flex items-center gap-3 shadow-2xl z-20"
+              >
+                <img src={randomPlaque.image_url} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-white/60 font-bold uppercase tracking-tighter">Реклама</p>
+                  <p className="text-xs font-medium truncate">{randomPlaque.text}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+
+
+          {!clip.is_available && (
+            <div className="absolute inset-0 z-30 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
+              <XCircle className="w-12 h-12 text-red-500 mb-2" />
+              <p className="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Уже скачано</p>
+              <p className="text-sm font-medium text-emerald-400">{clip.downloaded_by || 'Кто-то'}</p>
+            </div>
+          )}
+          {isSending && (
+            <div className="absolute inset-0 z-40 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
+              <Loader2 className="w-10 h-10 text-emerald-500 mb-3 animate-spin" />
+              <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Рендеринг и отправка...</p>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h4 className="font-semibold text-sm text-white line-clamp-2 leading-snug" title={clip.title}>
+              {clip.title}
+            </h4>
+            {clip.language && (
+              <span className="text-xs shrink-0 px-2 py-1 bg-white/10 rounded-md font-bold uppercase tracking-wider text-white/70" title={`Язык: ${clip.language}`}>
+                {clip.language === 'ru' ? '🇷🇺' : clip.language === 'en' ? '🇺🇸' : clip.language}
+              </span>
+            )}
+          </div>
+
+          {clip.transcript && (
+            <div className="mb-4 bg-black/20 rounded-lg p-2 border border-white/5">
+              <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Transcript</p>
+              <p className="text-[11px] text-white/60 leading-relaxed line-clamp-3 select-all">
+                {clip.transcript}
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => setShowPlaqueSelector(true)}
+              disabled={!clip.is_available || isSending || !onSendToTelegram}
+              className="flex-1 text-[11px] uppercase tracking-widest font-black py-3 bg-[#229ED9] text-white rounded-xl hover:bg-[#1f8ebf] transition-all shadow-[0_4px_20px_rgba(34,158,217,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
             >
-              <img src={randomPlaque.image_url} className="w-10 h-10 rounded-lg object-cover" alt="" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-white/60 font-bold uppercase tracking-tighter">Реклама</p>
-                <p className="text-xs font-medium truncate">{randomPlaque.text}</p>
+              <Send className="w-3 h-3" /> В Telegram с плашкой
+            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onCreateTask()}
+                disabled={!clip.is_available}
+                className="flex-1 text-[10px] uppercase tracking-widest font-black py-2 bg-emerald-500 text-black rounded-lg hover:bg-emerald-400 transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+              >
+                <ClipboardList className="w-3 h-3" /> Задача
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showPlaqueSelector && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 relative max-h-[80vh] overflow-y-auto"
+            >
+              <button
+                onClick={() => setShowPlaqueSelector(false)}
+                className="absolute top-4 right-4 text-white/40 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold">Выберите плашку</h3>
+                <p className="text-sm text-white/40">Какую рекламу наложить на это видео?</p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                {plaques.length === 0 && (
+                  <p className="text-center text-sm text-white/30 py-4">У вас пока нет добавленных плашек. Создайте в «Меню плашек».</p>
+                )}
+                {plaques.map((plaque) => (
+                  <button
+                    key={plaque.id}
+                    onClick={() => handleSend(plaque.id)}
+                    className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/50 transition-all flex items-center gap-4 group"
+                  >
+                    <img src={plaque.image_url} alt="" className="w-12 h-12 rounded object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate text-white group-hover:text-emerald-400 transition-colors">{plaque.name}</p>
+                      <p className="text-[10px] text-white/40 truncate">{plaque.text}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-
-
-
-        {!clip.is_available && (
-          <div className="absolute inset-0 z-30 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
-            <XCircle className="w-12 h-12 text-red-500 mb-2" />
-            <p className="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Уже скачано</p>
-            <p className="text-sm font-medium text-emerald-400">{clip.downloaded_by || 'Кто-то'}</p>
           </div>
         )}
-
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-          <button className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-xl">
-            <Play className="w-6 h-6 fill-current" />
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h4 className="font-semibold text-sm text-white line-clamp-2 leading-snug" title={clip.title}>
-            {clip.title}
-          </h4>
-          {clip.language && (
-            <span className="text-xs shrink-0 px-2 py-1 bg-white/10 rounded-md font-bold uppercase tracking-wider text-white/70" title={`Язык: ${clip.language}`}>
-              {clip.language === 'ru' ? '🇷🇺' : clip.language === 'en' ? '🇺🇸' : clip.language}
-            </span>
-          )}
-        </div>
-
-        {clip.transcript && (
-          <div className="mb-4 bg-black/20 rounded-lg p-2 border border-white/5">
-            <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Transcript</p>
-            <p className="text-[11px] text-white/60 leading-relaxed line-clamp-3 select-all">
-              {clip.transcript}
-            </p>
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => console.log('Video clicked for', clip.id)}
-            disabled={!clip.is_available}
-            className="flex-1 text-[10px] uppercase tracking-widest font-black py-3 bg-emerald-500 text-black rounded-xl hover:bg-emerald-400 transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
-          >
-            <Video className="w-3 h-3" /> Видео
-          </button>
-          <button
-            onClick={() => console.log('Carousel clicked for', clip.id)}
-            disabled={!clip.is_available}
-            className="flex-1 text-[10px] uppercase tracking-widest font-black py-3 bg-white/10 text-white rounded-xl hover:bg-white/20 border border-white/10 transition-all disabled:opacity-30 flex items-center justify-center gap-2"
-          >
-            <Layers className="w-3 h-3" /> Карусель
-          </button>
-        </div>
-      </div>
-    </div>
+      </AnimatePresence>
+    </>
   );
 }
 

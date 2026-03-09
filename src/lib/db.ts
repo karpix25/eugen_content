@@ -98,6 +98,8 @@ export const initDb = async () => {
     await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS scrape_days INTEGER DEFAULT 7");
     await query("ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language VARCHAR(10)");
     await query("ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language VARCHAR(10)");
+    await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS language VARCHAR(10)");
+    await query("ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS user_id BIGINT");
     console.log("Database migrations applied successfully.");
   } catch (err) {
     console.error("Migration error:", err);

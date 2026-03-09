@@ -34,7 +34,7 @@ const pollDubbingStatus = async (dubbingId: string): Promise<boolean> => {
     return false;
 };
 
-export const processClip = async (clipId: string, videoUrl: string, plaqueImageUrl: string | null, targetLang?: string | null, sourceLang?: string | null): Promise<string> => {
+export const processClip = async (clipId: string, videoUrl: string, plaqueImageUrl: string | null, targetLang?: string | null, sourceLang?: string | null, skipS3Upload: boolean = false): Promise<string> => {
     return new Promise(async (resolve, reject) => {
         try {
             const outputDir = path.join(process.cwd(), 'temp', 'processed');
@@ -77,6 +77,12 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
             };
 
             const finalizeUpload = async (fileToUpload: string) => {
+                if (skipS3Upload) {
+                    await query('UPDATE clips SET status = \'processed\' WHERE id = $1', [clipId]);
+                    resolve(fileToUpload); // Resolve with the absolute local system path to the mp4
+                    return;
+                }
+
                 const fileBuffer = fs.readFileSync(fileToUpload);
                 const uploadResult = await uploadToS3(fileBuffer, `processed/${outputFileName}`, 'video/mp4');
                 const finalUrl = uploadResult.Location || "";

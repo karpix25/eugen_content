@@ -21,6 +21,16 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key-change-me";
 
 const app = express();
+
+// Extends Express Request explicitly without breaking the global namespace implicitly
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 const upload = multer({ storage: multer.memoryStorage() });
@@ -179,20 +189,12 @@ async function startServer() {
 
             console.log(`Inserting original clip for project ${v.vizard_project_id}: ${originalTitle}`);
             await query(
-              "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, ad_plaque_id, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7, $8)",
-              [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, c.thumbnail_url || '', originalTranscript, plaque?.id, originalLanguage]
+              "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7)",
+              [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, c.thumbnail_url || '', originalTranscript, originalLanguage]
             );
 
-            // Process original without dubbing
-            if (plaque) {
-              processClip(
-                originalClipId,
-                c.videoUrl || c.url || c.video_url,
-                plaque.image_url
-              ).catch(console.error);
-            } else {
-              await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
-            }
+            // No automatic plaques anymore. Raw means ready for user customization.
+            await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
 
             // NOW DO DUBBED CLIP IF NEEDED
             if (needsTranslation && finalLanguage) {
@@ -211,15 +213,15 @@ async function startServer() {
 
               console.log(`Inserting dubbed clip for project ${v.vizard_project_id}: ${translatedTitle}`);
               await query(
-                "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, ad_plaque_id, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7, $8)",
-                [dubbedClipId, v.id, c.videoUrl || c.url || c.video_url, translatedTitle, c.thumbnail_url || '', translatedTranscript, plaque?.id, finalLanguage]
+                "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7)",
+                [dubbedClipId, v.id, c.videoUrl || c.url || c.video_url, translatedTitle, c.thumbnail_url || '', translatedTranscript, finalLanguage]
               );
 
-              // Process dubbed
+              // Process dubbed without plaque
               processClip(
                 dubbedClipId,
                 c.videoUrl || c.url || c.video_url,
-                plaque?.image_url || null,
+                null, // No automatic plaque
                 finalLanguage,
                 originalLanguage
               ).catch(console.error);
@@ -664,6 +666,65 @@ async function startServer() {
     res.json({ received: true });
   });
 
+  // Apply Plaque on Demand & Send to Telegram
+  app.post("/api/clips/:id/apply-plaque", async (req, res) => {
+    // 1. Manually decode token because middleware is scoped globally later down
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: "Missing authorization token" });
+
+    let decodedUser: any;
+    try {
+      decodedUser = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(403).json({ error: "Invalid token" });
+    }
+
+    const user = decodedUser;
+    if (!user || (!user.telegram_id && !user.id)) return res.status(401).json({ error: "Unauthorized payload" });
+
+    const { id } = req.params;
+    const { plaque_id } = req.body;
+
+    if (!plaque_id) return res.status(400).json({ error: "plaque_id is required" });
+
+    try {
+      const clipRes = await query("SELECT * FROM clips WHERE id = $1", [id]);
+      if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
+
+      const plaqueRes = await query("SELECT * FROM ad_plaques WHERE id = $1", [plaque_id]);
+      if (plaqueRes.rows.length === 0) return res.status(404).json({ error: "Plaque not found" });
+
+      const clip = clipRes.rows[0];
+      const plaque = plaqueRes.rows[0];
+
+      // Import the bot directly here since it might have side effects on global if top-level
+      const { bot } = await import("./src/services/telegram.js");
+
+      // Pass skipS3Upload = true so it returns absolute local path and doesn't overwrite DB URL
+      const localFilePath = await processClip(id, clip.url, plaque.image_url, null, null, true);
+
+      // Now send via Telegram directly
+      const telegramId = user.telegram_id || user.id;
+      if (telegramId !== 'dev') {
+        const fs = await import('fs');
+        await bot.telegram.sendVideo(telegramId, {
+          source: fs.createReadStream(localFilePath)
+        }, {
+          caption: `🎥 ${clip.title}`
+        });
+
+        // Clean up the tempo file manually because processClip finalizeUpload won't run normal cleanup route if we skipped S3.
+        // Wait, processClip does cleanup only on S3 branch? Let's check: actually we should just send it then delete it.
+        fs.unlinkSync(localFilePath);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Processing failed" });
+    }
+  });
+
   // Clips
   app.get("/api/clips", async (req, res) => {
     const result = await query("SELECT * FROM clips ORDER BY created_at DESC");
@@ -672,12 +733,18 @@ async function startServer() {
 
   // Ad Plaques
   app.get("/api/ad-plaques", async (req, res) => {
-    const result = await query("SELECT * FROM ad_plaques");
+    const userId = req.query.user_id as string;
+    let result;
+    if (userId) {
+      result = await query("SELECT * FROM ad_plaques WHERE user_id = $1 OR user_id IS NULL", [userId]);
+    } else {
+      result = await query("SELECT * FROM ad_plaques");
+    }
     res.json(result.rows);
   });
 
   app.post("/api/ad-plaques", upload.single("file"), async (req, res) => {
-    const { name, text } = req.body;
+    const { name, text, user_id } = req.body;
     const file = req.file;
 
     if (!file) return res.status(400).json({ error: "No file uploaded" });
@@ -685,7 +752,7 @@ async function startServer() {
     try {
       const imageUrl = await uploadToS3(file.buffer, `ad-plaques/${file.originalname}`, file.mimetype);
       const id = Math.random().toString(36).substr(2, 9);
-      await query("INSERT INTO ad_plaques (id, name, image_url, text) VALUES ($1, $2, $3, $4)", [id, name, imageUrl, text]);
+      await query("INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)", [id, name, imageUrl, text, user_id || null]);
       res.json({ id, imageUrl });
     } catch (error) {
       console.error("Error uploading to S3:", error);
