@@ -89,6 +89,19 @@ export const initDb = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS publications (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      clip_id TEXT REFERENCES clips(id),
+      user_id BIGINT REFERENCES users(telegram_id),
+      plaque_id TEXT REFERENCES ad_plaques(id),
+      message_id BIGINT, -- The Telegram message ID of the sent video
+      social_links TEXT[] DEFAULT '{}',
+      status TEXT DEFAULT 'sent', -- sent, published
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+
     -- Migrations handled separately below
   `);
 

@@ -721,19 +721,26 @@ async function startServer() {
       const telegramId = user.telegram_id || user.id;
       if (telegramId !== 'dev') {
         const fs = await import('fs');
-        await bot.telegram.sendVideo(telegramId, {
+        // Send via Telegram
+        const message = await bot.telegram.sendVideo(telegramId, {
           source: fs.createReadStream(localFilePath)
         }, {
           caption: `🎥 ${clip.title}`
         });
 
-        // Clean up the tempo file manually
+        // 4. Log the publication
+        await query(`
+          INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status)
+          VALUES ($1, $2, $3, $4, 'sent')
+        `, [id, telegramId, plaque_id || null, message.message_id]);
+
+        // Clean up the temporary file
         fs.unlinkSync(localFilePath);
       }
       res.json({ success: true });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Processing failed" });
+      console.error("Apply plaque error:", err);
+      res.status(500).json({ error: "Failed to process video" });
     }
   });
 
@@ -797,6 +804,24 @@ async function startServer() {
       res.sendFile(path.join(process.cwd(), "dist", "index.html"));
     });
   }
+
+  // Fetch all publications for admins
+  app.get('/api/admin/publications', authenticateToken, async (req, res) => {
+    if (!isAdmin(req.user.id)) return res.sendStatus(403);
+    try {
+      const result = await query(`
+        SELECT p.*, u.username, u.first_name, c.title as clip_title, c.thumbnail as clip_thumbnail
+        FROM publications p
+        JOIN users u ON p.user_id = u.telegram_id
+        JOIN clips c ON p.clip_id = c.id
+        ORDER BY p.created_at DESC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch publications" });
+    }
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

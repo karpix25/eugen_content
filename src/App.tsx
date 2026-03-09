@@ -63,13 +63,26 @@ interface Clip {
   url: string;
   thumbnail: string;
   title: string;
-  status: string;
+  status: 'raw' | 'processed';
   ad_plaque_id: string | null;
   is_available: boolean;
-  downloaded_by: string | null;
-  downloaded_at: string | null;
+  downloaded_by?: string;
+  downloaded_at?: string;
   transcript: string;
   language: string | null;
+}
+
+interface Publication {
+  id: string;
+  clip_id: string;
+  user_id: string;
+  username?: string;
+  first_name?: string;
+  clip_title?: string;
+  clip_thumbnail?: string;
+  social_links: string[];
+  status: 'sent' | 'published';
+  created_at: string;
 }
 
 interface User {
@@ -210,7 +223,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
           <div className="relative z-10 mt-6 pt-6 border-t border-white/5" />
 
           <button
-            onClick={() => onLogin('dev-token', { id: 'dev', first_name: 'Developer', username: 'dev' })}
+            onClick={() => onLogin('dev-token', { id: 'dev', first_name: 'Developer', username: 'dev', is_admin: true })}
             className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-black transition-all relative z-20"
           >
             Войти как разработчик (Local Dev)
@@ -226,7 +239,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'monitor' | 'tasks' | 'clips' | 'ads' | 'workers'>('clips');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'tasks' | 'clips' | 'ads' | 'workers' | 'publications'>('clips');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelId, setNewChannelId] = useState('');
@@ -237,6 +250,7 @@ export default function App() {
   const [plaques, setPlaques] = useState<AdPlaque[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(false);
   const [targetAudience, setTargetAudience] = useState('Предприниматели, интересующиеся ИИ и автоматизацией');
 
@@ -282,13 +296,14 @@ export default function App() {
   const fetchData = async () => {
     const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
     try {
-      const [chRes, vidRes, clipRes, adRes, taskRes, userRes] = await Promise.all([
+      const [chRes, vidRes, clipRes, adRes, taskRes, userRes, pubRes] = await Promise.all([
         fetch('/api/channels', { headers }),
         fetch('/api/videos', { headers }),
         fetch('/api/clips', { headers }),
         fetch(`/api/ad-plaques${currentUser ? `?user_id=${currentUser.id}` : ''}`, { headers }),
         fetch('/api/tasks', { headers }),
-        fetch('/api/users', { headers })
+        fetch('/api/users', { headers }),
+        currentUser?.is_admin ? fetch('/api/admin/publications', { headers }) : Promise.resolve({ json: () => [] })
       ]);
 
       const resData = await Promise.all([
@@ -297,7 +312,8 @@ export default function App() {
         clipRes.json(),
         adRes.json(),
         taskRes.json(),
-        userRes.json()
+        userRes.json(),
+        pubRes.json()
       ]);
 
       if (resData.some(d => d.error === 'Unauthorized' || d === 401)) {
@@ -312,6 +328,8 @@ export default function App() {
       setPlaques(resData[3]);
       setTasks(resData[4]);
       setUsers(resData[5]);
+      setPublications(resData[6]);
+
 
       // If we got here, we're authorized. Let's explicitly check who we are if we don't know yet
       if (!currentUser) {
@@ -580,8 +598,15 @@ export default function App() {
                 icon={<Users className="w-5 h-5" />}
                 label="Работники"
               />
+              <NavButton
+                active={activeTab === 'publications'}
+                onClick={() => setActiveTab('publications')}
+                icon={<ExternalLink className="w-5 h-5" />}
+                label="Публикации"
+              />
             </>
           )}
+
         </nav>
 
         <div className="p-6 border-t border-white/5">
@@ -620,6 +645,7 @@ export default function App() {
               {activeTab === 'ads' && 'Меню плашек'}
               {activeTab === 'tasks' && 'Задания на публикацию'}
               {activeTab === 'workers' && 'Работники'}
+              {activeTab === 'publications' && 'Публикации'}
             </h1>
           </div>
 
@@ -924,8 +950,6 @@ export default function App() {
                 </div>
               )}
             </div>
-          )}
-
           {activeTab === 'workers' && (
             <div className="space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
@@ -976,6 +1000,8 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {activeTab === 'publications' && <PublicationsTab publications={publications} />}
         </div>
       </main>
     </div>
@@ -1464,3 +1490,89 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
     </button>
   );
 }
+
+function PublicationsTab({ publications }: { publications: Publication[] }) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Публикации</h2>
+          <p className="text-white/40 text-sm">Отслеживание отправленных видео и ссылок от пользователей</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {publications.length === 0 && (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
+            <ExternalLink className="w-12 h-12 text-white/10 mx-auto mb-4" />
+            <p className="text-white/40 font-medium">Пока нет зафиксированных публикаций</p>
+          </div>
+        )}
+        {publications.map((pub) => (
+          <div key={pub.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row gap-6 hover:border-emerald-500/30 transition-all group">
+            <div className="w-full md:w-32 aspect-[9/16] rounded-xl overflow-hidden bg-black shrink-0 relative">
+              <img src={pub.clip_thumbnail} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-500" alt="" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white">
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h4 className="font-bold text-lg mb-1 line-clamp-1">{pub.clip_title}</h4>
+                  <div className="flex items-center gap-2 text-sm text-white/40">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-[8px] font-bold text-emerald-500 border border-emerald-500/20">
+                      {pub.first_name?.[0] || 'U'}
+                    </div>
+                    <span className="font-medium text-white/70">{pub.first_name}</span>
+                    <span className="opacity-50">@{pub.username}</span>
+                    <span>•</span>
+                    <span>{format(new Date(pub.created_at), 'dd.MM, HH:mm')}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {pub.status === 'published' ? (
+                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 flex items-center gap-2">
+                      <CheckCircle className="w-3 h-3" /> Опубликовано
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-500/20 flex items-center gap-2">
+                      <Send className="w-3 h-3" /> Отправлено
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Ссылки на посты</p>
+                <div className="flex flex-wrap gap-2">
+                  {pub.social_links.length === 0 ? (
+                    <p className="text-xs text-white/20 italic">Пользователь еще не прислал ссылки</p>
+                  ) : (
+                    pub.social_links.map((link, i) => (
+                      <a
+                        key={i}
+                        href={link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-emerald-400 font-medium transition-colors group/link"
+                      >
+                        <ExternalLink className="w-3 h-3 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                        Посмотреть пост {i + 1}
+                      </a>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
