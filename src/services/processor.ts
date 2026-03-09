@@ -120,11 +120,11 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                         filter: 'drawtext',
                         options: {
                             text: watermarkText,
-                            fontcolor: 'white@0.6',
-                            fontsize: 36,
+                            fontcolor: 'white@0.2',
+                            fontsize: 64,
                             x: 'W-tw-40',
                             y: '40',
-                            shadowcolor: 'black',
+                            shadowcolor: 'black@0.1',
                             shadowx: 2,
                             shadowy: 2
                         },
@@ -137,6 +137,8 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                 command
                     .complexFilter(filters, lastOutput)
                     .videoCodec('libx264')
+                    .audioCodec('aac')
+                    .outputOptions('-map 0:a?') // Map the audio from the first input if it exists
                     .on('end', () => finalizeUpload(outputPath))
                     .on('error', (err) => {
                         console.error('Error processing video:', err);
