@@ -745,9 +745,19 @@ async function startServer() {
   });
 
   // Clips
-  app.get("/api/clips", async (req, res) => {
-    const result = await query("SELECT * FROM clips ORDER BY created_at DESC");
-    res.json(result.rows);
+  app.get("/api/clips", authenticateToken, async (req: any, res) => {
+    try {
+      const result = await query(`
+        SELECT c.*, 
+               EXISTS(SELECT 1 FROM publications WHERE clip_id = c.id AND user_id = $1) as published_by_me
+        FROM clips c 
+        ORDER BY created_at DESC
+      `, [req.user.id]);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch clips" });
+    }
   });
 
   // Ad Plaques

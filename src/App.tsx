@@ -73,6 +73,7 @@ interface Clip {
   downloaded_at?: string;
   transcript: string;
   language: string | null;
+  published_by_me?: boolean;
 }
 
 interface Publication {
@@ -1331,8 +1332,13 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram }: { clip: Cli
               </motion.div>
             )}
           </AnimatePresence>
-
-
+          {clip.published_by_me && (
+            <div className="absolute top-3 left-3 z-30 pointer-events-none">
+              <span className="px-2 py-1 bg-emerald-500/90 backdrop-blur-md text-black rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+                <CheckCircle className="w-3 h-3" /> Отправлено
+              </span>
+            </div>
+          )}
 
           {!clip.is_available && (
             <div className="absolute inset-0 z-30 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
@@ -1376,7 +1382,7 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram }: { clip: Cli
               disabled={!clip.is_available || isSending || !onSendToTelegram}
               className="flex-1 text-[11px] uppercase tracking-widest font-black py-3 bg-[#229ED9] text-white rounded-xl hover:bg-[#1f8ebf] transition-all shadow-[0_4px_20px_rgba(34,158,217,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
             >
-              <Send className="w-3 h-3" /> В Telegram с плашкой
+              <Send className="w-3 h-3" /> {clip.published_by_me ? 'Отправить еще раз' : 'В Telegram с плашкой'}
             </button>
             <div className="flex gap-2">
               <button
