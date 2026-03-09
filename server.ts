@@ -748,8 +748,14 @@ async function startServer() {
         }, {
           caption: `🎥 ${clip.title}`
         });
-
         // 4. Log the publication
+        // Defensive check: Ensure user exists in DB to prevent foreign key violation
+        await query(`
+          INSERT INTO users (telegram_id, username, first_name)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (telegram_id) DO NOTHING
+        `, [telegramId, user.username || '', user.first_name || 'Worker']);
+
         await query(`
           INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status)
           VALUES ($1, $2, $3, $4, 'sent')
