@@ -1296,8 +1296,24 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram }: { clip: Cli
               </div>
 
               <div className="space-y-2 pt-2">
+                <button
+                  onClick={() => handleSend(null)}
+                  className="w-full p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/50 transition-all flex items-center justify-center gap-3 group mb-2"
+                >
+                  <Send className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+                  <span className="font-bold text-xs uppercase tracking-widest text-emerald-500">Отправить без плашки</span>
+                </button>
+
+                <div className="relative py-2 px-1 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+                  <span className="relative bg-[#111] px-2 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">или выберите</span>
+                </div>
+
                 {plaques.length === 0 && (
-                  <p className="text-center text-sm text-white/30 py-4">У вас пока нет добавленных плашек. Создайте в «Меню плашек».</p>
+                  <p className="text-center text-[10px] text-white/30 py-4 font-medium uppercase tracking-widest leading-loose px-4">
+                    Нет добавленных плашек.<br />
+                    Вы можете создать их во вкладке «Меню плашек».
+                  </p>
                 )}
                 {plaques.map((plaque) => (
                   <button

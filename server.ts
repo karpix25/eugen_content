@@ -696,17 +696,17 @@ async function startServer() {
     const { id } = req.params;
     const { plaque_id } = req.body;
 
-    if (!plaque_id) return res.status(400).json({ error: "plaque_id is required" });
-
     try {
       const clipRes = await query("SELECT * FROM clips WHERE id = $1", [id]);
       if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
-
-      const plaqueRes = await query("SELECT * FROM ad_plaques WHERE id = $1", [plaque_id]);
-      if (plaqueRes.rows.length === 0) return res.status(404).json({ error: "Plaque not found" });
-
       const clip = clipRes.rows[0];
-      const plaque = plaqueRes.rows[0];
+
+      let plaqueImageUrl = null;
+      if (plaque_id) {
+        const plaqueRes = await query("SELECT * FROM ad_plaques WHERE id = $1", [plaque_id]);
+        if (plaqueRes.rows.length === 0) return res.status(404).json({ error: "Plaque not found" });
+        plaqueImageUrl = plaqueRes.rows[0].image_url;
+      }
 
       // Import the bot directly here since it might have side effects on global if top-level
       const { bot } = await import("./src/services/telegram.js");
@@ -715,7 +715,7 @@ async function startServer() {
       const watermarkText = user.username ? `@${user.username}` : user.first_name;
 
       // Pass skipS3Upload = true and watermarkText
-      const localFilePath = await processClip(id, clip.url, plaque.image_url, null, null, true, watermarkText);
+      const localFilePath = await processClip(id, clip.url, plaqueImageUrl, null, null, true, watermarkText);
 
       // Now send via Telegram directly
       const telegramId = user.telegram_id || user.id;
@@ -727,8 +727,7 @@ async function startServer() {
           caption: `🎥 ${clip.title}`
         });
 
-        // Clean up the tempo file manually because processClip finalizeUpload won't run normal cleanup route if we skipped S3.
-        // Wait, processClip does cleanup only on S3 branch? Let's check: actually we should just send it then delete it.
+        // Clean up the tempo file manually
         fs.unlinkSync(localFilePath);
       }
       res.json({ success: true });
