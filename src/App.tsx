@@ -252,6 +252,12 @@ export default function App() {
   }, [authToken]);
 
   useEffect(() => {
+    if (currentUser && !currentUser.is_admin && !['clips', 'ads'].includes(activeTab)) {
+      setActiveTab('clips');
+    }
+  }, [currentUser, activeTab]);
+
+  useEffect(() => {
     if (!authToken) return;
     const hasPending = videos.some(v => v.status === 'pending' && !v.ai_evaluation);
     if (!hasPending) return;
@@ -507,12 +513,14 @@ export default function App() {
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
-          <NavButton
-            active={activeTab === 'monitor'}
-            onClick={() => setActiveTab('monitor')}
-            icon={<Youtube className="w-5 h-5" />}
-            label="Мониторинг"
-          />
+          {currentUser?.is_admin && (
+            <NavButton
+              active={activeTab === 'monitor'}
+              onClick={() => setActiveTab('monitor')}
+              icon={<Youtube className="w-5 h-5" />}
+              label="Мониторинг"
+            />
+          )}
           <NavButton
             active={activeTab === 'clips'}
             onClick={() => setActiveTab('clips')}
@@ -525,18 +533,22 @@ export default function App() {
             icon={<ImageIcon className="w-5 h-5" />}
             label="Меню плашек"
           />
-          <NavButton
-            active={activeTab === 'tasks'}
-            onClick={() => setActiveTab('tasks')}
-            icon={<ClipboardList className="w-5 h-5" />}
-            label="Задания"
-          />
-          <NavButton
-            active={activeTab === 'workers'}
-            onClick={() => setActiveTab('workers')}
-            icon={<Users className="w-5 h-5" />}
-            label="Работники"
-          />
+          {currentUser?.is_admin && (
+            <>
+              <NavButton
+                active={activeTab === 'tasks'}
+                onClick={() => setActiveTab('tasks')}
+                icon={<ClipboardList className="w-5 h-5" />}
+                label="Задания"
+              />
+              <NavButton
+                active={activeTab === 'workers'}
+                onClick={() => setActiveTab('workers')}
+                icon={<Users className="w-5 h-5" />}
+                label="Работники"
+              />
+            </>
+          )}
         </nav>
 
         <div className="p-6 border-t border-white/5">

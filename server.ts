@@ -274,6 +274,12 @@ async function startServer() {
     }
   });
 
+  const isAdmin = (telegramId: string | number): boolean => {
+    if (String(telegramId) === 'dev') return true;
+    const adminIds = (process.env.ADMIN_TELEGRAM_IDS || "").split(",").map(id => id.trim());
+    return adminIds.includes(String(telegramId));
+  };
+
   app.get("/api/auth/check/:sessionId", async (req, res) => {
     const { sessionId } = req.params;
     try {
@@ -282,15 +288,17 @@ async function startServer() {
 
       const session = result.rows[0];
       if (session.status === 'authorized') {
+        const userObj = {
+          id: session.telegram_id,
+          username: session.username,
+          first_name: session.first_name,
+          is_admin: isAdmin(session.telegram_id)
+        };
         // Return JWT and clean up session (optional but safer)
         res.json({
           status: 'authorized',
           token: session.jwt,
-          user: {
-            id: session.telegram_id,
-            username: session.username,
-            first_name: session.first_name
-          }
+          user: userObj
         });
 
         // Clean up session after successful retrieval
@@ -331,8 +339,10 @@ async function startServer() {
       return res.status(401).json({ error: "Auth data expired" });
     }
 
-    const jwtToken = jwt.sign({ id: data.id, username: data.username }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token: jwtToken, user: data });
+    const adminStatus = isAdmin(data.id);
+    const userPayload = { ...data, is_admin: adminStatus };
+    const jwtToken = jwt.sign({ id: data.id, username: data.username, is_admin: adminStatus }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token: jwtToken, user: userPayload });
   });
 
   // Users Management
