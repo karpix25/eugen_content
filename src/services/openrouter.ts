@@ -8,6 +8,7 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 export interface EvaluationResult {
     score: number;
     evaluation: string;
+    detected_language: string;
 }
 
 export const evaluateContent = async (
@@ -31,11 +32,13 @@ export const evaluateContent = async (
       1. A score from 0 to 100 representing how well it fits the target audience.
       2. A brief explanation of why it fits or doesn't fit (in Russian).
       3. Potential viral hooks for short clips (in Russian).
+      4. Detect the primary language of the speaker in the video and return it as a 2-letter code (e.g. "ru" for Russian, "en" for English).
       
       Return the response in JSON format:
       {
         "score": number,
-        "evaluation": "string"
+        "evaluation": "string",
+        "detected_language": "string"
       }
     `;
 

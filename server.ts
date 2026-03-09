@@ -89,13 +89,13 @@ const syncChannel = async (channelId: string, name: string, monitoringInterval: 
 
         if (transcript) {
           await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
-          
+
           console.log(`[AI] Starting evaluation for video: ${item.title}`);
           const evaluation = await evaluateContent(item.title, transcript, "Предприниматели, интересующиеся ИИ и автоматизацией");
           if (evaluation) {
-            await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2 WHERE id = $3", 
-              [evaluation.score, evaluation.evaluation, videoId]);
-            console.log(`[AI] Evaluation complete for ${videoId}: Score ${evaluation.score}/100`);
+            await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4",
+              [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);
+            console.log(`[AI] Evaluation complete for ${videoId}: Score ${evaluation.score}/100, Lang: ${evaluation.detected_language}`);
           } else {
             console.error(`[AI] Evaluation failed for ${videoId}`);
           }
@@ -153,7 +153,7 @@ async function startServer() {
         // Assume format is like: { code: 0, videos: [{ videoUrl: '...', title: '...' }] }
         const clips = statusData.videos || statusData.data;
         const isSuccess = (statusData.code === 0 || statusData.code === 2000) && clips && Array.isArray(clips);
-        
+
         if (isSuccess) {
           console.log(`Vizard project ${v.vizard_project_id} completed. Saving clips... count: ${clips.length}`);
 
@@ -219,20 +219,20 @@ async function startServer() {
     try {
       const result = await query("SELECT * FROM auth_sessions WHERE id = $1", [sessionId]);
       if (result.rows.length === 0) return res.status(404).json({ error: "Session not found" });
-      
+
       const session = result.rows[0];
       if (session.status === 'authorized') {
         // Return JWT and clean up session (optional but safer)
-        res.json({ 
-          status: 'authorized', 
-          token: session.jwt, 
-          user: { 
-            id: session.telegram_id, 
-            username: session.username, 
-            first_name: session.first_name 
-          } 
+        res.json({
+          status: 'authorized',
+          token: session.jwt,
+          user: {
+            id: session.telegram_id,
+            username: session.username,
+            first_name: session.first_name
+          }
         });
-        
+
         // Clean up session after successful retrieval
         await query("DELETE FROM auth_sessions WHERE id = $1", [sessionId]);
       } else {
@@ -494,8 +494,8 @@ async function startServer() {
                   // We default targetAudience to blank or get it from elsewhere if needed. Since we don't have it here, we will just use a default string.
                   const evaluation = await evaluateContent(v.title, transcript, "Предприниматели, интересующиеся ИИ и автоматизацией");
                   if (evaluation) {
-                    await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2 WHERE id = $3", [evaluation.score, evaluation.evaluation, videoId]);
-                    console.log(`Evaluation complete for ${videoId}: ${evaluation.score}%`);
+                    await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4", [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);
+                    console.log(`Evaluation complete for ${videoId}: ${evaluation.score}%, Lang: ${evaluation.detected_language}`);
                   }
                 }
               }
@@ -527,8 +527,8 @@ async function startServer() {
       const evaluation = await evaluateContent(video.title, video.transcript, targetAudience);
 
       if (evaluation) {
-        await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2 WHERE id = $3",
-          [evaluation.score, evaluation.evaluation, id]);
+        await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4",
+          [evaluation.score, evaluation.evaluation, evaluation.detected_language, id]);
         res.json(evaluation);
       } else {
         res.status(500).json({ error: "AI Evaluation failed" });
@@ -553,8 +553,10 @@ async function startServer() {
   // Approval & Vizard
   app.post("/api/videos/:id/approve", async (req, res) => {
     const { id } = req.params;
-    // Set to approved temporarily
-    await query("UPDATE videos SET status = 'approved' WHERE id = $1", [id]);
+    const { target_language } = req.body;
+
+    // Set to approved temporarily and update target language if requested
+    await query("UPDATE videos SET status = 'approved', target_language = $2 WHERE id = $1", [id, target_language || null]);
 
     const videoUrl = `https://www.youtube.com/watch?v=${id}`;
     const vizardId = await sendToVizard(videoUrl, id);
@@ -578,6 +580,10 @@ async function startServer() {
     const plaqueResult = await query("SELECT * FROM ad_plaques LIMIT 1");
     const plaque = plaqueResult.rows[0];
 
+    // Get the video info to see if we need dubbing
+    const videoResult = await query("SELECT detected_language, target_language FROM videos WHERE id = $1", [videoId]);
+    const video = videoResult.rows[0];
+
     for (const clip of clips) {
       const clipId = Math.random().toString(36).substr(2, 9);
       await query(`
@@ -585,9 +591,9 @@ async function startServer() {
         VALUES ($1, $2, $3, $4, $5, $6)
       `, [clipId, videoId, clip.url, clip.thumbnail, clip.title, plaque?.id]);
 
-      // Start asynchronous processing (branding + subs)
-      if (plaque) {
-        processClip(clipId, clip.url, plaque.image_url).catch(console.error);
+      // Start asynchronous processing (branding + dubbing + subs)
+      if (plaque || (video?.detected_language && video?.target_language)) {
+        processClip(clipId, clip.url, plaque?.image_url || null, video?.target_language, video?.detected_language).catch(console.error);
       } else {
         // No branding, just mark as processed/raw
         await query("UPDATE clips SET status = 'processed' WHERE id = $1", [clipId]);
@@ -617,7 +623,7 @@ async function startServer() {
     if (!file) return res.status(400).json({ error: "No file uploaded" });
 
     try {
-      const imageUrl = await uploadToS3(file);
+      const imageUrl = await uploadToS3(file.buffer, `ad-plaques/${file.originalname}`, file.mimetype);
       const id = Math.random().toString(36).substr(2, 9);
       await query("INSERT INTO ad_plaques (id, name, image_url, text) VALUES ($1, $2, $3, $4)", [id, name, imageUrl, text]);
       res.json({ id, imageUrl });

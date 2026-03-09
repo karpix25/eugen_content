@@ -51,6 +51,8 @@ interface VideoData {
   thumbnail: string;
   ai_score: number | null;
   ai_evaluation: string | null;
+  detected_language: string | null;
+  target_language: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'sent_to_vizard' | 'completed';
 }
 
@@ -378,10 +380,14 @@ export default function App() {
     }
   };
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, targetLanguage?: string) => {
     setLoading(true);
     try {
-      const resp = await fetch(`/api/videos/${id}/approve`, { method: 'POST' });
+      const resp = await fetch(`/api/videos/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_language: targetLanguage })
+      });
       if (!resp.ok) {
         const err = await resp.json();
         alert(err.error || "Ошибка при отправке в Vizard");
@@ -684,7 +690,7 @@ export default function App() {
                       key={video.id}
                       video={video}
                       onEvaluate={() => handleEvaluate(video.id)}
-                      onApprove={() => handleApprove(video.id)}
+                      onApprove={(targetLanguage?: string) => handleApprove(video.id, targetLanguage)}
                       onComplete={() => handleCompleteVideo(video.id)}
                       loading={loading}
                     />
@@ -840,101 +846,180 @@ export default function App() {
 function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
   video: VideoData,
   onEvaluate: () => void,
-  onApprove: () => void,
+  onApprove: (targetLanguage?: string) => void,
   onComplete: () => void,
   loading: boolean
 }) {
+  const [showDubModal, setShowDubModal] = useState(false);
+
+  const getDubbingOptions = () => {
+    if (video.detected_language === 'ru') {
+      return [
+        { label: 'Без дубляжа (Оригинал: RU)', value: undefined },
+        { label: 'Дублировать на Английский (EN)', value: 'en' }
+      ];
+    } else if (video.detected_language === 'en') {
+      return [
+        { label: 'Без дубляжа (Оригинал: EN)', value: undefined },
+        { label: 'Дублировать на Русский (RU)', value: 'ru' }
+      ];
+    }
+    // Fallback if language is unknown
+    return [
+      { label: 'Без дубляжа (Оригинальная дорожка)', value: undefined },
+      { label: 'Дублировать на Русский (RU)', value: 'ru' },
+      { label: 'Дублировать на Английский (EN)', value: 'en' }
+    ];
+  };
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col sm:flex-row min-w-0"
-    >
-      <div className="relative w-full sm:w-64 md:w-72 aspect-video shrink-0">
-        <img src={video.thumbnail} className="w-full h-full object-cover" alt="" />
-        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-          <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="p-3 bg-white/20 backdrop-blur-md rounded-full">
-            <ExternalLink className="w-6 h-6" />
-          </a>
-        </div>
-      </div>
-
-      <div className="flex-1 p-6 flex flex-col">
-        <div className="flex justify-between items-start gap-4 mb-2">
-          <h3 className="font-semibold text-lg leading-tight">{video.title}</h3>
-          {video.ai_score !== null && (
-            <div className={cn(
-              "px-3 py-1 rounded-full text-sm font-bold",
-              video.ai_score > 70 ? "bg-emerald-500/20 text-emerald-400" : "bg-yellow-500/20 text-yellow-400"
-            )}>
-              {video.ai_score}% Match
-            </div>
-          )}
+    <>
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col sm:flex-row min-w-0"
+      >
+        <div className="relative w-full sm:w-64 md:w-72 aspect-video shrink-0">
+          <img src={video.thumbnail} className="w-full h-full object-cover" alt="" />
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+            <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="p-3 bg-white/20 backdrop-blur-md rounded-full">
+              <ExternalLink className="w-6 h-6" />
+            </a>
+          </div>
         </div>
 
-        <p className="text-sm text-white/40 line-clamp-2 mb-4">{video.description}</p>
-
-        <div className="mt-auto flex flex-wrap items-center gap-4">
-          {!video.ai_evaluation ? (
-            <button
-              onClick={onEvaluate}
-              disabled={loading}
-              title="Перезапустить анализ, если он завис"
-              className="text-xs text-yellow-500/80 hover:text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1 rounded-full flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-              Анализ ИИ...
-            </button>
-          ) : (
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-white/40 mb-1 uppercase tracking-widest font-bold">Оценка ИИ:</div>
-              <div className="text-sm text-white/80 bg-black/20 p-3 rounded-lg">
-                <Markdown>{video.ai_evaluation}</Markdown>
+        <div className="flex-1 p-6 flex flex-col">
+          <div className="flex justify-between items-start gap-4 mb-2">
+            <h3 className="font-semibold text-lg leading-tight">{video.title}</h3>
+            {video.ai_score !== null && (
+              <div className={cn(
+                "px-3 py-1 rounded-full text-sm font-bold",
+                video.ai_score > 70 ? "bg-emerald-500/20 text-emerald-400" : "bg-yellow-500/20 text-yellow-400"
+              )}>
+                {video.ai_score}% Match
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {video.ai_evaluation && video.status === 'pending' && (
-            <div className="flex gap-2 ml-auto">
+          <p className="text-sm text-white/40 line-clamp-2 mb-4">{video.description}</p>
+
+          <div className="mt-auto flex flex-wrap items-center gap-4">
+            {!video.ai_evaluation ? (
               <button
-                onClick={onComplete}
-                title="Отметить как готовое"
-                className="p-2 bg-white/10 text-white/60 rounded-lg hover:bg-white/20 transition-colors"
-              >
-                <CheckCircle className="w-5 h-5 text-white/40" />
-              </button>
-              <button
-                onClick={onApprove}
+                onClick={onEvaluate}
                 disabled={loading}
-                className={cn(
-                  "p-2 bg-emerald-500 text-black rounded-lg hover:bg-emerald-400 transition-colors",
-                  loading && "opacity-50 cursor-not-allowed"
-                )}
+                title="Перезапустить анализ, если он завис"
+                className="text-xs text-yellow-500/80 hover:text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1 rounded-full flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CheckCircle className="w-5 h-5" />
+                {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                Анализ ИИ...
               </button>
-              <button className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors">
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-white/40 mb-1 uppercase tracking-widest font-bold">Оценка ИИ:</div>
+                <div className="text-sm text-white/80 bg-black/20 p-3 rounded-lg">
+                  <Markdown>{video.ai_evaluation}</Markdown>
+                </div>
+              </div>
+            )}
 
-          {video.status === 'approved' && (
-            <div className="ml-auto flex items-center gap-2 text-emerald-400 text-sm font-medium">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              В обработке Vizard...
-            </div>
-          )}
+            {video.ai_evaluation && video.status === 'pending' && (
+              <div className="flex gap-2 ml-auto">
+                <button
+                  onClick={onComplete}
+                  title="Отметить как готовое"
+                  className="p-2 bg-white/10 text-white/60 rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  <CheckCircle className="w-5 h-5 text-white/40" />
+                </button>
+                <button
+                  onClick={() => setShowDubModal(true)}
+                  disabled={loading}
+                  className={cn(
+                    "p-2 bg-emerald-500 text-black rounded-lg hover:bg-emerald-400 transition-colors",
+                    loading && "opacity-50 cursor-not-allowed"
+                  )}
+                  title="Одобрить и выбрать язык"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                </button>
+                <button className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+            )}
 
-          {video.status === 'completed' && (
-            <div className="ml-auto text-emerald-400 text-sm font-medium flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" /> Готово
-            </div>
-          )}
+            {video.status === 'approved' && (
+              <div className="ml-auto flex flex-col items-end gap-1">
+                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  В обработке Vizard...
+                </div>
+                {video.target_language && (
+                  <div className="text-[10px] uppercase font-bold text-emerald-500/60 tracking-wider">
+                    Запланирован дубляж: {video.target_language}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {video.status === 'completed' && (
+              <div className="ml-auto flex flex-col items-end gap-1">
+                <div className="text-emerald-400 text-sm font-medium flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" /> Готово
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      <AnimatePresence>
+        {showDubModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 relative"
+            >
+              <button
+                onClick={() => setShowDubModal(false)}
+                className="absolute top-4 right-4 text-white/40 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold">Выберите язык</h3>
+                <p className="text-sm text-white/40">Определен язык оригинала: <strong className="text-emerald-400 uppercase">{video.detected_language || 'Неизвестен'}</strong></p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                {getDubbingOptions().map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setShowDubModal(false);
+                      onApprove(opt.value);
+                    }}
+                    className="w-full text-left p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/50 transition-all font-medium text-sm flex items-center justify-between group"
+                  >
+                    {opt.label}
+                    <CheckCircle className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-xs text-white/30 text-center pt-2">
+                Выбор дубляжа автоматически отправит клипы в ElevenLabs после нарезки в Vizard.
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 function ClipCard({ clip, plaques, onCreateTask }: { clip: Clip, plaques: AdPlaque[], onCreateTask: () => void }) {
