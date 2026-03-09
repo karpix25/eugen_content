@@ -245,6 +245,18 @@ export default function App() {
     }
   }, [authToken]);
 
+  useEffect(() => {
+    if (!authToken) return;
+    const hasPending = videos.some(v => v.status === 'pending' && !v.ai_evaluation);
+    if (!hasPending) return;
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [videos, authToken]);
+
   const handleLogout = () => {
     setAuthToken(null);
     setCurrentUser(null);
@@ -348,12 +360,19 @@ export default function App() {
   const handleEvaluate = async (id: string) => {
     setLoading(true);
     try {
-      await fetch(`/api/videos/${id}/evaluate`, {
+      const resp = await fetch(`/api/videos/${id}/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetAudience })
       });
-      fetchData();
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => null);
+        alert(err?.error || "Ошибка генерации оценки ИИ (проверьте баланс и ключ OpenRouter)");
+      }
+      await fetchData();
+    } catch (err) {
+      alert("Ошибка сети при обращении к серверу");
     } finally {
       setLoading(false);
     }
