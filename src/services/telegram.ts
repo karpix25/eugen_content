@@ -51,6 +51,16 @@ bot.start(async (ctx) => {
                 { expiresIn: '12h' }
             );
 
+            // ENSURE USER EXISTS IN users TABLE (Fixes FK violation in publications)
+            await query(
+                `INSERT INTO users (telegram_id, username, first_name) 
+                 VALUES ($1, $2, $3) 
+                 ON CONFLICT (telegram_id) DO UPDATE SET 
+                    username = EXCLUDED.username, 
+                    first_name = EXCLUDED.first_name`,
+                [from.id, from.username, from.first_name]
+            );
+
             await query(
                 'UPDATE auth_sessions SET status = \'authorized\', telegram_id = $1, username = $2, first_name = $3, jwt = $4 WHERE id = $5',
                 [from.id, from.username, from.first_name, token, sessionId]
