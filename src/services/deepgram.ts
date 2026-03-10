@@ -24,7 +24,6 @@ export const generateAndCacheSRT = async (clipId: string, videoFilePath: string,
 
     try {
         console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language || 'auto'})...`);
-        const videoBuffer = fs.readFileSync(videoFilePath);
 
         const options: any = {
             model: 'nova-3',
@@ -37,10 +36,20 @@ export const generateAndCacheSRT = async (clipId: string, videoFilePath: string,
             options.detect_language = true;
         }
 
-        const response: any = await deepgram.listen.v1.media.transcribeFile(
-            videoBuffer,
-            options
-        );
+        let response: any;
+
+        if (videoFilePath.startsWith('http://') || videoFilePath.startsWith('https://')) {
+            response = await deepgram.listen.v1.media.transcribeUrl({
+                url: videoFilePath,
+                ...options
+            });
+        } else {
+            const videoBuffer = fs.readFileSync(videoFilePath);
+            response = await deepgram.listen.v1.media.transcribeFile(
+                videoBuffer,
+                options
+            );
+        }
 
         const words = response?.result?.results?.channels?.[0]?.alternatives?.[0]?.words || response?.results?.channels?.[0]?.alternatives?.[0]?.words || [];
         if (words.length === 0) {
