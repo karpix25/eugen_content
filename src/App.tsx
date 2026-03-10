@@ -337,13 +337,13 @@ export default function App() {
         return;
       }
 
-      setChannels(resData[0]);
-      setVideos(resData[1]);
-      setClips(resData[2]);
-      setPlaques(resData[3]);
-      setTasks(resData[4]);
-      setUsers(resData[5]);
-      setPublications(resData[6]);
+      setChannels(Array.isArray(resData[0]) ? resData[0] : []);
+      setVideos(Array.isArray(resData[1]) ? resData[1] : []);
+      setClips(Array.isArray(resData[2]) ? resData[2] : []);
+      setPlaques(Array.isArray(resData[3]) ? resData[3] : []);
+      setTasks(Array.isArray(resData[4]) ? resData[4] : []);
+      setUsers(Array.isArray(resData[5]) ? resData[5] : []);
+      setPublications(Array.isArray(resData[6]) ? resData[6] : []);
 
 
       // If we got here, we're authorized. Let's explicitly check who we are if we don't know yet

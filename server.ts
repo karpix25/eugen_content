@@ -326,15 +326,18 @@ async function startServer() {
   // Simple token verification / "Who am I" hydration
   app.get("/api/auth/check", authenticateToken, async (req: any, res) => {
     try {
-      const userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [req.user.id]);
+      let userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [req.user.id]);
+
       if (userRes.rows.length === 0) {
-        return res.json({
-          user: {
-            ...req.user,
-            is_admin: isAdmin(req.user.id)
-          }
-        });
+        // Automatically insert the user to satisfy foreign key constraints across the DB
+        await query(
+          "INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING",
+          [req.user.id, req.user.username, req.user.first_name]
+        );
+        // Refetch after insertion
+        userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [req.user.id]);
       }
+
       const dbUser = userRes.rows[0];
       res.json({
         user: {
@@ -345,6 +348,7 @@ async function startServer() {
         }
       });
     } catch (err) {
+      console.error("Hydration Error:", err);
       res.json({
         user: {
           ...req.user,
