@@ -96,6 +96,7 @@ export const processClip = async (
 
             const finalLang = targetLang || sourceLang || 'auto';
             let srtFilePath: string | null = null;
+            let watermarkAssPath: string | null = null;
             if (subtitleConfig && subtitleConfig.enabled) {
                 const srtRes = await query("SELECT srt_url FROM clips WHERE id = $1", [clipId]);
                 let srtUrl = srtRes.rows[0]?.srt_url;
@@ -126,6 +127,7 @@ export const processClip = async (
                     if (fs.existsSync(f)) fs.unlinkSync(f);
                 });
                 if (srtFilePath && fs.existsSync(srtFilePath)) fs.unlinkSync(srtFilePath);
+                if (watermarkAssPath && fs.existsSync(watermarkAssPath)) fs.unlinkSync(watermarkAssPath);
             };
 
             const finalizeUpload = async (fileToUpload: string) => {
@@ -239,43 +241,50 @@ export const processClip = async (
                 if (watermarkConfig && watermarkConfig.text) {
                     const { text, opacity, position } = watermarkConfig;
 
-                    let x = '(W-tw)/2';
-                    let y = '(H-th)/2';
+                    watermarkAssPath = path.join(outputDir, `watermark_${clipId}.ass`);
+                    const alphaValue = Math.round((1 - opacity) * 255).toString(16).padStart(2, '0').toUpperCase();
+
+                    let alignment = 5;
+                    let marginV = 0;
+                    let marginL = 0;
+                    let marginR = 0;
+                    let rotate = 0;
+                    let fontSize = 64;
 
                     if (position === 'top_left') {
-                        x = 'W*0.05'; y = 'H*0.05';
+                        alignment = 7; marginV = 40; marginL = 40;
                     } else if (position === 'top_right') {
-                        x = 'W*0.95-tw'; y = 'H*0.05';
+                        alignment = 9; marginV = 40; marginR = 40;
                     } else if (position === 'bottom_left') {
-                        x = 'W*0.05'; y = 'H*0.95-th';
+                        alignment = 1; marginV = 40; marginL = 40;
                     } else if (position === 'bottom_right') {
-                        x = 'W*0.95-tw'; y = 'H*0.95-th';
+                        alignment = 3; marginV = 40; marginR = 40;
                     } else if (position === 'tilted_center') {
-                        x = '(W-tw)/2'; y = '(H-th)/2';
+                        alignment = 5; rotate = -30; fontSize = 84;
                     }
 
-                    const drawtextOptions: any = {
-                        text: text.replace(/:/g, '\\:'), // escape colons for FFmpeg
-                        fontcolor: `white@${opacity}`,
-                        fontsize: position === 'tilted_center' ? 84 : 64, // slightly larger for tilted
-                        x,
-                        y,
-                        shadowcolor: `black@${opacity * 0.6}`,
-                        shadowx: 2,
-                        shadowy: 2
-                    };
+                    const watermarkAssContent = `[Script Info]
+ScriptType: v4.00+
+PlayResX: 720
+PlayResY: 1280
+ScaledBorderAndShadow: yes
 
-                    // Note: text rotation via angle requires a build of FFmpeg with FreeType support and specific layout logic, 
-                    // However, we can approximate tilted text by providing no tilt if angle fails or rely on frontend preview if backend cannot tilt easily. We will attempt tilt.
-                    if (position === 'tilted_center') {
-                        // In some ffmpeg versions drawtext doesn't support 'angle' parameter directly unless specifically compiled, but it generally supports expansion.
-                        drawtextOptions.x = '(W-tw)/2';
-                        // if tilt isn't natively supported by standard Ubuntu ffmpeg drawtext filter, we will just keep it larger and centered. We'll leave out angle to prevent filter graph crashes, as most basic ffmpegs require rotation filters before drawtext for true tilts.
-                    }
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,${fontSize},&H${alphaValue}FFFFFF,&H000000FF,&H${alphaValue}000000,&H${alphaValue}000000,-1,0,0,0,100,100,0,0,1,2,2,${alignment},${marginL},${marginR},${marginV},1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rotate}}${text}
+`;
+                    fs.writeFileSync(watermarkAssPath, watermarkAssContent);
+
+                    const safeAssPath = watermarkAssPath.replace(/'/g, "'\\''");
+                    const fontsPath = path.join(process.cwd(), 'fonts').replace(/'/g, "'\\''");
 
                     filters.push({
-                        filter: 'drawtext',
-                        options: drawtextOptions,
+                        filter: 'subtitles',
+                        options: `filename='${safeAssPath}':fontsdir='${fontsPath}'`,
                         inputs: lastOutput,
                         outputs: 'final'
                     });
