@@ -173,7 +173,9 @@ export const processClip = async (
                     }
 
                     const fontSize = subtitleConfig?.font_size || 16;
-                    const escapedSrtPath = srtFilePath.replace(/\\/g, '/').replace(/:/g, '\\:');
+                    // Use relative path to avoid issues with Cyrillic characters in absolute paths (e.g., /Users/.../Женя)
+                    const relativeSrtPath = path.relative(process.cwd(), srtFilePath);
+                    const escapedSrtPath = relativeSrtPath.replace(/\\/g, '/');
 
                     const isAss = srtFilePath.endsWith('.ass');
                     const styleName = subtitleConfig?.style || 'ali';
@@ -182,40 +184,40 @@ export const processClip = async (
                     if (isAss) {
                         if (styleName === 'beast') {
                             // BEAST STYLE: Colored active/outline, black glow/bold background
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=6,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor}&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=6,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName.includes('hormozi')) {
                             // HORMOZI STYLE: No background box, very thick shadow, Yellow/White colors text
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=4,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor}&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=4,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'celine') {
                             // CELINE STYLE: Standard subtitles, no box, outline
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Bold=0,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=2,Shadow=1,Bold=0,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'iman') {
                             // IMAN STYLE: Minimalist. No thick lines. White font (color ignored for base text). Light shadow. Minimalist bold transition handled by inline tags.
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=1,Shadow=2,Bold=0,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=1,Shadow=2,Bold=0,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'devin') {
                             // DEVIN STYLE: Bouncy. Heavy rotating text inline. Massive stroke here. 
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=8,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor}&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=8,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'mrb') {
                             // MRB STYLE: Thick double black stroke, no shadow, heavily yellow active words.
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV + 10}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor}&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV + 10}`;
                         } else if (styleName === 'karaoke') {
                             // KARAOKE STYLE: Smooth text. Medium borders. Like Celine but colors sweeping active word.
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=2,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor}&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=2,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'jordan') {
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'luke') {
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00FFFF00,BorderStyle=1,Outline=2,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H00FFFF00&,BorderStyle=1,Outline=2,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'maya') {
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H0000A5FF,BorderStyle=1,Outline=2,Shadow=5,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H0000A5FF&,BorderStyle=1,Outline=2,Shadow=5,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'sage') {
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00FFFFFF,BackColour=&H00FFFFFF,BorderStyle=1,Outline=2,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00FFFFFF&,BackColour=&H00FFFFFF&,BorderStyle=1,Outline=2,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else {
                             // ALI STYLE: Box background (BorderStyle=3), Light Gray Box, No shadow
-                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0,BackColour=&H00F0F0F0,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor}&,OutlineColour=&H00F0F0F0&,BackColour=&H00F0F0F0&,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         }
                     } else {
                         // LEGACY STYLE
-                        style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor}&,OutlineColour=&H80000000&,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                     }
 
                     filters.push({
@@ -223,7 +225,7 @@ export const processClip = async (
                         options: {
                             filename: escapedSrtPath,
                             force_style: style,
-                            fontsdir: path.join(process.cwd(), 'fonts')
+                            fontsdir: './fonts'
                         },
                         inputs: lastOutput,
                         outputs: 'with_subs'

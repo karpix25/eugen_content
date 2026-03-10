@@ -139,7 +139,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
                         } else if (styleCategory === 'jordan') {
                             wText = wText.toUpperCase();
                             if (k === j) {
-                                textParts.push(`{\\r\\fscx120\\fscy120\\1c&H0000FFFF&}${wText}`); // Yellow ASS (BBGGRR) -> 00FFFF
+                                textParts.push(`{\\r\\fscx120\\fscy120\\1c&H0000FFFF&}${wText}`); // Yellow
                             } else {
                                 textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
                             }
@@ -169,13 +169,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
                                 if (k === j) {
                                     textParts.push(`{\\r\\fscx120\\fscy120\\1c${fontColor}}${wText}`);
                                 } else {
-                                    textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
+                                    textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
                                 }
                             } else {
                                 if (k === j) {
                                     textParts.push(`{\\r\\fscx112\\fscy112\\1c${fontColor}}${wText}`);
                                 } else {
-                                    textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
+                                    textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
                                 }
                             }
                         } else if (styleCategory === 'celine') {
@@ -187,9 +187,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
                                 wText = wText.charAt(0).toUpperCase() + wText.slice(1);
                             }
                             if (k === j) {
-                                textParts.push(`{\\r\\fscx115\\fscy115\\1c${fontColor}}${wText}`);
+                                textParts.push(`{\\r\\fscx115\\fscy115\\1c${fontColor}&}${wText}`);
                             } else {
-                                textParts.push(`{\\r\\1c&H808080&}${wText}`);
+                                textParts.push(`{\\r\\1c&H00808080&}${wText}`);
                             }
                         }
                     }
