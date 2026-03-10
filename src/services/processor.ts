@@ -196,6 +196,14 @@ export const processClip = async (
                         } else if (styleName === 'karaoke') {
                             // KARAOKE STYLE: Smooth text. Medium borders. Like Celine but colors sweeping active word.
                             style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=2,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        } else if (styleName === 'jordan') {
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        } else if (styleName === 'luke') {
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00FFFF00,BorderStyle=1,Outline=2,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        } else if (styleName === 'maya') {
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H0000A5FF,BorderStyle=1,Outline=2,Shadow=5,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        } else if (styleName === 'sage') {
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00FFFFFF,BackColour=&H00FFFFFF,BorderStyle=1,Outline=2,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else {
                             // ALI STYLE: Box background (BorderStyle=3), Light Gray Box, No shadow
                             style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0,BackColour=&H00F0F0F0,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;

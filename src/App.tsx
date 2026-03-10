@@ -1658,10 +1658,14 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const SUBTITLE_STYLES = [
     { id: 'ali', name: 'Ali', description: 'Светлый фон, серый неактивный, цветной активный.' },
     { id: 'beast', name: 'Beast', description: 'Цветная обводка активного, pop.' },
-    { id: 'hormozi_1', name: 'Hormozi', description: 'Очень толстая и чёрная тень.' },
-    { id: 'mrb', name: 'MrB', description: 'Огромный жирный черный контур, желтый текст.' },
-    { id: 'devin', name: 'Devin', description: 'Прыгучий стиль с наклоном (rotate) активных слов.' },
-    { id: 'iman', name: 'Iman', description: 'Минимализм. Строчные буквы, из легкого в жирный.' },
+    { id: 'hormozi_1', name: 'Hormozi 1', description: 'Очень толстая и чёрная тень.' },
+    { id: 'jordan', name: 'Jordan', description: 'Иконка сообщения и желтый акцент.' },
+    { id: 'luke', name: 'Luke', description: 'Неоновое голубое свечение.' },
+    { id: 'maya', name: 'Maya', description: 'Неоновое оранжевое свечение.' },
+    { id: 'sage', name: 'Sage', description: 'Яркое белое свечение контура.' },
+    { id: 'mrb', name: 'MrB', description: 'Огромный жирный контур.' },
+    { id: 'devin', name: 'Devin', description: 'Прыгучий стиль с наклоном.' },
+    { id: 'iman', name: 'Iman', description: 'Минимализм. Строчные буквы.' },
     { id: 'karaoke', name: 'Karaoke', description: 'Плавная смена цвета без увеличения.' },
     { id: 'celine', name: 'Celine', description: 'Базовые статичные субтитры.' }
   ];
@@ -1835,16 +1839,78 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
               <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
                 <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Шаблон субтитров</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {SUBTITLE_STYLES.map(style => (
-                    <button
-                      key={style.id}
-                      onClick={() => setSubtitleStyle(style.id)}
-                      className={`text-left text-xs py-3 px-3 rounded-lg font-medium transition-all border flex flex-col gap-1 ${subtitleStyle === style.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
-                    >
-                      <span className="font-bold">{style.name}</span>
-                      <span className="text-[9px] opacity-70 leading-tight">{style.description}</span>
-                    </button>
-                  ))}
+                  {SUBTITLE_STYLES.map(style => {
+                    const isActive = subtitleStyle === style.id;
+                    return (
+                      <button
+                        key={style.id}
+                        onClick={() => setSubtitleStyle(style.id)}
+                        className={`text-center flex flex-col items-center justify-between p-3 rounded-xl transition-all border ${isActive ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-[#1a1c23] border-white/5 hover:border-white/20'}`}
+                        style={{ minHeight: '110px' }}
+                      >
+                        <div className="flex-1 flex flex-col items-center justify-center w-full">
+                          {style.id === 'ali' && (
+                            <div className="bg-[#F0F0F0] text-[#808080] px-3 py-1 rounded font-bold text-[10px]" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif` }}>
+                              <span className="uppercase">ADD </span>
+                              <span className="text-[#FFFFFF] bg-transparent" style={{ textShadow: `1px 1px 0 ${subtitleFontColor}, -1px -1px 0 ${subtitleFontColor}, 1px -1px 0 ${subtitleFontColor}, -1px 1px 0 ${subtitleFontColor}, 1px 1px 0 ${subtitleFontColor}`, transform: 'scale(1.15)', display: 'inline-block', color: subtitleFontColor }}>CAPTIONS</span>
+                              <span className="uppercase"> TO YOUR</span>
+                            </div>
+                          )}
+                          {style.id === 'beast' && (
+                            <div className="text-white font-bold text-[11px] uppercase tracking-wide" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif` }}>
+                              <span>ADD </span>
+                              <span style={{ textShadow: `1px 1px 0 ${subtitleFontColor}, -1px -1px 0 ${subtitleFontColor}, 1px -1px 0 ${subtitleFontColor}, -1px 1px 0 ${subtitleFontColor}, 1px 1px 0 ${subtitleFontColor}, 0 0 4px #000`, transform: 'scale(1.2)', display: 'inline-block', color: subtitleFontColor }}>CAPTIONS</span>
+                            </div>
+                          )}
+                          {style.id === 'hormozi_1' && (
+                            <div className="font-bold text-[14px] uppercase" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif`, color: '#39FF14', textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 4px 6px rgba(0,0,0,0.5)' }}>
+                              VIDEOS
+                            </div>
+                          )}
+                          {style.id === 'jordan' && (
+                            <div className="font-bold text-[10px] uppercase text-white flex flex-col items-center" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif`, textShadow: '1px 1px 2px #000' }}>
+                              <span className="text-lg leading-none mb-1">💬</span>
+                              <div>
+                                <span>ADD </span>
+                                <span style={{ color: '#FFD700' }}>CAPTIONS</span>
+                              </div>
+                              <div style={{ fontSize: '11px', transform: 'scale(1.1)' }}>TO YOUR</div>
+                            </div>
+                          )}
+                          {style.id === 'luke' && (
+                            <div className="font-bold text-[11px] uppercase" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif`, color: '#00FFFF', filter: 'drop-shadow(0 0 10px #00FFFF)' }}>
+                              ADD CAPTIONS
+                            </div>
+                          )}
+                          {style.id === 'maya' && (
+                            <div className="font-bold text-[11px]" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif`, color: '#FFA500', filter: 'drop-shadow(0 0 10px #FFA500)' }}>
+                              Add captions
+                            </div>
+                          )}
+                          {style.id === 'sage' && (
+                            <div className="font-bold text-[12px] uppercase outline-text" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif`, color: '#FFFFFF', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.8))' }}>
+                              ADD CAPTIONS
+                            </div>
+                          )}
+                          {style.id === 'iman' && (
+                            <div className="font-bold text-[11px] text-white/50 lowercase" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif` }}>
+                              <span>add </span>
+                              <span className="text-white font-[900]" style={{ transform: 'scale(1.05)', display: 'inline-block', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>captions</span>
+                              <div>to your</div>
+                            </div>
+                          )}
+                          {style.id === 'celine' && (
+                            <div className="font-bold text-[12px] text-white" style={{ fontFamily: `"${subtitleFontFamily}", sans-serif`, textShadow: '1px 1px 2px #000' }}>
+                              to your
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3 text-[11px] font-bold text-white/80 w-full text-left truncate">
+                          {style.name}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 

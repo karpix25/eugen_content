@@ -136,6 +136,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
                             } else {
                                 textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
                             }
+                        } else if (styleCategory === 'jordan') {
+                            wText = wText.toUpperCase();
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx120\\fscy120\\1c&H0000FFFF&}${wText}`); // Yellow ASS (BBGGRR) -> 00FFFF
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory === 'luke') {
+                            wText = wText.toUpperCase();
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFF00&}${wText}`); // Cyan glow 
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory === 'maya') {
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H0000A5FF&}${wText}`); // Orange glow
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory === 'sage') {
+                            wText = wText.toUpperCase();
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFFFF&}${wText}`); // White glow
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                            }
                         } else if (styleCategory === 'beast' || styleCategory.includes('hormozi')) {
                             wText = wText.toUpperCase();
                             if (styleCategory === 'beast') {
