@@ -250,6 +250,8 @@ export const processClip = async (
                         x = 'W*0.05'; y = 'H*0.95-th';
                     } else if (position === 'bottom_right') {
                         x = 'W*0.95-tw'; y = 'H*0.95-th';
+                    } else if (position === 'tilted_center') {
+                        x = '(W-tw)/2'; y = '(H-th)/2';
                     }
 
                     const drawtextOptions: any = {
