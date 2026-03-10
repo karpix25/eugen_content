@@ -903,7 +903,8 @@ async function startServer() {
     if (!file) return res.status(400).json({ error: "No file uploaded" });
 
     try {
-      const imageUrl = await uploadToS3(file.buffer, `ad-plaques/${file.originalname}`, file.mimetype);
+      const uploadResult = await uploadToS3(file.buffer, `ad-plaques/${file.originalname}`, file.mimetype);
+      const imageUrl = uploadResult.Location;
       const id = Math.random().toString(36).substr(2, 9);
       await query("INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)", [id, name, imageUrl, text, user_id || null]);
       res.json({ id, imageUrl });

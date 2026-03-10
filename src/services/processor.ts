@@ -68,6 +68,21 @@ export const processClip = async (
             let tempDubbedFile = path.join(outputDir, `${clipId}_dubbed.mp4`);
             let tempOriginalFile = path.join(outputDir, `${clipId}_original.mp4`);
 
+            // Robustness: if plaqueImageUrl is actually a stringified JSON (legacy bug), parse it
+            let finalPlaqueUrl = plaqueImageUrl;
+            if (plaqueImageUrl && plaqueImageUrl.trim().startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(plaqueImageUrl);
+                    if (parsed.Location) {
+                        finalPlaqueUrl = parsed.Location;
+                        console.log(`Parsed legacy JSON plaque URL for ${clipId}: ${finalPlaqueUrl}`);
+                    }
+                } catch (e) {
+                    console.error(`Failed to parse plaqueImageUrl as JSON for ${clipId}:`, e);
+                }
+            }
+
+
             if (targetLang && sourceLang && targetLang !== sourceLang) {
                 console.log(`Starting ElevenLabs dubbing ${sourceLang} -> ${targetLang}`);
                 await downloadFile(videoUrl, tempOriginalFile);
@@ -170,15 +185,15 @@ export const processClip = async (
                 resolve(finalUrl);
             };
 
-            if (plaqueImageUrl || watermarkConfig || srtFilePath) {
-                console.log(`Starting FFmpeg overlay for ${clipId} (Plaque: ${!!plaqueImageUrl}, Watermark: ${watermarkConfig?.text || 'None'}, Subs: ${!!srtFilePath})`);
+            if (finalPlaqueUrl || watermarkConfig || srtFilePath) {
+                console.log(`Starting FFmpeg overlay for ${clipId} (Plaque: ${!!finalPlaqueUrl}, Watermark: ${watermarkConfig?.text || 'None'}, Subs: ${!!srtFilePath})`);
 
                 let command = ffmpeg(currentVideoUrl);
                 const filters: any[] = [];
                 let lastOutput = '[0:v]';
 
-                if (plaqueImageUrl) {
-                    command = command.input(plaqueImageUrl);
+                if (finalPlaqueUrl) {
+                    command = command.input(finalPlaqueUrl);
                     filters.push({
                         filter: 'scale',
                         options: '720:-1',
