@@ -93,6 +93,7 @@ export const processClip = async (
             };
             const assColor = toAss(subtitleConfig?.font_color || '#FFFFFF');
             const fontFamily = subtitleConfig?.font_family || 'Anton';
+            const fontSize = subtitleConfig?.font_size || 48;
 
             const finalLang = targetLang || sourceLang || 'auto';
             let srtFilePath: string | null = null;
@@ -102,12 +103,12 @@ export const processClip = async (
                 let srtUrl = srtRes.rows[0]?.srt_url;
 
                 // Ensure that the cached ASS file matches the current user configuration perfectly
-                const styleName = subtitleConfig?.style || 'ali';
-                const requiredHash = `${styleName}_${assColor}_${fontFamily}`.replace(/[^a-zA-Z0-9_]/g, '');
+                const styleName = subtitleConfig?.style || 'karaoke';
+                const requiredHash = `${styleName}_${assColor}_${fontFamily}_${fontSize}`.replace(/[^a-zA-Z0-9_]/g, '');
 
                 if (!srtUrl || !srtUrl.includes(requiredHash)) {
                     console.log(`Generating new subtitles due to missing cache or mismatched style hash (${requiredHash})`);
-                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, finalLang, styleName, assColor, fontFamily);
+                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, finalLang, styleName, assColor, fontFamily, fontSize);
                     if (srtUrl) {
                         await query("UPDATE clips SET srt_url = $1 WHERE id = $2", [srtUrl, clipId]);
                     }

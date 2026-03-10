@@ -1,37 +1,35 @@
-import { DeepgramClient } from "@deepgram/sdk";
 import fs from 'fs';
 import { uploadToS3 } from "../lib/s3";
-import crypto from 'crypto';
-
-const deepgram = new (DeepgramClient as any)(process.env.DEEPGRAM_API_KEY || "");
 
 export const generateAndCacheSRT = async (
     clipId: string,
     videoUrl: string,
     language: string = 'auto',
-    styleCategory: string = 'ali',
-    fontColor: string = '&H00FFFFFF&',
-    fontFamily: string = 'Anton'
+    styleCategory: string = 'karaoke',
+    fontColor: string = '&H0000FFFF&',
+    fontFamily: string = 'Anton',
+    fontSize: number = 48
 ): Promise<string | null> => {
     try {
-        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language}, Style: ${styleCategory}, Font: ${fontFamily})...`);
+        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language}, Style: ${styleCategory}, Font: ${fontFamily}, Size: ${fontSize})...`);
 
-        const { result, error } = (await deepgram.listen.v1.media.transcribeUrl(
-            { url: videoUrl },
-            {
-                smart_format: true,
-                model: 'nova-2',
-                language: language === 'auto' ? undefined : language,
-                detect_language: language === 'auto',
-                utterances: true,
-                punctuate: true,
-            }
-        ) as any);
+        const deepgramUrl = `https://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&utterances=true${language !== 'auto' ? `&language=${language}` : '&detect_language=true'}`;
 
-        if (error) {
-            console.error('Deepgram API returned an error:', error);
-            throw error;
+        const response = await fetch(deepgramUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url: videoUrl })
+        });
+
+        if (!response.ok) {
+            console.error('Deepgram API returned an error:', response.status, await response.text());
+            return null;
         }
+
+        const result = await response.json();
 
         console.log(`Deepgram transcription result object keys for ${clipId}:`, Object.keys(result || {}));
         if (result && result.results) {
@@ -41,8 +39,8 @@ export const generateAndCacheSRT = async (
         }
 
         const words = result?.results?.channels?.[0]?.alternatives?.[0]?.words;
-        if (!words) {
-            console.error('Deepgram returned no words array! Response structure:', JSON.stringify(result).substring(0, 500));
+        if (!words || words.length === 0) {
+            console.error('Deepgram returned no words array or it is empty! Response structure:', JSON.stringify(result).substring(0, 500));
             return null;
         }
 
@@ -63,83 +61,58 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,${fontFamily},48,&H00FFFFFF&,&H000000FF&,&H00000000&,&H00000000&,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
+Style: Default,${fontFamily},${fontSize},&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 `;
 
-        const wordsPerChunk = 3;
-        for (let i = 0; i < words.length; i += wordsPerChunk) {
-            const currentChunk = words.slice(i, i + wordsPerChunk);
-            if (currentChunk.length > 0) {
-                // Generate a line for each word being active within this chunk
-                for (let j = 0; j < currentChunk.length; j++) {
-                    const textParts: string[] = [];
-                    const start = formatTime(currentChunk[j].start);
-                    const end = formatTime(currentChunk[j].end);
+        if (styleCategory === '1_word') {
+            for (const word of words) {
+                const wText = (word.punctuated_word || word.word).toUpperCase();
+                const start = formatTime(word.start);
+                const end = formatTime(word.end);
+                assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,{\\1c${fontColor}}${wText}\n`;
+            }
+        } else {
+            const wordsPerChunk = 3;
+            for (let i = 0; i < words.length; i += wordsPerChunk) {
+                const currentChunk = words.slice(i, i + wordsPerChunk);
+                if (currentChunk.length === 0) continue;
 
-                    for (let k = 0; k < currentChunk.length; k++) {
-                        let wText = currentChunk[k].punctuated_word || currentChunk[k].word;
+                if (styleCategory === '3_words') {
+                    // Show 3 words at once
+                    const start = formatTime(currentChunk[0].start);
+                    const end = formatTime(currentChunk[currentChunk.length - 1].end);
+                    const text = currentChunk.map((w: any) => (w.punctuated_word || w.word).toUpperCase()).join(' ');
+                    assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,{\\1c${fontColor}}${text}\n`;
+                } else {
+                    // Default to karaoke
+                    for (let j = 0; j < currentChunk.length; j++) {
+                        const wordStart = j === 0 ? currentChunk[0].start : currentChunk[j].start;
+                        // Extend duration to next word to avoid flickering, or use actual end if it's the last word
+                        const wordEnd = j < currentChunk.length - 1 ? currentChunk[j + 1].start : currentChunk[j].end;
 
-                        if (styleCategory === 'jordan') {
+                        const start = formatTime(wordStart);
+                        const end = formatTime(wordEnd);
+
+                        const textParts = currentChunk.map((w: any, k: number) => {
+                            const wText = (w.punctuated_word || w.word).toUpperCase();
                             if (k === j) {
-                                textParts.push(`{\\r\\fscx120\\fscy120\\1c&H0000FFFF&}{\\p1\\fscx50\\fscy50\\1c&H0000FFFF&}m 0 0 l 20 0 20 20 0 20{\\p0} ${wText.toUpperCase()}`);
+                                return `{\\r\\fscx110\\fscy110\\1c${fontColor}}${wText}`;
                             } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
+                                return `{\\r\\1c&H00FFFFFF&}${wText}`;
                             }
-                        } else if (styleCategory === 'luke') {
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFF00&}${wText.toUpperCase()}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
-                            }
-                        } else if (styleCategory === 'maya') {
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H0000A5FF&}${wText.toUpperCase()}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
-                            }
-                        } else if (styleCategory === 'sage') {
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFFFF&}${wText.toUpperCase()}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
-                            }
-                        } else if (styleCategory === 'beast' || styleCategory.includes('hormozi')) {
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx120\\fscy120\\1c${fontColor}}${wText.toUpperCase()}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
-                            }
-                        } else if (styleCategory === 'celine') {
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx100\\fscy100\\1c${fontColor}}${wText}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
-                            }
-                        } else {
-                            // Default: Ali Style (Case capitalization for first word or active)
-                            let processedWord = wText;
-                            if (k === 0 && !/[A-Z]/.test(processedWord[0])) {
-                                processedWord = processedWord.charAt(0).toUpperCase() + processedWord.slice(1);
-                            }
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx115\\fscy115\\1c${fontColor}}${processedWord}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00808080&}${processedWord}`);
-                            }
-                        }
+                        });
+                        const textLine = textParts.join(' ').trim();
+                        assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,${textLine}\n`;
                     }
-
-                    const textLine = textParts.join(' ').trim();
-                    assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,${textLine}\n`;
                 }
             }
         }
 
         const assBuffer = Buffer.from(assContent, 'utf-8');
-        const hash = `${styleCategory}_${fontColor}_${fontFamily}`.replace(/[^a-zA-Z0-9_]/g, '');
+        const hash = `${styleCategory}_${fontColor}_${fontFamily}_${fontSize}`.replace(/[^a-zA-Z0-9_]/g, '');
         const uploadResult = await uploadToS3(assBuffer, `subtitles/${clipId}_${hash}.ass`, 'text/plain');
 
         console.log(`Successfully generated and cached ASS for ${clipId} at ${uploadResult.Location}`);

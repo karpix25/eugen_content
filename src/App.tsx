@@ -1652,7 +1652,7 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [subtitleFontSize, setSubtitleFontSize] = useState(currentUser.subtitle_font_size || 48);
   const [subtitleFontColor, setSubtitleFontColor] = useState(currentUser.subtitle_font_color || '#FFFFFF');
   const [subtitlePosition, setSubtitlePosition] = useState(currentUser.subtitle_position || 'Bottom');
-  const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'ali');
+  const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'karaoke');
   const [subtitleFontFamily, setSubtitleFontFamily] = useState(currentUser.subtitle_font_family || 'Anton');
 
   useEffect(() => {
@@ -1664,24 +1664,15 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
       setSubtitleFontSize(currentUser.subtitle_font_size ? Number(currentUser.subtitle_font_size) : 48);
       setSubtitleFontColor(currentUser.subtitle_font_color || '#FFFFFF');
       setSubtitlePosition(currentUser.subtitle_position || 'Bottom');
-      setSubtitleStyle(currentUser.subtitle_style || 'ali');
+      setSubtitleStyle(currentUser.subtitle_style || 'karaoke');
       setSubtitleFontFamily(currentUser.subtitle_font_family || 'Anton');
     }
   }, [currentUser]);
 
   const SUBTITLE_STYLES = [
-    { id: 'ali', name: 'Ali', description: 'Светлый фон, серый неактивный, цветной активный.' },
-    { id: 'beast', name: 'Beast', description: 'Цветная обводка активного, pop.' },
-    { id: 'hormozi_1', name: 'Hormozi 1', description: 'Очень толстая и чёрная тень.' },
-    { id: 'jordan', name: 'Jordan', description: 'Иконка сообщения и желтый акцент.' },
-    { id: 'luke', name: 'Luke', description: 'Неоновое голубое свечение.' },
-    { id: 'maya', name: 'Maya', description: 'Неоновое оранжевое свечение.' },
-    { id: 'sage', name: 'Sage', description: 'Яркое белое свечение контура.' },
-    { id: 'mrb', name: 'MrB', description: 'Огромный жирный контур.' },
-    { id: 'devin', name: 'Devin', description: 'Прыгучий стиль с наклоном.' },
-    { id: 'iman', name: 'Iman', description: 'Минимализм. Строчные буквы.' },
-    { id: 'karaoke', name: 'Karaoke', description: 'Плавная смена цвета без увеличения.' },
-    { id: 'celine', name: 'Celine', description: 'Базовые статичные субтитры.' }
+    { id: '1_word', name: '1 Слово', description: 'По одному слову на экране.' },
+    { id: 'karaoke', name: 'Караоке', description: 'По 3 слова с подсветкой активного слова.' },
+    { id: '3_words', name: '3 Слова', description: 'По 3 слова на экране статично.' },
   ];
 
   const FONT_FAMILIES = [
