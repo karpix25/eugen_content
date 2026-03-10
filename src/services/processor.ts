@@ -228,11 +228,7 @@ export const processClip = async (
 
                     filters.push({
                         filter: 'subtitles',
-                        options: {
-                            filename: escapedSrtPath,
-                            force_style: `'${style}'`,
-                            fontsdir: process.env.NODE_ENV === 'production' ? '/app/fonts' : './fonts'
-                        },
+                        options: `filename='${escapedSrtPath}':force_style='${style}':fontsdir='${process.env.NODE_ENV === 'production' ? '/app/fonts' : './fonts'}'`,
                         inputs: lastOutput,
                         outputs: 'with_subs'
                     });
