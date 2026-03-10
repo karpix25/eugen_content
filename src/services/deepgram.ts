@@ -15,14 +15,20 @@ function formatTimeASS(seconds: number): string {
     return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
 }
 
-export const generateAndCacheSRT = async (clipId: string, videoFilePath: string, language?: string | null): Promise<string | null> => {
+export const generateAndCacheSRT = async (
+    clipId: string,
+    videoFilePath: string,
+    language?: string | null,
+    styleCategory: string = 'ali',
+    fontColor: string = '&H00FFFFFF'
+): Promise<string | null> => {
     if (!deepgram) {
         console.warn('DEEPGRAM_API_KEY is not set. Skipping transcription.');
         return null;
     }
 
     try {
-        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language || 'auto'})...`);
+        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language || 'auto'}, Style: ${styleCategory})...`);
 
         const options: any = {
             model: 'nova-3',
@@ -70,7 +76,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 `;
 
         let currentChunk: any[] = [];
-        const MAX_WORDS_PER_CHUNK = 4;
+        const MAX_WORDS_PER_CHUNK = styleCategory === 'celine' ? 7 : 4;
 
         for (let i = 0; i < words.length; i++) {
             currentChunk.push(words[i]);
@@ -86,25 +92,51 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 for (let j = 0; j < currentChunk.length; j++) {
                     const activeWord = currentChunk[j];
                     const nextWord = currentChunk[j + 1];
+                    // Add slight padding to the word duration so it feels less choppy
                     const chunkEnd = currentChunk[currentChunk.length - 1].end;
 
                     const start = formatTimeASS(activeWord.start);
-                    const end = formatTimeASS(nextWord ? nextWord.start : chunkEnd);
+                    // For Celine, it is a static subtitle, so we just emit one dialogue line for the whole chunk
+                    if (styleCategory === 'celine' && j > 0) continue;
+
+                    const end = styleCategory === 'celine' ? formatTimeASS(chunkEnd) : formatTimeASS(nextWord ? nextWord.start : chunkEnd);
 
                     let textParts = [];
                     for (let k = 0; k < currentChunk.length; k++) {
                         const w = currentChunk[k];
-                        // Capitalize if it's the first word in the sentence
                         let wText = w.punctuated_word || w.word;
-                        if (k === 0 && !/[A-Z]/.test(wText[0])) {
-                            wText = wText.charAt(0).toUpperCase() + wText.slice(1);
+
+                        // Capitalization rules depending on the style
+                        if (styleCategory === 'beast' || styleCategory.includes('hormozi')) {
+                            wText = wText.toUpperCase();
+                        } else {
+                            if (k === 0 && !/[A-Z]/.test(wText[0])) {
+                                wText = wText.charAt(0).toUpperCase() + wText.slice(1);
+                            }
                         }
 
-                        // \r resets the style, \fscx/\fscy pop out the word, \1c sets color
-                        if (k === j) {
-                            textParts.push(`{\\r\\fscx115\\fscy115}${wText}`);
+                        if (styleCategory === 'celine') {
+                            // Static block
+                            textParts.push(`{\\r}${wText}`);
+                        } else if (styleCategory === 'beast') {
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx120\\fscy120\\1c${fontColor}}${wText}`);
+                            } else {
+                                textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory.includes('hormozi')) {
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx112\\fscy112\\1c${fontColor}}${wText}`);
+                            } else {
+                                textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
+                            }
                         } else {
-                            textParts.push(`{\\r\\1c&H808080&}${wText}`);
+                            // Default to Ali
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx115\\fscy115\\1c${fontColor}}${wText}`);
+                            } else {
+                                textParts.push(`{\\r\\1c&H808080&}${wText}`);
+                            }
                         }
                     }
                     const textLine = textParts.join(' ').trim();

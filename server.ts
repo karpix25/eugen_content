@@ -359,11 +359,11 @@ async function startServer() {
   });
 
   app.post("/api/users/settings", authenticateToken, async (req: any, res) => {
-    const { watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position } = req.body;
+    const { watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style } = req.body;
     try {
       await query(`
-        INSERT INTO users (telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO users (telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (telegram_id) DO UPDATE SET 
           watermark_text = EXCLUDED.watermark_text,
           watermark_opacity = EXCLUDED.watermark_opacity,
@@ -371,8 +371,9 @@ async function startServer() {
           subtitle_enabled = EXCLUDED.subtitle_enabled,
           subtitle_font_size = EXCLUDED.subtitle_font_size,
           subtitle_font_color = EXCLUDED.subtitle_font_color,
-          subtitle_position = EXCLUDED.subtitle_position
-      `, [req.user.id, req.user.username || '', req.user.first_name || '', watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position]);
+          subtitle_position = EXCLUDED.subtitle_position,
+          subtitle_style = EXCLUDED.subtitle_style
+      `, [req.user.id, req.user.username || '', req.user.first_name || '', watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style]);
       res.json({ success: true });
     } catch (err) {
       console.error("Settings update error:", err);

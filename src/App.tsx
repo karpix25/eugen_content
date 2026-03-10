@@ -105,6 +105,7 @@ interface User {
   subtitle_font_size?: number;
   subtitle_font_color?: string;
   subtitle_position?: string;
+  subtitle_style?: string;
 }
 
 interface AdPlaque {
@@ -1650,6 +1651,14 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [subtitleFontSize, setSubtitleFontSize] = useState(currentUser.subtitle_font_size || 16);
   const [subtitleFontColor, setSubtitleFontColor] = useState(currentUser.subtitle_font_color || '#FFFFFF');
   const [subtitlePosition, setSubtitlePosition] = useState(currentUser.subtitle_position || 'Bottom');
+  const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'ali');
+
+  const SUBTITLE_STYLES = [
+    { id: 'ali', name: 'Ali', description: 'Светлый фон, серый неактивный, цветной активный.' },
+    { id: 'beast', name: 'Beast', description: 'Без фона, цветная обводка активного.' },
+    { id: 'hormozi_1', name: 'Hormozi', description: 'Без фона, очень толстая и чёрная тень текста.' },
+    { id: 'celine', name: 'Celine', description: 'Стандартные статичные субтитры без выделения.' }
+  ];
 
   const [saving, setSaving] = useState(false);
 
@@ -1669,7 +1678,8 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
           subtitle_enabled: subtitleEnabled,
           subtitle_font_size: subtitleFontSize,
           subtitle_font_color: subtitleFontColor,
-          subtitle_position: subtitlePosition
+          subtitle_position: subtitlePosition,
+          subtitle_style: subtitleStyle
         })
       });
       if (res.ok) {
@@ -1809,6 +1819,22 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
               </div>
 
               <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Шаблон субтитров</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {SUBTITLE_STYLES.map(style => (
+                    <button
+                      key={style.id}
+                      onClick={() => setSubtitleStyle(style.id)}
+                      className={`text-left text-xs py-3 px-3 rounded-lg font-medium transition-all border flex flex-col gap-1 ${subtitleStyle === style.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
+                    >
+                      <span className="font-bold">{style.name}</span>
+                      <span className="text-[9px] opacity-70 leading-tight">{style.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
                 <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider flex justify-between">
                   <span>Размер шрифта</span>
                   <span className="text-emerald-400">{subtitleFontSize}px</span>
@@ -1875,23 +1901,33 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                   }}
                 >
                   <div
-                    className="inline-block px-3 py-1 font-bold"
+                    className={`inline-block px-3 py-1 font-bold ${subtitleStyle === 'ali' ? 'bg-[#F0F0F0] text-[#808080]' : ''}`}
                     style={{
-                      backgroundColor: '#F0F0F0',
                       fontSize: `${Math.max(10, subtitleFontSize * 0.7)}px`,
-                      borderRadius: '4px'
+                      borderRadius: '4px',
+                      textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 4px 6px rgba(0,0,0,0.5)' :
+                        subtitleStyle === 'beast' ? `1px 1px 0 ${subtitleFontColor}, -1px -1px 0 ${subtitleFontColor}, 1px -1px 0 ${subtitleFontColor}, -1px 1px 0 ${subtitleFontColor}, 1px 1px 0 ${subtitleFontColor}, 0px 0px 4px #000` :
+                          subtitleStyle === 'celine' ? '1px 1px 2px #000' : 'none',
+                      color: subtitleStyle === 'ali' ? '#808080' : '#FFFFFF',
+                      textTransform: subtitleStyle === 'beast' || subtitleStyle.includes('hormozi') ? 'uppercase' : 'none'
                     }}
                   >
-                    <span style={{ color: '#808080' }}>СТИЛЬ </span>
-                    <span
-                      style={{
-                        color: subtitleFontColor,
-                        display: 'inline-block',
-                        transform: 'scale(1.15)',
-                        margin: '0 4px',
-                        textShadow: '0px 0px 0px transparent'
-                      }}
-                    >SUBMAGIC</span>
+                    {subtitleStyle === 'celine' ? (
+                      <span>ОБЫЧНЫЕ СУБТИТРЫ</span>
+                    ) : (
+                      <>
+                        <span>СТИЛЬ </span>
+                        <span
+                          style={{
+                            color: subtitleFontColor,
+                            display: 'inline-block',
+                            transform: subtitleStyle === 'beast' ? 'scale(1.2)' : 'scale(1.15)',
+                            margin: '0 4px',
+                            textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' : 'none'
+                          }}
+                        >{subtitleStyle.toUpperCase()}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

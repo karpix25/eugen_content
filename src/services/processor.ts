@@ -43,7 +43,7 @@ export const processClip = async (
     sourceLang?: string | null,
     skipS3Upload: boolean = false,
     watermarkConfig?: { text: string, opacity: number, position: string },
-    subtitleConfig?: { enabled: boolean, font_size: number, font_color: string, position: string }
+    subtitleConfig?: { enabled: boolean, font_size: number, font_color: string, position: string, style?: string }
 ): Promise<string> => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -80,13 +80,21 @@ export const processClip = async (
             const outputFileName = `${clipId}_branded.mp4`;
             const outputPath = path.join(outputDir, outputFileName);
 
+            // Convert #RRGGBB to &H00BBGGRR (ASS color format) for deepgram
+            let hexColor = subtitleConfig?.font_color || '#FFFFFF';
+            hexColor = hexColor.replace('#', '');
+            const r = hexColor.substring(0, 2);
+            const g = hexColor.substring(2, 4);
+            const b = hexColor.substring(4, 6);
+            const assColor = `&H00${b}${g}${r}`;
+
             let srtFilePath: string | null = null;
             if (subtitleConfig && subtitleConfig.enabled) {
                 const srtRes = await query("SELECT srt_url FROM clips WHERE id = $1", [clipId]);
                 let srtUrl = srtRes.rows[0]?.srt_url;
 
                 if (!srtUrl) {
-                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang);
+                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang, subtitleConfig?.style || 'ali', assColor);
                     if (srtUrl) {
                         await query("UPDATE clips SET srt_url = $1 WHERE id = $2", [srtUrl, clipId]);
                     }
@@ -157,23 +165,27 @@ export const processClip = async (
                         alignment = 5; // Middle Center
                     }
 
-                    // Convert #RRGGBB to &H00BBGGRR (ASS color format)
-                    let hex = subtitleConfig?.font_color || '#FFFFFF';
-                    hex = hex.replace('#', '');
-                    const r = hex.substring(0, 2);
-                    const g = hex.substring(2, 4);
-                    const b = hex.substring(4, 6);
-                    const assColor = `&H00${b}${g}${r}`;
-
                     const fontSize = subtitleConfig?.font_size || 16;
                     const escapedSrtPath = srtFilePath.replace(/\\/g, '/').replace(/:/g, '\\:');
 
                     const isAss = srtFilePath.endsWith('.ass');
+                    const styleName = subtitleConfig?.style || 'ali';
 
                     let style = '';
                     if (isAss) {
-                        // ALI STYLE: Box background (BorderStyle=3), Light Gray Box, No shadow
-                        style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0,BackColour=&H00F0F0F0,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        if (styleName === 'beast') {
+                            // BEAST STYLE: Colored active/outline, black glow/bold background
+                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=6,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        } else if (styleName.includes('hormozi')) {
+                            // HORMOZI STYLE: No background box, very thick shadow, Yellow/White colors text
+                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=4,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        } else if (styleName === 'celine') {
+                            // CELINE STYLE: Standard subtitles, no box, outline
+                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Bold=0,Alignment=${alignment},MarginV=${marginV}`;
+                        } else {
+                            // ALI STYLE: Box background (BorderStyle=3), Light Gray Box, No shadow
+                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0,BackColour=&H00F0F0F0,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        }
                     } else {
                         // LEGACY STYLE
                         style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
