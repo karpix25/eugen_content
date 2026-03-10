@@ -1,9 +1,9 @@
-import { DeepgramClient, createClient } from "@deepgram/sdk";
+import { DeepgramClient } from "@deepgram/sdk";
 import fs from 'fs';
 import { uploadToS3 } from "../lib/s3";
 import crypto from 'crypto';
 
-const deepgram = createClient(process.env.DEEPGRAM_API_KEY || "");
+const deepgram = new (DeepgramClient as any)(process.env.DEEPGRAM_API_KEY || "");
 
 export const generateAndCacheSRT = async (
     clipId: string,
@@ -16,7 +16,7 @@ export const generateAndCacheSRT = async (
     try {
         console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language}, Style: ${styleCategory}, Font: ${fontFamily})...`);
 
-        const response = await deepgram.listen.prerecorded.transcribeUrl(
+        const { result, error } = (await deepgram.listen.v1.media.transcribeUrl(
             { url: videoUrl },
             {
                 smart_format: true,
@@ -26,9 +26,11 @@ export const generateAndCacheSRT = async (
                 utterances: true,
                 punctuate: true,
             }
-        );
+        ) as any);
 
-        const words = response.result?.results.channels[0].alternatives[0].words;
+        if (error) throw error;
+
+        const words = result?.results.channels[0].alternatives[0].words;
         if (!words) return null;
 
         const formatTime = (seconds: number) => {
