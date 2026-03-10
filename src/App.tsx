@@ -1655,6 +1655,20 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'ali');
   const [subtitleFontFamily, setSubtitleFontFamily] = useState(currentUser.subtitle_font_family || 'Anton');
 
+  useEffect(() => {
+    if (currentUser) {
+      setWatermarkText(currentUser.watermark_text !== null && currentUser.watermark_text !== undefined ? currentUser.watermark_text : `@${currentUser.username || currentUser.first_name}`);
+      setWatermarkOpacity(currentUser.watermark_opacity !== undefined && currentUser.watermark_opacity !== null ? Number(currentUser.watermark_opacity) : 0.08);
+      setWatermarkPosition(currentUser.watermark_position || 'center');
+      setSubtitleEnabled(currentUser.subtitle_enabled !== false);
+      setSubtitleFontSize(currentUser.subtitle_font_size ? Number(currentUser.subtitle_font_size) : 48);
+      setSubtitleFontColor(currentUser.subtitle_font_color || '#FFFFFF');
+      setSubtitlePosition(currentUser.subtitle_position || 'Bottom');
+      setSubtitleStyle(currentUser.subtitle_style || 'ali');
+      setSubtitleFontFamily(currentUser.subtitle_font_family || 'Anton');
+    }
+  }, [currentUser]);
+
   const SUBTITLE_STYLES = [
     { id: 'ali', name: 'Ali', description: 'Светлый фон, серый неактивный, цветной активный.' },
     { id: 'beast', name: 'Beast', description: 'Цветная обводка активного, pop.' },
