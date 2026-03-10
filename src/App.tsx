@@ -285,7 +285,7 @@ export default function App() {
   }, [authToken]);
 
   useEffect(() => {
-    if (currentUser && !currentUser.is_admin && !['clips', 'ads'].includes(activeTab)) {
+    if (currentUser && !currentUser.is_admin && !['clips', 'ads', 'settings'].includes(activeTab)) {
       setActiveTab('clips');
     }
   }, [currentUser, activeTab]);
