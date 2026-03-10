@@ -1865,11 +1865,8 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
               <div className="relative aspect-[9/16] bg-[#111] rounded-2xl overflow-hidden border-2 border-white/10 w-full max-w-[240px] shadow-2xl">
                 <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80" alt="bg" className="w-full h-full object-cover opacity-30" />
                 <div
-                  className="absolute left-0 right-0 text-center font-bold px-4 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]"
+                  className="absolute left-0 right-0 flex justify-center px-4"
                   style={{
-                    color: subtitleFontColor,
-                    fontSize: `${Math.max(10, subtitleFontSize * 0.7)}px`, // scaled down for preview
-                    WebkitTextStroke: '1px black',
                     ...(
                       subtitlePosition === 'Top' ? { top: '15%' } :
                         subtitlePosition === 'Center' ? { top: '50%', transform: 'translateY(-50%)' } :
@@ -1877,7 +1874,25 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                     )
                   }}
                 >
-                  ЗДЕСЬ БУДУТ<br />ВАШИ СУБТИТРЫ
+                  <div
+                    className="inline-block px-3 py-1 font-bold"
+                    style={{
+                      backgroundColor: '#F0F0F0',
+                      fontSize: `${Math.max(10, subtitleFontSize * 0.7)}px`,
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <span style={{ color: '#808080' }}>СТИЛЬ </span>
+                    <span
+                      style={{
+                        color: subtitleFontColor,
+                        display: 'inline-block',
+                        transform: 'scale(1.15)',
+                        margin: '0 4px',
+                        textShadow: '0px 0px 0px transparent'
+                      }}
+                    >SUBMAGIC</span>
+                  </div>
                 </div>
               </div>
             </div>

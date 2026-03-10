@@ -93,7 +93,10 @@ export const processClip = async (
                 }
 
                 if (srtUrl) {
-                    srtFilePath = path.join(outputDir, `${clipId}.srt`);
+                    // Check if S3 returned an older .srt or the new .ass Submagic format
+                    const isAss = srtUrl.endsWith('.ass');
+                    const ext = isAss ? '.ass' : '.srt';
+                    srtFilePath = path.join(outputDir, `${clipId}${ext}`);
                     await downloadFile(srtUrl, srtFilePath);
                 }
             }
@@ -149,6 +152,7 @@ export const processClip = async (
                     let marginV = 20;
                     if (subtitleConfig?.position === 'Top') {
                         alignment = 8; // Top Center
+                        marginV = 80;
                     } else if (subtitleConfig?.position === 'Center') {
                         alignment = 5; // Middle Center
                     }
@@ -162,9 +166,18 @@ export const processClip = async (
                     const assColor = `&H00${b}${g}${r}`;
 
                     const fontSize = subtitleConfig?.font_size || 16;
-
                     const escapedSrtPath = srtFilePath.replace(/\\/g, '/').replace(/:/g, '\\:');
-                    const style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000,BorderStyle=1,Outline=2,Alignment=${alignment},MarginV=${marginV}`;
+
+                    const isAss = srtFilePath.endsWith('.ass');
+
+                    let style = '';
+                    if (isAss) {
+                        // ALI STYLE: Box background (BorderStyle=3), Light Gray Box, No shadow
+                        style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0,BackColour=&H00F0F0F0,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                    } else {
+                        // LEGACY STYLE
+                        style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                    }
 
                     filters.push({
                         filter: 'subtitles',

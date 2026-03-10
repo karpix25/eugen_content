@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const s3Client = new S3Client({
-  endpoint: process.env.S3_ENDPOINT,
+  ...(process.env.S3_ENDPOINT && process.env.S3_ENDPOINT !== 'your_s3_endpoint' && process.env.S3_ENDPOINT !== '' ? { endpoint: process.env.S3_ENDPOINT } : {}),
   region: process.env.S3_REGION || "us-east-1",
   credentials: {
     accessKeyId: process.env.S3_ACCESS_KEY_ID || "",

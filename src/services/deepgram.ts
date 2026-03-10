@@ -7,13 +7,12 @@ dotenv.config();
 
 const deepgram = process.env.DEEPGRAM_API_KEY ? new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY }) : null;
 
-function formatTime(seconds: number): string {
-    const d = new Date(seconds * 1000);
-    const h = String(d.getUTCHours()).padStart(2, '0');
-    const m = String(d.getUTCMinutes()).padStart(2, '0');
-    const s = String(d.getUTCSeconds()).padStart(2, '0');
-    const ms = String(d.getUTCMilliseconds()).padStart(3, '0').substring(0, 3);
-    return `${h}:${m}:${s},${ms}`;
+function formatTimeASS(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const cs = Math.floor((seconds % 1) * 100);
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
 }
 
 export const generateAndCacheSRT = async (clipId: string, videoFilePath: string, language?: string | null): Promise<string | null> => {
@@ -57,43 +56,69 @@ export const generateAndCacheSRT = async (clipId: string, videoFilePath: string,
             return null;
         }
 
-        let srtContent = '';
-        let subtitleIndex = 1;
+        let assContent = `[Script Info]
+ScriptType: v4.00+
+PlayResX: 720
+PlayResY: 1280
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,16,&H00FFFFFF,&H000000FF,&H80000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
 
         let currentChunk: any[] = [];
-        const MAX_WORDS_PER_CHUNK = 3;
+        const MAX_WORDS_PER_CHUNK = 4;
 
         for (let i = 0; i < words.length; i++) {
             currentChunk.push(words[i]);
 
             let shouldBreak = false;
-            // Break by chunk size limit
             if (currentChunk.length >= MAX_WORDS_PER_CHUNK) shouldBreak = true;
-
-            // Break by long pause in speech
             if (i < words.length - 1 && words[i + 1].start - words[i].end > 0.4) shouldBreak = true;
 
-            // Break by punctuation
             const wordText = words[i].punctuated_word || words[i].word;
             if (/[.!?]$/.test(wordText)) shouldBreak = true;
 
             if (shouldBreak || i === words.length - 1) {
-                const start = formatTime(currentChunk[0].start);
-                const end = formatTime(currentChunk[currentChunk.length - 1].end);
+                for (let j = 0; j < currentChunk.length; j++) {
+                    const activeWord = currentChunk[j];
+                    const nextWord = currentChunk[j + 1];
+                    const chunkEnd = currentChunk[currentChunk.length - 1].end;
 
-                // Capitalize the first letter of the chunk if it's the start of a sentence
-                let text = currentChunk.map(w => w.punctuated_word || w.word).join(' ').trim();
+                    const start = formatTimeASS(activeWord.start);
+                    const end = formatTimeASS(nextWord ? nextWord.start : chunkEnd);
 
-                srtContent += `${subtitleIndex}\n${start} --> ${end}\n${text}\n\n`;
-                subtitleIndex++;
+                    let textParts = [];
+                    for (let k = 0; k < currentChunk.length; k++) {
+                        const w = currentChunk[k];
+                        // Capitalize if it's the first word in the sentence
+                        let wText = w.punctuated_word || w.word;
+                        if (k === 0 && !/[A-Z]/.test(wText[0])) {
+                            wText = wText.charAt(0).toUpperCase() + wText.slice(1);
+                        }
+
+                        // \r resets the style, \fscx/\fscy pop out the word, \1c sets color
+                        if (k === j) {
+                            textParts.push(`{\\r\\fscx115\\fscy115}${wText}`);
+                        } else {
+                            textParts.push(`{\\r\\1c&H808080&}${wText}`);
+                        }
+                    }
+                    const textLine = textParts.join(' ').trim();
+                    assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,${textLine}\n`;
+                }
+
                 currentChunk = [];
             }
         }
 
-        const srtBuffer = Buffer.from(srtContent, 'utf-8');
-        const uploadResult = await uploadToS3(srtBuffer, `subtitles/${clipId}.srt`, 'text/plain');
+        const assBuffer = Buffer.from(assContent, 'utf-8');
+        const uploadResult = await uploadToS3(assBuffer, `subtitles/${clipId}.ass`, 'text/plain');
 
-        console.log(`Successfully generated and cached SRT for ${clipId} at ${uploadResult.Location}`);
+        console.log(`Successfully generated and cached ASS for ${clipId} at ${uploadResult.Location}`);
         return uploadResult.Location || null;
     } catch (e) {
         console.error('Deepgram processing error:', e);
