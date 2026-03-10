@@ -223,9 +223,9 @@ export const processClip = async (
                     filters.push({
                         filter: 'subtitles',
                         options: {
-                            filename: escapedSrtPath,
-                            force_style: style,
-                            fontsdir: './fonts'
+                            filename: `'${escapedSrtPath}'`,
+                            force_style: `'${style}'`,
+                            fontsdir: path.join(process.cwd(), 'fonts')
                         },
                         inputs: lastOutput,
                         outputs: 'with_subs'
@@ -277,14 +277,22 @@ export const processClip = async (
                     lastOutput = 'final';
                 }
 
+                console.log(`FFmpeg starting for ${clipId} with filters:`, JSON.stringify(filters, null, 2));
+
                 command
                     .complexFilter(filters, lastOutput)
                     .videoCodec('libx264')
                     .audioCodec('aac')
                     .outputOptions('-map 0:a?') // Map the audio from the first input if it exists
-                    .on('end', () => finalizeUpload(outputPath))
-                    .on('error', (err) => {
-                        console.error('Error processing video:', err);
+                    .on('start', (cmd) => console.log('FFmpeg spawned with command:', cmd))
+                    .on('progress', (progress) => console.log(`Processing ${clipId}: ${progress.percent}%`))
+                    .on('end', () => {
+                        console.log('FFmpeg process finished successfully.');
+                        finalizeUpload(outputPath);
+                    })
+                    .on('error', (err, stdout, stderr) => {
+                        console.error('FFmpeg error:', err.message);
+                        console.error('FFmpeg stderr:', stderr);
                         cleanupFiles();
                         reject(err);
                     })

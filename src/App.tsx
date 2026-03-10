@@ -1649,7 +1649,7 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [watermarkPosition, setWatermarkPosition] = useState(currentUser.watermark_position || 'center');
 
   const [subtitleEnabled, setSubtitleEnabled] = useState(currentUser.subtitle_enabled !== false);
-  const [subtitleFontSize, setSubtitleFontSize] = useState(currentUser.subtitle_font_size || 16);
+  const [subtitleFontSize, setSubtitleFontSize] = useState(currentUser.subtitle_font_size || 48);
   const [subtitleFontColor, setSubtitleFontColor] = useState(currentUser.subtitle_font_color || '#FFFFFF');
   const [subtitlePosition, setSubtitlePosition] = useState(currentUser.subtitle_position || 'Bottom');
   const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'ali');
