@@ -28,10 +28,23 @@ export const generateAndCacheSRT = async (
             }
         ) as any);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Deepgram API returned an error:', error);
+            throw error;
+        }
 
-        const words = result?.results.channels[0].alternatives[0].words;
-        if (!words) return null;
+        console.log(`Deepgram transcription result object keys for ${clipId}:`, Object.keys(result || {}));
+        if (result && result.results) {
+            console.log(`Deepgram channels length:`, result.results.channels?.length);
+        } else {
+            console.log(`Deepgram results object is empty or missing! Full result:`, JSON.stringify(result).substring(0, 500));
+        }
+
+        const words = result?.results?.channels?.[0]?.alternatives?.[0]?.words;
+        if (!words) {
+            console.error('Deepgram returned no words array! Response structure:', JSON.stringify(result).substring(0, 500));
+            return null;
+        }
 
         const formatTime = (seconds: number) => {
             const date = new Date(seconds * 1000);

@@ -262,8 +262,7 @@ export const processClip = async (
                         y,
                         shadowcolor: `black@${opacity * 0.6}`,
                         shadowx: 2,
-                        shadowy: 2,
-                        angle: position === 'tilted_center' ? -30 : 0
+                        shadowy: 2
                     };
 
                     // Note: text rotation via angle requires a build of FFmpeg with FreeType support and specific layout logic, 
