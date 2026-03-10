@@ -106,6 +106,7 @@ interface User {
   subtitle_font_color?: string;
   subtitle_position?: string;
   subtitle_style?: string;
+  subtitle_font_family?: string;
 }
 
 interface AdPlaque {
@@ -1652,12 +1653,20 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [subtitleFontColor, setSubtitleFontColor] = useState(currentUser.subtitle_font_color || '#FFFFFF');
   const [subtitlePosition, setSubtitlePosition] = useState(currentUser.subtitle_position || 'Bottom');
   const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'ali');
+  const [subtitleFontFamily, setSubtitleFontFamily] = useState(currentUser.subtitle_font_family || 'Anton');
 
   const SUBTITLE_STYLES = [
     { id: 'ali', name: 'Ali', description: 'Светлый фон, серый неактивный, цветной активный.' },
     { id: 'beast', name: 'Beast', description: 'Без фона, цветная обводка активного.' },
     { id: 'hormozi_1', name: 'Hormozi', description: 'Без фона, очень толстая и чёрная тень текста.' },
     { id: 'celine', name: 'Celine', description: 'Стандартные статичные субтитры без выделения.' }
+  ];
+
+  const FONT_FAMILIES = [
+    { id: 'Anton', name: 'Anton', googleUrl: 'Anton' },
+    { id: 'Montserrat', name: 'Montserrat', googleUrl: 'Montserrat:wght@900' },
+    { id: 'Roboto', name: 'Roboto Black', googleUrl: 'Roboto:wght@900' },
+    { id: 'Oswald', name: 'Oswald', googleUrl: 'Oswald:wght@700' }
   ];
 
   const [saving, setSaving] = useState(false);
@@ -1679,7 +1688,8 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
           subtitle_font_size: subtitleFontSize,
           subtitle_font_color: subtitleFontColor,
           subtitle_position: subtitlePosition,
-          subtitle_style: subtitleStyle
+          subtitle_style: subtitleStyle,
+          subtitle_font_family: subtitleFontFamily
         })
       });
       if (res.ok) {
@@ -1835,6 +1845,22 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
               </div>
 
               <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Шрифт стиля</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {FONT_FAMILIES.map(font => (
+                    <button
+                      key={font.id}
+                      onClick={() => setSubtitleFontFamily(font.id)}
+                      style={{ fontFamily: `"${font.id}", sans-serif` }}
+                      className={`text-center py-2 px-3 rounded-lg text-sm transition-all border ${subtitleFontFamily === font.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
+                    >
+                      {font.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
                 <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider flex justify-between">
                   <span>Размер шрифта</span>
                   <span className="text-emerald-400">{subtitleFontSize}px</span>
@@ -1887,6 +1913,9 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
             </div>
 
             <div className={`flex flex-col items-center ${subtitleEnabled ? 'opacity-100' : 'opacity-50'}`}>
+              <style>
+                {`@import url('https://fonts.googleapis.com/css2?family=${FONT_FAMILIES.find(f => f.id === subtitleFontFamily)?.googleUrl || 'Anton'}&display=swap');`}
+              </style>
               <span className="block text-xs font-bold text-white/60 mb-3 uppercase tracking-wider self-start md:self-center">Предпросмотр субтитров</span>
               <div className="relative aspect-[9/16] bg-[#111] rounded-2xl overflow-hidden border-2 border-white/10 w-full max-w-[240px] shadow-2xl">
                 <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80" alt="bg" className="w-full h-full object-cover opacity-30" />
@@ -1903,6 +1932,7 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                   <div
                     className={`inline-block px-3 py-1 font-bold ${subtitleStyle === 'ali' ? 'bg-[#F0F0F0] text-[#808080]' : ''}`}
                     style={{
+                      fontFamily: `"${subtitleFontFamily}", sans-serif`,
                       fontSize: `${Math.max(10, subtitleFontSize * 0.7)}px`,
                       borderRadius: '4px',
                       textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 4px 6px rgba(0,0,0,0.5)' :

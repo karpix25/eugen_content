@@ -26,6 +26,7 @@ export const initDb = async () => {
       subtitle_font_color TEXT DEFAULT '&H00FFFFFF',
       subtitle_position TEXT DEFAULT 'Bottom',
       subtitle_style TEXT DEFAULT 'ali',
+      subtitle_font_family TEXT DEFAULT 'Anton',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -130,6 +131,7 @@ export const initDb = async () => {
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_color TEXT DEFAULT '&H00FFFFFF'");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_position TEXT DEFAULT 'Bottom'");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_style TEXT DEFAULT 'ali'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_family TEXT DEFAULT 'Anton'");
     await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT");
     console.log("Database migrations applied successfully.");
   } catch (err) {

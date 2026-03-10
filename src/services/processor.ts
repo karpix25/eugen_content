@@ -43,7 +43,7 @@ export const processClip = async (
     sourceLang?: string | null,
     skipS3Upload: boolean = false,
     watermarkConfig?: { text: string, opacity: number, position: string },
-    subtitleConfig?: { enabled: boolean, font_size: number, font_color: string, position: string, style?: string }
+    subtitleConfig?: { enabled: boolean, font_size: number, font_color: string, position: string, style?: string, font_family?: string }
 ): Promise<string> => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -88,13 +88,15 @@ export const processClip = async (
             const b = hexColor.substring(4, 6);
             const assColor = `&H00${b}${g}${r}`;
 
+            const fontFamily = subtitleConfig?.font_family || 'Anton';
+
             let srtFilePath: string | null = null;
             if (subtitleConfig && subtitleConfig.enabled) {
                 const srtRes = await query("SELECT srt_url FROM clips WHERE id = $1", [clipId]);
                 let srtUrl = srtRes.rows[0]?.srt_url;
 
                 if (!srtUrl) {
-                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang, subtitleConfig?.style || 'ali', assColor);
+                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang, subtitleConfig?.style || 'ali', assColor, fontFamily);
                     if (srtUrl) {
                         await query("UPDATE clips SET srt_url = $1 WHERE id = $2", [srtUrl, clipId]);
                     }
@@ -175,27 +177,28 @@ export const processClip = async (
                     if (isAss) {
                         if (styleName === 'beast') {
                             // BEAST STYLE: Colored active/outline, black glow/bold background
-                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=6,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=6,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName.includes('hormozi')) {
                             // HORMOZI STYLE: No background box, very thick shadow, Yellow/White colors text
-                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=4,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=4,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         } else if (styleName === 'celine') {
                             // CELINE STYLE: Standard subtitles, no box, outline
-                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Bold=0,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BackColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Bold=0,Alignment=${alignment},MarginV=${marginV}`;
                         } else {
                             // ALI STYLE: Box background (BorderStyle=3), Light Gray Box, No shadow
-                            style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0,BackColour=&H00F0F0F0,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                            style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0,BackColour=&H00F0F0F0,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                         }
                     } else {
                         // LEGACY STYLE
-                        style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+                        style = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
                     }
 
                     filters.push({
                         filter: 'subtitles',
                         options: {
                             filename: escapedSrtPath,
-                            force_style: style
+                            force_style: style,
+                            fontsdir: path.join(process.cwd(), 'fonts')
                         },
                         inputs: lastOutput,
                         outputs: 'with_subs'

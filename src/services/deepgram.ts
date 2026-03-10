@@ -20,7 +20,8 @@ export const generateAndCacheSRT = async (
     videoFilePath: string,
     language?: string | null,
     styleCategory: string = 'ali',
-    fontColor: string = '&H00FFFFFF'
+    fontColor: string = '&H00FFFFFF',
+    fontFamily: string = 'Anton'
 ): Promise<string | null> => {
     if (!deepgram) {
         console.warn('DEEPGRAM_API_KEY is not set. Skipping transcription.');
@@ -28,7 +29,7 @@ export const generateAndCacheSRT = async (
     }
 
     try {
-        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language || 'auto'}, Style: ${styleCategory})...`);
+        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language || 'auto'}, Style: ${styleCategory}, Font: ${fontFamily})...`);
 
         const options: any = {
             model: 'nova-3',
@@ -69,11 +70,10 @@ PlayResY: 1280
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,16,&H00FFFFFF,&H000000FF,&H80000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
+Style: Default,${fontFamily},16,&H00FFFFFF,&H000000FF,&H80000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
 
 [Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-`;
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`;
 
         let currentChunk: any[] = [];
         const MAX_WORDS_PER_CHUNK = styleCategory === 'celine' ? 7 : 4;
