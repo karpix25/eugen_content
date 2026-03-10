@@ -1,203 +1,125 @@
-import { DeepgramClient } from '@deepgram/sdk';
-import dotenv from 'dotenv';
+import { DeepgramClient, createClient } from "@deepgram/sdk";
 import fs from 'fs';
-import { uploadToS3 } from '../lib/s3.js';
+import { uploadToS3 } from "../lib/s3";
+import crypto from 'crypto';
 
-dotenv.config();
-
-const deepgram = process.env.DEEPGRAM_API_KEY ? new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY }) : null;
-
-function formatTimeASS(seconds: number): string {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    const cs = Math.floor((seconds % 1) * 100);
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
-}
+const deepgram = createClient(process.env.DEEPGRAM_API_KEY || "");
 
 export const generateAndCacheSRT = async (
     clipId: string,
-    videoFilePath: string,
-    language?: string | null,
+    videoUrl: string,
+    language: string = 'auto',
     styleCategory: string = 'ali',
-    fontColor: string = '&H00FFFFFF',
+    fontColor: string = '&H00FFFFFF&',
     fontFamily: string = 'Anton'
 ): Promise<string | null> => {
-    if (!deepgram) {
-        console.warn('DEEPGRAM_API_KEY is not set. Skipping transcription.');
-        return null;
-    }
-
     try {
-        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language || 'auto'}, Style: ${styleCategory}, Font: ${fontFamily})...`);
+        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language}, Style: ${styleCategory}, Font: ${fontFamily})...`);
 
-        const options: any = {
-            model: 'nova-3',
-            smart_format: true
+        const response = await deepgram.listen.prerecorded.transcribeUrl(
+            { url: videoUrl },
+            {
+                smart_format: true,
+                model: 'nova-2',
+                language: language === 'auto' ? undefined : language,
+                detect_language: language === 'auto',
+                utterances: true,
+                punctuate: true,
+            }
+        );
+
+        const words = response.result?.results.channels[0].alternatives[0].words;
+        if (!words) return null;
+
+        const formatTime = (seconds: number) => {
+            const date = new Date(seconds * 1000);
+            const hh = date.getUTCHours().toString().padStart(1, '0');
+            const mm = date.getUTCMinutes().toString().padStart(2, '0');
+            const ss = date.getUTCSeconds().toString().padStart(2, '0');
+            const ms = Math.floor(date.getUTCMilliseconds() / 10).toString().padStart(2, '0');
+            return `${hh}:${mm}:${ss}.${ms}`;
         };
-
-        if (language && language !== 'auto') {
-            options.language = language;
-        } else {
-            options.detect_language = true;
-        }
-
-        let response: any;
-
-        if (videoFilePath.startsWith('http://') || videoFilePath.startsWith('https://')) {
-            response = await deepgram.listen.v1.media.transcribeUrl({
-                url: videoFilePath,
-                ...options
-            });
-        } else {
-            const videoBuffer = fs.readFileSync(videoFilePath);
-            response = await deepgram.listen.v1.media.transcribeFile(
-                videoBuffer,
-                options
-            );
-        }
-
-        const words = response?.result?.results?.channels?.[0]?.alternatives?.[0]?.words || response?.results?.channels?.[0]?.alternatives?.[0]?.words || [];
-        if (words.length === 0) {
-            console.log(`No words recognized for ${clipId}.`);
-            return null;
-        }
 
         let assContent = `[Script Info]
 ScriptType: v4.00+
 PlayResX: 720
 PlayResY: 1280
+ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,${fontFamily},16,&H00FFFFFF,&H000000FF,&H80000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
+Style: Default,${fontFamily},48,&H00FFFFFF&,&H000000FF&,&H00000000&,&H00000000&,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
 
 [Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`;
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
 
-        let currentChunk: any[] = [];
-        const MAX_WORDS_PER_CHUNK = styleCategory === 'celine' ? 7 : 4;
-
-        for (let i = 0; i < words.length; i++) {
-            currentChunk.push(words[i]);
-
-            let shouldBreak = false;
-            if (currentChunk.length >= MAX_WORDS_PER_CHUNK) shouldBreak = true;
-            if (i < words.length - 1 && words[i + 1].start - words[i].end > 0.4) shouldBreak = true;
-
-            const wordText = words[i].punctuated_word || words[i].word;
-            if (/[.!?]$/.test(wordText)) shouldBreak = true;
-
-            if (shouldBreak || i === words.length - 1) {
+        const wordsPerChunk = 3;
+        for (let i = 0; i < words.length; i += wordsPerChunk) {
+            const currentChunk = words.slice(i, i + wordsPerChunk);
+            if (currentChunk.length > 0) {
+                // Generate a line for each word being active within this chunk
                 for (let j = 0; j < currentChunk.length; j++) {
-                    const activeWord = currentChunk[j];
-                    const nextWord = currentChunk[j + 1];
-                    // Add slight padding to the word duration so it feels less choppy
-                    const chunkEnd = currentChunk[currentChunk.length - 1].end;
+                    const textParts: string[] = [];
+                    const start = formatTime(currentChunk[j].start);
+                    const end = formatTime(currentChunk[j].end);
 
-                    const start = formatTimeASS(activeWord.start);
-                    // For Celine, it is a static subtitle, so we just emit one dialogue line for the whole chunk
-                    if (styleCategory === 'celine' && j > 0) continue;
-
-                    const end = styleCategory === 'celine' ? formatTimeASS(chunkEnd) : formatTimeASS(nextWord ? nextWord.start : chunkEnd);
-
-                    let textParts = [];
                     for (let k = 0; k < currentChunk.length; k++) {
-                        const w = currentChunk[k];
-                        let wText = w.punctuated_word || w.word;
+                        let wText = currentChunk[k].punctuated_word || currentChunk[k].word;
 
-                        if (styleCategory === 'iman') {
-                            // Iman Gadzhi: All lowercase, white text, slightly transparent inactive, active becomes opaque bold scale 105
-                            wText = wText.toLowerCase();
+                        if (styleCategory === 'jordan') {
                             if (k === j) {
-                                textParts.push(`{\\r\\b1\\fscx105\\fscy105\\1c&H00FFFFFF&\\3c${fontColor}\\4c${fontColor}}${wText}`);
+                                textParts.push(`{\\r\\fscx120\\fscy120\\1c&H0000FFFF&}{\\p1\\fscx50\\fscy50\\1c&H0000FFFF&}m 0 0 l 20 0 20 20 0 20{\\p0} ${wText.toUpperCase()}`);
                             } else {
-                                textParts.push(`{\\r\\b0\\1a&H55&\\1c&H00FFFFFF&}${wText}`);
-                            }
-                        } else if (styleCategory === 'devin') {
-                            // Devin Jatho: Active words angled, huge pop, standard colors. Inactive smaller.
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx130\\fscy130\\frz-4\\1c${fontColor}}${wText}`);
-                            } else {
-                                textParts.push(`{\\r\\fscx90\\fscy90\\1c&H00FFFFFF&}${wText}`);
-                            }
-                        } else if (styleCategory === 'mrb') {
-                            // MrB style: ALL CAPS, normal inactive, jumping active colored
-                            wText = wText.toUpperCase();
-                            if (k === j) {
-                                textParts.push(`{\\r\\pos(360,1180)\\fscx120\\fscy120\\1c${fontColor}}${wText}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
-                            }
-                        } else if (styleCategory === 'karaoke') {
-                            // Just coloring word without size changes
-                            if (k === j) {
-                                textParts.push(`{\\r\\1c${fontColor}}${wText}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
-                            }
-                        } else if (styleCategory === 'jordan') {
-                            wText = wText.toUpperCase();
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx120\\fscy120\\1c&H0000FFFF&}${wText}`); // Yellow
-                            } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
                             }
                         } else if (styleCategory === 'luke') {
-                            wText = wText.toUpperCase();
                             if (k === j) {
-                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFF00&}${wText}`); // Cyan glow 
+                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFF00&}${wText.toUpperCase()}`);
                             } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
                             }
                         } else if (styleCategory === 'maya') {
                             if (k === j) {
-                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H0000A5FF&}${wText}`); // Orange glow
+                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H0000A5FF&}${wText.toUpperCase()}`);
                             } else {
-                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
                             }
                         } else if (styleCategory === 'sage') {
-                            wText = wText.toUpperCase();
                             if (k === j) {
-                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFFFF&}${wText}`); // White glow
+                                textParts.push(`{\\r\\fscx125\\fscy125\\1c&H00FFFFFF&\\3c&H00FFFFFF&}${wText.toUpperCase()}`);
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
+                            }
+                        } else if (styleCategory === 'beast' || styleCategory.includes('hormozi')) {
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx120\\fscy120\\1c${fontColor}}${wText.toUpperCase()}`);
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText.toUpperCase()}`);
+                            }
+                        } else if (styleCategory === 'celine') {
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx100\\fscy100\\1c${fontColor}}${wText}`);
                             } else {
                                 textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
                             }
-                        } else if (styleCategory === 'beast' || styleCategory.includes('hormozi')) {
-                            wText = wText.toUpperCase();
-                            if (styleCategory === 'beast') {
-                                if (k === j) {
-                                    textParts.push(`{\\r\\fscx120\\fscy120\\1c${fontColor}}${wText}`);
-                                } else {
-                                    textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
-                                }
-                            } else {
-                                if (k === j) {
-                                    textParts.push(`{\\r\\fscx112\\fscy112\\1c${fontColor}}${wText}`);
-                                } else {
-                                    textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
-                                }
-                            }
-                        } else if (styleCategory === 'celine') {
-                            // Static block
-                            textParts.push(`{\\r}${wText}`);
                         } else {
-                            // Default to Ali
-                            if (k === 0 && !/[A-Z]/.test(wText[0])) {
-                                wText = wText.charAt(0).toUpperCase() + wText.slice(1);
+                            // Default: Ali Style (Case capitalization for first word or active)
+                            let processedWord = wText;
+                            if (k === 0 && !/[A-Z]/.test(processedWord[0])) {
+                                processedWord = processedWord.charAt(0).toUpperCase() + processedWord.slice(1);
                             }
                             if (k === j) {
-                                textParts.push(`{\\r\\fscx115\\fscy115\\1c${fontColor}&}${wText}`);
+                                textParts.push(`{\\r\\fscx115\\fscy115\\1c${fontColor}}${processedWord}`);
                             } else {
-                                textParts.push(`{\\r\\1c&H00808080&}${wText}`);
+                                textParts.push(`{\\r\\1c&H00808080&}${processedWord}`);
                             }
                         }
                     }
+
                     const textLine = textParts.join(' ').trim();
                     assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,${textLine}\n`;
                 }
-
-                currentChunk = [];
             }
         }
 
