@@ -106,32 +106,59 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
                         const w = currentChunk[k];
                         let wText = w.punctuated_word || w.word;
 
-                        // Capitalization rules depending on the style
-                        if (styleCategory === 'beast' || styleCategory.includes('hormozi')) {
+                        if (styleCategory === 'iman') {
+                            // Iman Gadzhi: All lowercase, white text, slightly transparent inactive, active becomes opaque bold scale 105
+                            wText = wText.toLowerCase();
+                            if (k === j) {
+                                textParts.push(`{\\r\\b1\\fscx105\\fscy105\\1c&H00FFFFFF&\\3c${fontColor}\\4c${fontColor}}${wText}`);
+                            } else {
+                                textParts.push(`{\\r\\b0\\1a&H55&\\1c&H00FFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory === 'devin') {
+                            // Devin Jatho: Active words angled, huge pop, standard colors. Inactive smaller.
+                            if (k === j) {
+                                textParts.push(`{\\r\\fscx130\\fscy130\\frz-4\\1c${fontColor}}${wText}`);
+                            } else {
+                                textParts.push(`{\\r\\fscx90\\fscy90\\1c&H00FFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory === 'mrb') {
+                            // MrB style: ALL CAPS, normal inactive, jumping active colored
                             wText = wText.toUpperCase();
+                            if (k === j) {
+                                textParts.push(`{\\r\\pos(360,1180)\\fscx120\\fscy120\\1c${fontColor}}${wText}`);
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory === 'karaoke') {
+                            // Just coloring word without size changes
+                            if (k === j) {
+                                textParts.push(`{\\r\\1c${fontColor}}${wText}`);
+                            } else {
+                                textParts.push(`{\\r\\1c&H00FFFFFF&}${wText}`);
+                            }
+                        } else if (styleCategory === 'beast' || styleCategory.includes('hormozi')) {
+                            wText = wText.toUpperCase();
+                            if (styleCategory === 'beast') {
+                                if (k === j) {
+                                    textParts.push(`{\\r\\fscx120\\fscy120\\1c${fontColor}}${wText}`);
+                                } else {
+                                    textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
+                                }
+                            } else {
+                                if (k === j) {
+                                    textParts.push(`{\\r\\fscx112\\fscy112\\1c${fontColor}}${wText}`);
+                                } else {
+                                    textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
+                                }
+                            }
+                        } else if (styleCategory === 'celine') {
+                            // Static block
+                            textParts.push(`{\\r}${wText}`);
                         } else {
+                            // Default to Ali
                             if (k === 0 && !/[A-Z]/.test(wText[0])) {
                                 wText = wText.charAt(0).toUpperCase() + wText.slice(1);
                             }
-                        }
-
-                        if (styleCategory === 'celine') {
-                            // Static block
-                            textParts.push(`{\\r}${wText}`);
-                        } else if (styleCategory === 'beast') {
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx120\\fscy120\\1c${fontColor}}${wText}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
-                            }
-                        } else if (styleCategory.includes('hormozi')) {
-                            if (k === j) {
-                                textParts.push(`{\\r\\fscx112\\fscy112\\1c${fontColor}}${wText}`);
-                            } else {
-                                textParts.push(`{\\r\\1c&HFFFFFF&}${wText}`);
-                            }
-                        } else {
-                            // Default to Ali
                             if (k === j) {
                                 textParts.push(`{\\r\\fscx115\\fscy115\\1c${fontColor}}${wText}`);
                             } else {

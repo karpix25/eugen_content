@@ -1657,9 +1657,13 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
 
   const SUBTITLE_STYLES = [
     { id: 'ali', name: 'Ali', description: 'Светлый фон, серый неактивный, цветной активный.' },
-    { id: 'beast', name: 'Beast', description: 'Без фона, цветная обводка активного.' },
-    { id: 'hormozi_1', name: 'Hormozi', description: 'Без фона, очень толстая и чёрная тень текста.' },
-    { id: 'celine', name: 'Celine', description: 'Стандартные статичные субтитры без выделения.' }
+    { id: 'beast', name: 'Beast', description: 'Цветная обводка активного, pop.' },
+    { id: 'hormozi_1', name: 'Hormozi', description: 'Очень толстая и чёрная тень.' },
+    { id: 'mrb', name: 'MrB', description: 'Огромный жирный черный контур, желтый текст.' },
+    { id: 'devin', name: 'Devin', description: 'Прыгучий стиль с наклоном (rotate) активных слов.' },
+    { id: 'iman', name: 'Iman', description: 'Минимализм. Строчные буквы, из легкого в жирный.' },
+    { id: 'karaoke', name: 'Karaoke', description: 'Плавная смена цвета без увеличения.' },
+    { id: 'celine', name: 'Celine', description: 'Базовые статичные субтитры.' }
   ];
 
   const FONT_FAMILIES = [
@@ -1937,25 +1941,37 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                       borderRadius: '4px',
                       textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 4px 6px rgba(0,0,0,0.5)' :
                         subtitleStyle === 'beast' ? `1px 1px 0 ${subtitleFontColor}, -1px -1px 0 ${subtitleFontColor}, 1px -1px 0 ${subtitleFontColor}, -1px 1px 0 ${subtitleFontColor}, 1px 1px 0 ${subtitleFontColor}, 0px 0px 4px #000` :
-                          subtitleStyle === 'celine' ? '1px 1px 2px #000' : 'none',
-                      color: subtitleStyle === 'ali' ? '#808080' : '#FFFFFF',
-                      textTransform: subtitleStyle === 'beast' || subtitleStyle.includes('hormozi') ? 'uppercase' : 'none'
+                          subtitleStyle === 'mrb' ? '3px 3px 0 #000, -2px -2px 0 #000, 3px -2px 0 #000, -2px 3px 0 #000, 0px 0px 6px rgba(0,0,0,1)' :
+                            subtitleStyle === 'devin' ? '2px 2px 0 #000, -1px -1px 0 #000, 2px -1px 0 #000, -1px 2px 0 #000' :
+                              subtitleStyle === 'iman' ? '1px 1px 2px rgba(0,0,0,0.8)' :
+                                (subtitleStyle === 'celine' || subtitleStyle === 'karaoke') ? '1px 1px 2px #000' : 'none',
+                      color: subtitleStyle === 'ali' ? '#808080' : subtitleStyle === 'iman' ? 'rgba(255,255,255,0.6)' : '#FFFFFF',
+                      textTransform: (subtitleStyle === 'beast' || subtitleStyle.includes('hormozi') || subtitleStyle === 'mrb') ? 'uppercase' : subtitleStyle === 'iman' ? 'lowercase' : 'none'
                     }}
                   >
                     {subtitleStyle === 'celine' ? (
                       <span>ОБЫЧНЫЕ СУБТИТРЫ</span>
                     ) : (
                       <>
-                        <span>СТИЛЬ </span>
+                        <span style={{
+                          transform: subtitleStyle === 'devin' ? 'scale(0.85)' : 'none',
+                          display: 'inline-block'
+                        }}>{subtitleStyle === 'iman' ? 'стиль ' : 'СТИЛЬ '}</span>
                         <span
                           style={{
-                            color: subtitleFontColor,
+                            color: subtitleStyle === 'iman' ? '#FFFFFF' : subtitleFontColor,
                             display: 'inline-block',
-                            transform: subtitleStyle === 'beast' ? 'scale(1.2)' : 'scale(1.15)',
-                            margin: '0 4px',
-                            textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' : 'none'
+                            transform: subtitleStyle === 'devin' ? 'scale(1.2) rotate(-3deg)' :
+                              subtitleStyle === 'beast' ? 'scale(1.2)' :
+                                subtitleStyle === 'mrb' ? 'scale(1.15) translateY(-2px)' :
+                                  subtitleStyle === 'iman' ? 'scale(1.05)' :
+                                    subtitleStyle === 'ali' || subtitleStyle.includes('hormozi') ? 'scale(1.15)' : 'none',
+                            fontWeight: subtitleStyle === 'iman' ? '900' : 'bold',
+                            margin: '0 5px',
+                            textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' :
+                              subtitleStyle === 'iman' ? 'none' : 'auto'
                           }}
-                        >{subtitleStyle.toUpperCase()}</span>
+                        >{subtitleStyle === 'iman' ? subtitleStyle.toLowerCase() : subtitleStyle.toUpperCase()}</span>
                       </>
                     )}
                   </div>
