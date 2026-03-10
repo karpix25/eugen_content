@@ -202,7 +202,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`
         }
 
         const assBuffer = Buffer.from(assContent, 'utf-8');
-        const uploadResult = await uploadToS3(assBuffer, `subtitles/${clipId}.ass`, 'text/plain');
+        const hash = `${styleCategory}_${fontColor}_${fontFamily}`.replace(/[^a-zA-Z0-9_]/g, '');
+        const uploadResult = await uploadToS3(assBuffer, `subtitles/${clipId}_${hash}.ass`, 'text/plain');
 
         console.log(`Successfully generated and cached ASS for ${clipId} at ${uploadResult.Location}`);
         return uploadResult.Location || null;

@@ -95,8 +95,13 @@ export const processClip = async (
                 const srtRes = await query("SELECT srt_url FROM clips WHERE id = $1", [clipId]);
                 let srtUrl = srtRes.rows[0]?.srt_url;
 
-                if (!srtUrl) {
-                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang, subtitleConfig?.style || 'ali', assColor, fontFamily);
+                // Ensure that the cached ASS file matches the current user configuration perfectly
+                const styleName = subtitleConfig?.style || 'ali';
+                const requiredHash = `${styleName}_${assColor}_${fontFamily}`.replace(/[^a-zA-Z0-9_]/g, '');
+
+                if (!srtUrl || !srtUrl.includes(requiredHash)) {
+                    console.log(`Generating new subtitles due to missing cache or mismatched style hash (${requiredHash})`);
+                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang, styleName, assColor, fontFamily);
                     if (srtUrl) {
                         await query("UPDATE clips SET srt_url = $1 WHERE id = $2", [srtUrl, clipId]);
                     }
