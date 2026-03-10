@@ -43,7 +43,17 @@ export const processClip = async (
     sourceLang?: string | null,
     skipS3Upload: boolean = false,
     watermarkConfig?: { text: string, opacity: number, position: string },
-    subtitleConfig?: { enabled: boolean, font_size: number, font_color: string, position: string, style?: string, font_family?: string }
+    subtitleConfig?: {
+        enabled: boolean,
+        font_size: number,
+        font_color: string,
+        position: string,
+        style?: string,
+        font_family?: string,
+        highlight_color?: string,
+        highlight_enabled?: boolean,
+        outline_color?: string
+    }
 ): Promise<string> => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -92,6 +102,9 @@ export const processClip = async (
                 return '&HFFFFFF&';
             };
             const assColor = toAss(subtitleConfig?.font_color || '#FFFFFF');
+            const highlightColor = toAss(subtitleConfig?.highlight_color || '#FFFF00');
+            const outlineColor = toAss(subtitleConfig?.outline_color || '#000000');
+            const highlightEnabled = subtitleConfig?.highlight_enabled !== false;
             const fontFamily = subtitleConfig?.font_family || 'Anton';
             const fontSize = subtitleConfig?.font_size || 48;
 
@@ -105,11 +118,21 @@ export const processClip = async (
                 // Ensure that the cached ASS file matches the current user configuration perfectly
                 const styleName = subtitleConfig?.style || 'karaoke';
                 const positionVal = subtitleConfig?.position || '80';
-                const requiredHash = `${styleName}_${assColor}_${fontFamily}_${fontSize}_${positionVal}`.replace(/[^a-zA-Z0-9_]/g, '');
+                const requiredHash = `v2_${styleName}_${assColor}_${highlightColor}_${outlineColor}_${highlightEnabled}_${fontFamily}_${fontSize}_${positionVal}`.replace(/[^a-zA-Z0-9_]/g, '');
 
                 if (!srtUrl || !srtUrl.includes(requiredHash)) {
                     console.log(`Generating new subtitles due to missing cache or mismatched style hash (${requiredHash})`);
-                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, finalLang, styleName, assColor, fontFamily, fontSize);
+                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, {
+                        language: finalLang,
+                        style: styleName,
+                        fontColor: assColor,
+                        highlightColor: highlightColor,
+                        outlineColor: outlineColor,
+                        highlightEnabled: highlightEnabled,
+                        fontFamily: fontFamily,
+                        fontSize: fontSize,
+                        position: positionVal
+                    } as any);
                     if (srtUrl) {
                         await query("UPDATE clips SET srt_url = $1 WHERE id = $2", [srtUrl, clipId]);
                     }
@@ -234,7 +257,7 @@ export const processClip = async (
 
                     filters.push({
                         filter: 'subtitles',
-                        options: `filename='${escapedSrtPath}':force_style='${style}':fontsdir='${process.env.NODE_ENV === 'production' ? '/app/fonts' : './fonts'}'`,
+                        options: `filename='${escapedSrtPath}':fontsdir='${process.env.NODE_ENV === 'production' ? '/app/fonts' : './fonts'}'`,
                         inputs: lastOutput,
                         outputs: 'with_subs'
                     });

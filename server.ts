@@ -359,11 +359,20 @@ async function startServer() {
   });
 
   app.post("/api/users/settings", authenticateToken, async (req: any, res) => {
-    const { watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family } = req.body;
+    const {
+      watermark_text, watermark_opacity, watermark_position,
+      subtitle_enabled, subtitle_font_size, subtitle_font_color,
+      subtitle_position, subtitle_style, subtitle_font_family,
+      subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color
+    } = req.body;
     try {
       await query(`
-        INSERT INTO users (telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        INSERT INTO users (
+          telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, 
+          subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family,
+          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         ON CONFLICT (telegram_id) DO UPDATE SET 
           watermark_text = EXCLUDED.watermark_text,
           watermark_opacity = EXCLUDED.watermark_opacity,
@@ -373,8 +382,17 @@ async function startServer() {
           subtitle_font_color = EXCLUDED.subtitle_font_color,
           subtitle_position = EXCLUDED.subtitle_position,
           subtitle_style = EXCLUDED.subtitle_style,
-          subtitle_font_family = EXCLUDED.subtitle_font_family
-      `, [req.user.id, req.user.username || '', req.user.first_name || '', watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family]);
+          subtitle_font_family = EXCLUDED.subtitle_font_family,
+          subtitle_highlight_color = EXCLUDED.subtitle_highlight_color,
+          subtitle_highlight_enabled = EXCLUDED.subtitle_highlight_enabled,
+          subtitle_outline_color = EXCLUDED.subtitle_outline_color
+      `, [
+        req.user.id, req.user.username || '', req.user.first_name || '',
+        watermark_text, watermark_opacity, watermark_position,
+        subtitle_enabled, subtitle_font_size, subtitle_font_color,
+        subtitle_position, subtitle_style, subtitle_font_family,
+        subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color
+      ]);
       res.json({ success: true });
     } catch (err) {
       console.error("Settings update error:", err);
@@ -811,9 +829,12 @@ async function startServer() {
         enabled: dbUser.subtitle_enabled !== false, // default true
         font_size: dbUser.subtitle_font_size ? parseFloat(dbUser.subtitle_font_size) : 16,
         font_color: dbUser.subtitle_font_color || '#FFFFFF',
-        position: dbUser.subtitle_position || 'Bottom',
-        style: dbUser.subtitle_style || 'ali',
-        font_family: dbUser.subtitle_font_family || 'Anton'
+        position: dbUser.subtitle_position || '80',
+        style: dbUser.subtitle_style || 'karaoke',
+        font_family: dbUser.subtitle_font_family || 'Anton',
+        highlight_color: dbUser.subtitle_highlight_color || '#FFFF00',
+        highlight_enabled: dbUser.subtitle_highlight_enabled !== false, // default true
+        outline_color: dbUser.subtitle_outline_color || '#000000'
       };
 
       // Pass skipS3Upload = true and watermark object

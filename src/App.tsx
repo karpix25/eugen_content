@@ -107,6 +107,9 @@ interface User {
   subtitle_position?: string;
   subtitle_style?: string;
   subtitle_font_family?: string;
+  subtitle_highlight_color?: string;
+  subtitle_highlight_enabled?: boolean;
+  subtitle_outline_color?: string;
 }
 
 interface AdPlaque {
@@ -1662,6 +1665,9 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [subtitlePosition, setSubtitlePosition] = useState(getInitialPosition(currentUser.subtitle_position));
   const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'karaoke');
   const [subtitleFontFamily, setSubtitleFontFamily] = useState(currentUser.subtitle_font_family || 'Anton');
+  const [subtitleHighlightColor, setSubtitleHighlightColor] = useState(currentUser.subtitle_highlight_color || '#FFFF00');
+  const [subtitleHighlightEnabled, setSubtitleHighlightEnabled] = useState(currentUser.subtitle_highlight_enabled !== false);
+  const [subtitleOutlineColor, setSubtitleOutlineColor] = useState(currentUser.subtitle_outline_color || '#000000');
 
   useEffect(() => {
     if (currentUser) {
@@ -1674,6 +1680,9 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
       setSubtitlePosition(getInitialPosition(currentUser.subtitle_position));
       setSubtitleStyle(currentUser.subtitle_style || 'karaoke');
       setSubtitleFontFamily(currentUser.subtitle_font_family || 'Anton');
+      setSubtitleHighlightColor(currentUser.subtitle_highlight_color || '#FFFF00');
+      setSubtitleHighlightEnabled(currentUser.subtitle_highlight_enabled !== false);
+      setSubtitleOutlineColor(currentUser.subtitle_outline_color || '#000000');
     }
   }, [currentUser]);
 
@@ -1710,7 +1719,10 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
           subtitle_font_color: subtitleFontColor,
           subtitle_position: subtitlePosition,
           subtitle_style: subtitleStyle,
-          subtitle_font_family: subtitleFontFamily
+          subtitle_font_family: subtitleFontFamily,
+          subtitle_highlight_color: subtitleHighlightColor,
+          subtitle_highlight_enabled: subtitleHighlightEnabled,
+          subtitle_outline_color: subtitleOutlineColor
         })
       });
       if (res.ok) {
@@ -1958,7 +1970,7 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
               </div>
 
               <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Цвет текста (HEX)</label>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Цвет текста</label>
                 <div className="flex gap-2">
                   <input
                     type="color"
@@ -1970,6 +1982,47 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                     type="text"
                     value={subtitleFontColor}
                     onChange={(e) => setSubtitleFontColor(e.target.value)}
+                    className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-2 text-sm font-mono text-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Цвет обводки</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={subtitleOutlineColor}
+                    onChange={(e) => setSubtitleOutlineColor(e.target.value)}
+                    className="w-12 h-10 rounded border-0 bg-transparent cursor-pointer p-0"
+                  />
+                  <input
+                    type="text"
+                    value={subtitleOutlineColor}
+                    onChange={(e) => setSubtitleOutlineColor(e.target.value)}
+                    className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-2 text-sm font-mono text-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className={subtitleEnabled && (subtitleStyle === 'karaoke') ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-white/60 uppercase tracking-wider">Выделение активного слова</label>
+                  <button onClick={() => setSubtitleHighlightEnabled(!subtitleHighlightEnabled)} className={`w-8 h-4 rounded-full transition-colors relative ${subtitleHighlightEnabled ? 'bg-emerald-500' : 'bg-white/20'}`}>
+                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${subtitleHighlightEnabled ? 'translate-x-4' : ''}`} />
+                  </button>
+                </div>
+                <div className={`flex gap-2 transition-opacity ${subtitleHighlightEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                  <input
+                    type="color"
+                    value={subtitleHighlightColor}
+                    onChange={(e) => setSubtitleHighlightColor(e.target.value)}
+                    className="w-12 h-10 rounded border-0 bg-transparent cursor-pointer p-0"
+                  />
+                  <input
+                    type="text"
+                    value={subtitleHighlightColor}
+                    onChange={(e) => setSubtitleHighlightColor(e.target.value)}
                     className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-2 text-sm font-mono text-white focus:border-emerald-500 outline-none"
                   />
                 </div>
@@ -2010,12 +2063,12 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                       fontFamily: `"${subtitleFontFamily}", sans-serif`,
                       fontSize: `${Math.max(10, subtitleFontSize * 0.7)}px`,
                       borderRadius: '4px',
-                      textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 4px 6px rgba(0,0,0,0.5)' :
-                        subtitleStyle === 'beast' ? `1px 1px 0 ${subtitleFontColor}, -1px -1px 0 ${subtitleFontColor}, 1px -1px 0 ${subtitleFontColor}, -1px 1px 0 ${subtitleFontColor}, 1px 1px 0 ${subtitleFontColor}, 0px 0px 4px #000` :
-                          subtitleStyle === 'mrb' ? '3px 3px 0 #000, -2px -2px 0 #000, 3px -2px 0 #000, -2px 3px 0 #000, 0px 0px 6px rgba(0,0,0,1)' :
-                            subtitleStyle === 'devin' ? '2px 2px 0 #000, -1px -1px 0 #000, 2px -1px 0 #000, -1px 2px 0 #000' :
-                              subtitleStyle === 'iman' ? '1px 1px 2px rgba(0,0,0,0.8)' :
-                                (subtitleStyle === 'celine' || subtitleStyle === 'karaoke') ? '1px 1px 2px #000' : 'none',
+                      textShadow: subtitleStyle.includes('hormozi') ? `2px 2px 0 ${subtitleOutlineColor}, -1px -1px 0 ${subtitleOutlineColor}, 1px -1px 0 ${subtitleOutlineColor}, -1px 1px 0 ${subtitleOutlineColor}, 1px 1px 0 ${subtitleOutlineColor}, 0 4px 6px rgba(0,0,0,0.5)` :
+                        subtitleStyle === 'beast' ? `1px 1px 0 ${subtitleFontColor}, -1px -1px 0 ${subtitleFontColor}, 1px -1px 0 ${subtitleFontColor}, -1px 1px 0 ${subtitleFontColor}, 1px 1px 0 ${subtitleFontColor}, 0px 0px 4px ${subtitleOutlineColor}` :
+                          subtitleStyle === 'mrb' ? `3px 3px 0 ${subtitleOutlineColor}, -2px -2px 0 ${subtitleOutlineColor}, 3px -2px 0 ${subtitleOutlineColor}, -2px 3px 0 ${subtitleOutlineColor}, 0px 0px 6px ${subtitleOutlineColor}` :
+                            subtitleStyle === 'devin' ? `2px 2px 0 ${subtitleOutlineColor}, -1px -1px 0 ${subtitleOutlineColor}, 2px -1px 0 ${subtitleOutlineColor}, -1px 2px 0 ${subtitleOutlineColor}` :
+                              subtitleStyle === 'iman' ? `1px 1px 2px ${subtitleOutlineColor}` :
+                                (subtitleStyle === 'celine' || subtitleStyle === 'karaoke') ? `1px 1px 2px ${subtitleOutlineColor}` : 'none',
                       color: subtitleStyle === 'ali' ? '#808080' : subtitleStyle === 'iman' ? 'rgba(255,255,255,0.6)' : '#FFFFFF',
                       textTransform: (subtitleStyle === 'beast' || subtitleStyle.includes('hormozi') || subtitleStyle === 'mrb') ? 'uppercase' : subtitleStyle === 'iman' ? 'lowercase' : 'none'
                     }}
@@ -2030,7 +2083,7 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                         }}>{subtitleStyle === 'iman' ? 'стиль ' : 'СТИЛЬ '}</span>
                         <span
                           style={{
-                            color: subtitleStyle === 'iman' ? '#FFFFFF' : subtitleFontColor,
+                            color: subtitleStyle === 'iman' ? '#FFFFFF' : (subtitleHighlightEnabled ? subtitleHighlightColor : subtitleFontColor),
                             display: 'inline-block',
                             transform: subtitleStyle === 'devin' ? 'scale(1.2) rotate(-3deg)' :
                               subtitleStyle === 'beast' ? 'scale(1.2)' :
@@ -2039,7 +2092,7 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                                     subtitleStyle === 'ali' || subtitleStyle.includes('hormozi') ? 'scale(1.15)' : 'none',
                             fontWeight: subtitleStyle === 'iman' ? '900' : 'bold',
                             margin: '0 5px',
-                            textShadow: subtitleStyle.includes('hormozi') ? '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' :
+                            textShadow: subtitleStyle.includes('hormozi') ? `2px 2px 0 ${subtitleOutlineColor}, -1px -1px 0 ${subtitleOutlineColor}, 1px -1px 0 ${subtitleOutlineColor}, -1px 1px 0 ${subtitleOutlineColor}, 1px 1px 0 ${subtitleOutlineColor}` :
                               subtitleStyle === 'iman' ? 'none' : 'auto'
                           }}
                         >{subtitleStyle === 'iman' ? subtitleStyle.toLowerCase() : subtitleStyle.toUpperCase()}</span>

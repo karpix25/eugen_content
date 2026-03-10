@@ -130,8 +130,11 @@ export const initDb = async () => {
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_size NUMERIC DEFAULT 48");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_color TEXT DEFAULT '&H00FFFFFF'");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_position TEXT DEFAULT 'Bottom'");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_style TEXT DEFAULT 'ali'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_style TEXT DEFAULT 'karaoke'");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_family TEXT DEFAULT 'Anton'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_color TEXT DEFAULT '#FFFF00'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_enabled BOOLEAN DEFAULT true");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_outline_color TEXT DEFAULT '#000000'");
     await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT");
     console.log("Database migrations applied successfully.");
   } catch (err) {

@@ -1,17 +1,37 @@
 import fs from 'fs';
 import { uploadToS3 } from "../lib/s3";
 
+export interface SubtitleConfig {
+    language?: string;
+    style?: string;
+    fontColor?: string;
+    highlightColor?: string;
+    outlineColor?: string;
+    highlightEnabled?: boolean;
+    fontFamily?: string;
+    fontSize?: number;
+    position?: string;
+}
+
 export const generateAndCacheSRT = async (
     clipId: string,
     videoUrl: string,
-    language: string = 'auto',
-    styleCategory: string = 'karaoke',
-    fontColor: string = '&H0000FFFF&',
-    fontFamily: string = 'Anton',
-    fontSize: number = 48
+    config: SubtitleConfig
 ): Promise<string | null> => {
     try {
-        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language}, Style: ${styleCategory}, Font: ${fontFamily}, Size: ${fontSize})...`);
+        const {
+            language = 'auto',
+            style: styleCategory = 'karaoke',
+            fontColor = '&H00FFFFFF&',
+            highlightColor = '&H0000FFFF&',
+            outlineColor = '&H00000000&',
+            highlightEnabled = true,
+            fontFamily = 'Anton',
+            fontSize = 48,
+            position = '80'
+        } = config;
+
+        console.log(`Starting Deepgram transcription for ${clipId} (Lang: ${language}, Style: ${styleCategory}, Font: ${fontFamily}, Size: ${fontSize}, Pos: ${position})...`);
 
         const deepgramUrl = `https://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&utterances=true${language !== 'auto' ? `&language=${language}` : '&detect_language=true'}`;
 
@@ -53,6 +73,9 @@ export const generateAndCacheSRT = async (
             return `${hh}:${mm}:${ss}.${ms}`;
         };
 
+        const posValue = isNaN(Number(position)) ? 80 : Math.max(2, Math.min(95, Number(position)));
+        const marginV = Math.floor((posValue / 100) * 1280);
+
         let assContent = `[Script Info]
 ScriptType: v4.00+
 PlayResX: 720
@@ -61,7 +84,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,${fontFamily},${fontSize},&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,2,2,10,10,20,1
+Style: Default,${fontFamily},${fontSize},${fontColor},&H000000FF,${outlineColor},&H00000000,-1,0,0,0,100,100,0,0,1,3,2,8,10,10,${marginV},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -72,7 +95,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 const wText = (word.punctuated_word || word.word).toUpperCase();
                 const start = formatTime(word.start);
                 const end = formatTime(word.end);
-                assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,{\\1c${fontColor}}${wText}\n`;
+                assContent += `Dialogue: 0,${start},${end},Default,,0,0,0,,${wText}\n`;
             }
         } else {
             const wordsPerChunk = 3;
@@ -98,10 +121,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                         const textParts = currentChunk.map((w: any, k: number) => {
                             const wText = (w.punctuated_word || w.word).toUpperCase();
-                            if (k === j) {
-                                return `{\\r\\fscx110\\fscy110\\1c${fontColor}}${wText}`;
+                            if (k === j && highlightEnabled) {
+                                return `{\\fscx110\\fscy110\\1c${highlightColor}}${wText}{\\fscx100\\fscy100\\1c${fontColor}}`;
                             } else {
-                                return `{\\r\\1c&H00FFFFFF&}${wText}`;
+                                return `{\\1c${fontColor}}${wText}`;
                             }
                         });
                         const textLine = textParts.join(' ').trim();
@@ -112,7 +135,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         }
 
         const assBuffer = Buffer.from(assContent, 'utf-8');
-        const hash = `${styleCategory}_${fontColor}_${fontFamily}_${fontSize}`.replace(/[^a-zA-Z0-9_]/g, '');
+        const hash = `v2_${styleCategory}_${fontColor}_${highlightColor}_${outlineColor}_${highlightEnabled}_${fontFamily}_${fontSize}_${position}`.replace(/[^a-zA-Z0-9_]/g, '');
         const uploadResult = await uploadToS3(assBuffer, `subtitles/${clipId}_${hash}.ass`, 'text/plain');
 
         console.log(`Successfully generated and cached ASS for ${clipId} at ${uploadResult.Location}`);
