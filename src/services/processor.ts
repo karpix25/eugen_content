@@ -67,6 +67,7 @@ export const processClip = async (
             let currentVideoUrl = videoUrl;
             let tempDubbedFile = path.join(outputDir, `${clipId}_dubbed.mp4`);
             let tempOriginalFile = path.join(outputDir, `${clipId}_original.mp4`);
+            let tempPlaqueFile = path.join(outputDir, `${clipId}_plaque.png`);
 
             // Robustness: if plaqueImageUrl is actually a stringified JSON (legacy bug), parse it
             let finalPlaqueUrl = plaqueImageUrl;
@@ -79,6 +80,15 @@ export const processClip = async (
                     }
                 } catch (e) {
                     console.error(`Failed to parse plaqueImageUrl as JSON for ${clipId}:`, e);
+                }
+            }
+
+            if (finalPlaqueUrl) {
+                try {
+                    await downloadFile(finalPlaqueUrl, tempPlaqueFile);
+                } catch (e) {
+                    console.error(`Failed to download plaque for ${clipId}:`, e);
+                    finalPlaqueUrl = null; // Disable if download fails
                 }
             }
 
@@ -112,9 +122,9 @@ export const processClip = async (
                     const r = clean.substring(0, 2);
                     const g = clean.substring(2, 4);
                     const b = clean.substring(4, 6);
-                    return `&H${b}${g}${r}&`;
+                    return `&H00${b}${g}${r}&`;
                 }
-                return '&HFFFFFF&';
+                return '&H00FFFFFF&';
             };
             const assColor = toAss(subtitleConfig?.font_color || '#FFFFFF');
             const highlightColor = toAss(subtitleConfig?.highlight_color || '#FFFF00');
@@ -163,7 +173,7 @@ export const processClip = async (
             }
 
             const cleanupFiles = () => {
-                [outputPath, tempDubbedFile, tempOriginalFile].forEach(f => {
+                [outputPath, tempDubbedFile, tempOriginalFile, tempPlaqueFile].forEach(f => {
                     if (fs.existsSync(f)) fs.unlinkSync(f);
                 });
                 if (srtFilePath && fs.existsSync(srtFilePath)) fs.unlinkSync(srtFilePath);
@@ -193,20 +203,21 @@ export const processClip = async (
                 let lastOutput = '[0:v]';
 
                 if (finalPlaqueUrl) {
-                    command = command.input(finalPlaqueUrl);
+                    const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
+                    command = command.input(escapedPlaquePath);
                     filters.push({
                         filter: 'scale',
                         options: '720:-1',
                         inputs: '[1:v]',
-                        outputs: 'plaque'
+                        outputs: '[plaque]'
                     });
                     filters.push({
                         filter: 'overlay',
                         options: '0:H-h-50',
-                        inputs: [lastOutput, 'plaque'],
-                        outputs: 'with_plaque'
+                        inputs: [lastOutput, '[plaque]'],
+                        outputs: '[with_plaque]'
                     });
-                    lastOutput = 'with_plaque';
+                    lastOutput = '[with_plaque]';
                 }
 
                 if (srtFilePath) {
@@ -274,9 +285,9 @@ export const processClip = async (
                         filter: 'subtitles',
                         options: `filename='${escapedSrtPath}':fontsdir='${process.env.NODE_ENV === 'production' ? '/app/fonts' : './fonts'}'`,
                         inputs: lastOutput,
-                        outputs: 'with_subs'
+                        outputs: '[with_subs]'
                     });
-                    lastOutput = 'with_subs';
+                    lastOutput = '[with_subs]';
                 }
 
                 if (watermarkConfig && watermarkConfig.text) {
@@ -327,9 +338,9 @@ Dialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rotate}}${text}
                         filter: 'subtitles',
                         options: `filename='${safeAssPath}':fontsdir='${fontsPath}'`,
                         inputs: lastOutput,
-                        outputs: 'final'
+                        outputs: '[final]'
                     });
-                    lastOutput = 'final';
+                    lastOutput = '[final]';
                 }
 
                 console.log(`FFmpeg starting for ${clipId} with filters:`, JSON.stringify(filters, null, 2));
