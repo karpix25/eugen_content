@@ -104,7 +104,8 @@ export const processClip = async (
 
                 // Ensure that the cached ASS file matches the current user configuration perfectly
                 const styleName = subtitleConfig?.style || 'karaoke';
-                const requiredHash = `${styleName}_${assColor}_${fontFamily}_${fontSize}`.replace(/[^a-zA-Z0-9_]/g, '');
+                const positionVal = subtitleConfig?.position || '80';
+                const requiredHash = `${styleName}_${assColor}_${fontFamily}_${fontSize}_${positionVal}`.replace(/[^a-zA-Z0-9_]/g, '');
 
                 if (!srtUrl || !srtUrl.includes(requiredHash)) {
                     console.log(`Generating new subtitles due to missing cache or mismatched style hash (${requiredHash})`);
@@ -171,14 +172,19 @@ export const processClip = async (
                 }
 
                 if (srtFilePath) {
-                    let alignment = 2; // Bottom Center
-                    let marginV = 20;
-                    if (subtitleConfig?.position === 'Top') {
-                        alignment = 8; // Top Center
-                        marginV = 80;
-                    } else if (subtitleConfig?.position === 'Center') {
-                        alignment = 5; // Middle Center
+                    let posValue = 80;
+                    const positionStr = subtitleConfig?.position;
+                    if (positionStr === 'Bottom') posValue = 80;
+                    else if (positionStr === 'Center') posValue = 50;
+                    else if (positionStr === 'Top') posValue = 15;
+                    else if (positionStr && !isNaN(Number(positionStr))) {
+                        posValue = Number(positionStr);
                     }
+
+                    // Clamp to prevent scrolling text completely off-screen
+                    posValue = Math.max(2, Math.min(95, posValue));
+                    const marginV = Math.floor((posValue / 100) * 1280);
+                    const alignment = 8; // 8 = Top Center, so MarginV calculates from the Top edge downwards.
 
                     const fontSize = subtitleConfig?.font_size || 16;
                     // Use relative path to avoid issues with Cyrillic characters in absolute paths (e.g., /Users/.../Женя)

@@ -1651,7 +1651,15 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [subtitleEnabled, setSubtitleEnabled] = useState(currentUser.subtitle_enabled !== false);
   const [subtitleFontSize, setSubtitleFontSize] = useState(currentUser.subtitle_font_size || 48);
   const [subtitleFontColor, setSubtitleFontColor] = useState(currentUser.subtitle_font_color || '#FFFFFF');
-  const [subtitlePosition, setSubtitlePosition] = useState(currentUser.subtitle_position || 'Bottom');
+  const getInitialPosition = (val: any) => {
+    if (val === 'Bottom') return '80';
+    if (val === 'Center') return '50';
+    if (val === 'Top') return '15';
+    const num = Number(val);
+    return isNaN(num) ? '80' : num.toString();
+  };
+
+  const [subtitlePosition, setSubtitlePosition] = useState(getInitialPosition(currentUser.subtitle_position));
   const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'karaoke');
   const [subtitleFontFamily, setSubtitleFontFamily] = useState(currentUser.subtitle_font_family || 'Anton');
 
@@ -1663,7 +1671,7 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
       setSubtitleEnabled(currentUser.subtitle_enabled !== false);
       setSubtitleFontSize(currentUser.subtitle_font_size ? Number(currentUser.subtitle_font_size) : 48);
       setSubtitleFontColor(currentUser.subtitle_font_color || '#FFFFFF');
-      setSubtitlePosition(currentUser.subtitle_position || 'Bottom');
+      setSubtitlePosition(getInitialPosition(currentUser.subtitle_position));
       setSubtitleStyle(currentUser.subtitle_style || 'karaoke');
       setSubtitleFontFamily(currentUser.subtitle_font_family || 'Anton');
     }
@@ -1968,22 +1976,17 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
               </div>
 
               <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Положение</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'Top', label: 'Сверху' },
-                    { id: 'Center', label: 'В центре' },
-                    { id: 'Bottom', label: 'Снизу' },
-                  ].map(pos => (
-                    <button
-                      key={pos.id}
-                      onClick={() => setSubtitlePosition(pos.id)}
-                      className={`text-xs py-2 px-3 rounded-lg font-medium transition-all border ${subtitlePosition === pos.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 scale-105' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
-                    >
-                      {pos.label}
-                    </button>
-                  ))}
-                </div>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider flex justify-between">
+                  <span>Положение (Вертикаль)</span>
+                  <span className="text-emerald-400">{subtitlePosition}%</span>
+                </label>
+                <input
+                  type="range"
+                  min="0" max="100" step="1"
+                  value={subtitlePosition}
+                  onChange={(e) => setSubtitlePosition(e.target.value)}
+                  className="w-full accent-emerald-500 h-2 bg-black rounded-lg appearance-none cursor-pointer mt-2"
+                />
               </div>
             </div>
 
@@ -1997,11 +2000,8 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
                 <div
                   className="absolute left-0 right-0 flex justify-center px-4"
                   style={{
-                    ...(
-                      subtitlePosition === 'Top' ? { top: '15%' } :
-                        subtitlePosition === 'Center' ? { top: '50%', transform: 'translateY(-50%)' } :
-                          { bottom: '15%' }
-                    )
+                    top: `${subtitlePosition}%`,
+                    transform: 'translateY(-50%)'
                   }}
                 >
                   <div
