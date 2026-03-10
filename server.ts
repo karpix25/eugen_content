@@ -355,16 +355,20 @@ async function startServer() {
   });
 
   app.post("/api/users/settings", authenticateToken, async (req: any, res) => {
-    const { watermark_text, watermark_opacity, watermark_position } = req.body;
+    const { watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position } = req.body;
     try {
       await query(`
-        INSERT INTO users (telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO users (telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (telegram_id) DO UPDATE SET 
           watermark_text = EXCLUDED.watermark_text,
           watermark_opacity = EXCLUDED.watermark_opacity,
-          watermark_position = EXCLUDED.watermark_position
-      `, [req.user.id, req.user.username || '', req.user.first_name || '', watermark_text, watermark_opacity, watermark_position]);
+          watermark_position = EXCLUDED.watermark_position,
+          subtitle_enabled = EXCLUDED.subtitle_enabled,
+          subtitle_font_size = EXCLUDED.subtitle_font_size,
+          subtitle_font_color = EXCLUDED.subtitle_font_color,
+          subtitle_position = EXCLUDED.subtitle_position
+      `, [req.user.id, req.user.username || '', req.user.first_name || '', watermark_text, watermark_opacity, watermark_position, subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position]);
       res.json({ success: true });
     } catch (err) {
       console.error("Settings update error:", err);
@@ -797,9 +801,16 @@ async function startServer() {
 
       const position = dbUser.watermark_position || 'center';
 
+      const subtitleConfig = {
+        enabled: dbUser.subtitle_enabled !== false, // default true
+        font_size: dbUser.subtitle_font_size ? parseFloat(dbUser.subtitle_font_size) : 16,
+        font_color: dbUser.subtitle_font_color || '#FFFFFF',
+        position: dbUser.subtitle_position || 'Bottom'
+      };
+
       // Pass skipS3Upload = true and watermark object
       const watermarkConfig = text ? { text, opacity, position } : null;
-      const localFilePath = await processClip(id, clip.url, plaqueImageUrl, null, null, true, watermarkConfig as any);
+      const localFilePath = await processClip(id, clip.url, plaqueImageUrl, clip.language, null, true, watermarkConfig as any, subtitleConfig);
 
       // Now send via Telegram directly
       if (telegramId !== 'dev') {

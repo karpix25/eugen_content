@@ -101,6 +101,10 @@ interface User {
   watermark_text?: string;
   watermark_opacity?: number;
   watermark_position?: string;
+  subtitle_enabled?: boolean;
+  subtitle_font_size?: number;
+  subtitle_font_color?: string;
+  subtitle_position?: string;
 }
 
 interface AdPlaque {
@@ -1641,6 +1645,12 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
   const [watermarkText, setWatermarkText] = useState(currentUser.watermark_text !== null && currentUser.watermark_text !== undefined ? currentUser.watermark_text : `@${currentUser.username || currentUser.first_name}`);
   const [watermarkOpacity, setWatermarkOpacity] = useState(currentUser.watermark_opacity !== undefined && currentUser.watermark_opacity !== null ? Number(currentUser.watermark_opacity) : 0.08);
   const [watermarkPosition, setWatermarkPosition] = useState(currentUser.watermark_position || 'center');
+
+  const [subtitleEnabled, setSubtitleEnabled] = useState(currentUser.subtitle_enabled !== false);
+  const [subtitleFontSize, setSubtitleFontSize] = useState(currentUser.subtitle_font_size || 16);
+  const [subtitleFontColor, setSubtitleFontColor] = useState(currentUser.subtitle_font_color || '#FFFFFF');
+  const [subtitlePosition, setSubtitlePosition] = useState(currentUser.subtitle_position || 'Bottom');
+
   const [saving, setSaving] = useState(false);
 
   const saveSettings = async () => {
@@ -1655,7 +1665,11 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
         body: JSON.stringify({
           watermark_text: watermarkText,
           watermark_opacity: watermarkOpacity,
-          watermark_position: watermarkPosition
+          watermark_position: watermarkPosition,
+          subtitle_enabled: subtitleEnabled,
+          subtitle_font_size: subtitleFontSize,
+          subtitle_font_color: subtitleFontColor,
+          subtitle_position: subtitlePosition
         })
       });
       if (res.ok) {
@@ -1673,106 +1687,211 @@ function SettingsTab({ currentUser, authToken, onUpdate }: { currentUser: User, 
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-6">
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Settings className="w-5 h-5 text-emerald-500" />
-            Настройки водяного знака
-          </h2>
-          <p className="text-sm text-white/40">
-            Этот водяной знак будет автоматически применяться ко всем видео, которые вы отправляете себе в Telegram. У ваших воркеров (если они есть) свои настройки.
-          </p>
-        </div>
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-8">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-          <div className="space-y-5">
-            <div>
-              <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Текст</label>
-              <input
-                type="text"
-                value={watermarkText}
-                onChange={(e) => setWatermarkText(e.target.value)}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                placeholder="@username"
-              />
-              <p className="text-[10px] text-white/40 mt-2">Оставьте пустым, чтобы отключить водяной знак</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider flex justify-between">
-                <span>Прозрачность</span>
-                <span className="text-emerald-400">{(watermarkOpacity * 100).toFixed(0)}%</span>
-              </label>
-              <input
-                type="range"
-                min="0" max="0.5" step="0.01"
-                value={watermarkOpacity}
-                onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
-                className="w-full accent-emerald-500 h-2 bg-black rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Положение</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'center', label: 'По центру' },
-                  { id: 'tilted_center', label: 'По центру (наклон)' },
-                  { id: 'top_left', label: 'Левый верх' },
-                  { id: 'top_right', label: 'Правый верх' },
-                  { id: 'bottom_left', label: 'Левый низ' },
-                  { id: 'bottom_right', label: 'Правый низ' },
-                ].map(pos => (
-                  <button
-                    key={pos.id}
-                    onClick={() => setWatermarkPosition(pos.id)}
-                    className={`text-xs py-2 px-3 rounded-lg font-medium transition-all border ${watermarkPosition === pos.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 scale-105' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
-                  >
-                    {pos.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={saveSettings}
-              disabled={saving}
-              className="w-full py-3 rounded-xl bg-white text-black font-bold uppercase tracking-widest text-sm hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-              {saving ? 'Сохранение...' : 'Сохранить'}
-            </button>
+        {/* Watermark Section */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Settings className="w-5 h-5 text-emerald-500" />
+              Настройки водяного знака
+            </h2>
+            <p className="text-sm text-white/40">
+              Этот водяной знак будет автоматически применяться ко всем видео, которые вы отправляете себе в Telegram.
+            </p>
           </div>
 
-          <div className="flex flex-col items-center">
-            <span className="block text-xs font-bold text-white/60 mb-3 uppercase tracking-wider self-start md:self-center">Предпросмотр</span>
-            <div className="relative aspect-[9/16] bg-[#111] rounded-2xl overflow-hidden border-2 border-white/10 w-full max-w-[240px] shadow-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20"></div>
-              <div className="absolute inset-0 flex items-center justify-center mix-blend-overlay opacity-20">
-                <Video className="w-24 h-24 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Текст</label>
+                <input
+                  type="text"
+                  value={watermarkText}
+                  onChange={(e) => setWatermarkText(e.target.value)}
+                  className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  placeholder="@username"
+                />
+                <p className="text-[10px] text-white/40 mt-2">Оставьте пустым, чтобы отключить водяной знак</p>
               </div>
 
-              <div
-                className="absolute font-bold whitespace-nowrap text-xs pointer-events-none transition-all duration-300"
-                style={{
-                  color: `rgba(255, 255, 255, ${watermarkOpacity})`,
-                  textShadow: `2px 2px 4px rgba(0, 0, 0, ${watermarkOpacity * 0.8})`,
-                  ...(
-                    watermarkPosition === 'center' ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '20px' } :
-                      watermarkPosition === 'top_left' ? { top: '5%', left: '5%' } :
-                        watermarkPosition === 'top_right' ? { top: '5%', right: '5%' } :
-                          watermarkPosition === 'bottom_left' ? { bottom: '5%', left: '5%' } :
-                            watermarkPosition === 'bottom_right' ? { bottom: '5%', right: '5%' } :
-                              watermarkPosition === 'tilted_center' ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)', fontSize: '24px' } :
-                                {}
-                  )
-                }}
-              >
-                {watermarkText || 'Текст'}
+              <div>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider flex justify-between">
+                  <span>Прозрачность</span>
+                  <span className="text-emerald-400">{(watermarkOpacity * 100).toFixed(0)}%</span>
+                </label>
+                <input
+                  type="range"
+                  min="0" max="0.5" step="0.01"
+                  value={watermarkOpacity}
+                  onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
+                  className="w-full accent-emerald-500 h-2 bg-black rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Положение</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'center', label: 'По центру' },
+                    { id: 'tilted_center', label: 'По центру (наклон)' },
+                    { id: 'top_left', label: 'Левый верх' },
+                    { id: 'top_right', label: 'Правый верх' },
+                    { id: 'bottom_left', label: 'Левый низ' },
+                    { id: 'bottom_right', label: 'Правый низ' },
+                  ].map(pos => (
+                    <button
+                      key={pos.id}
+                      onClick={() => setWatermarkPosition(pos.id)}
+                      className={`text-xs py-2 px-3 rounded-lg font-medium transition-all border ${watermarkPosition === pos.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 scale-105' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <span className="block text-xs font-bold text-white/60 mb-3 uppercase tracking-wider self-start md:self-center">Предпросмотр</span>
+              <div className="relative aspect-[9/16] bg-[#111] rounded-2xl overflow-hidden border-2 border-white/10 w-full max-w-[240px] shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20"></div>
+                <div className="absolute inset-0 flex items-center justify-center mix-blend-overlay opacity-20">
+                  <Video className="w-24 h-24 text-white" />
+                </div>
+                <div
+                  className="absolute font-bold whitespace-nowrap text-xs pointer-events-none transition-all duration-300"
+                  style={{
+                    color: `rgba(255, 255, 255, ${watermarkOpacity})`,
+                    textShadow: `2px 2px 4px rgba(0, 0, 0, ${watermarkOpacity * 0.8})`,
+                    ...(
+                      watermarkPosition === 'center' ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '20px' } :
+                        watermarkPosition === 'top_left' ? { top: '5%', left: '5%' } :
+                          watermarkPosition === 'top_right' ? { top: '5%', right: '5%' } :
+                            watermarkPosition === 'bottom_left' ? { bottom: '5%', left: '5%' } :
+                              watermarkPosition === 'bottom_right' ? { bottom: '5%', right: '5%' } :
+                                watermarkPosition === 'tilted_center' ? { top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-15deg)', fontSize: '24px' } :
+                                  {}
+                    )
+                  }}
+                >
+                  {watermarkText || 'Текст'}
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        <hr className="border-white/10" />
+
+        {/* Subtitle Section */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Settings className="w-5 h-5 text-emerald-500" />
+              Настройки субтитров (Deepgram)
+            </h2>
+            <p className="text-sm text-white/40">
+              Включите автоматические сгенерированные субтитры для видео и настройте их стиль.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={subtitleEnabled}
+                  onChange={(e) => setSubtitleEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500 rounded bg-black/40 border-white/20"
+                />
+                <label className="text-sm font-medium text-white/80" onClick={() => setSubtitleEnabled(!subtitleEnabled)}>Генерировать субтитры</label>
+              </div>
+
+              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider flex justify-between">
+                  <span>Размер шрифта</span>
+                  <span className="text-emerald-400">{subtitleFontSize}px</span>
+                </label>
+                <input
+                  type="range"
+                  min="10" max="32" step="1"
+                  value={subtitleFontSize}
+                  onChange={(e) => setSubtitleFontSize(parseInt(e.target.value))}
+                  className="w-full accent-emerald-500 h-2 bg-black rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+
+              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Цвет текста (HEX)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={subtitleFontColor}
+                    onChange={(e) => setSubtitleFontColor(e.target.value)}
+                    className="w-12 h-10 rounded border-0 bg-transparent cursor-pointer p-0"
+                  />
+                  <input
+                    type="text"
+                    value={subtitleFontColor}
+                    onChange={(e) => setSubtitleFontColor(e.target.value)}
+                    className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-2 text-sm font-mono text-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                <label className="block text-xs font-bold text-white/60 mb-2 uppercase tracking-wider">Положение</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'Top', label: 'Сверху' },
+                    { id: 'Center', label: 'В центре' },
+                    { id: 'Bottom', label: 'Снизу' },
+                  ].map(pos => (
+                    <button
+                      key={pos.id}
+                      onClick={() => setSubtitlePosition(pos.id)}
+                      className={`text-xs py-2 px-3 rounded-lg font-medium transition-all border ${subtitlePosition === pos.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 scale-105' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className={`flex flex-col items-center ${subtitleEnabled ? 'opacity-100' : 'opacity-50'}`}>
+              <span className="block text-xs font-bold text-white/60 mb-3 uppercase tracking-wider self-start md:self-center">Предпросмотр субтитров</span>
+              <div className="relative aspect-[9/16] bg-[#111] rounded-2xl overflow-hidden border-2 border-white/10 w-full max-w-[240px] shadow-2xl">
+                <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80" alt="bg" className="w-full h-full object-cover opacity-30" />
+                <div
+                  className="absolute left-0 right-0 text-center font-bold px-4 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]"
+                  style={{
+                    color: subtitleFontColor,
+                    fontSize: `${Math.max(10, subtitleFontSize * 0.7)}px`, // scaled down for preview
+                    WebkitTextStroke: '1px black',
+                    ...(
+                      subtitlePosition === 'Top' ? { top: '15%' } :
+                        subtitlePosition === 'Center' ? { top: '50%', transform: 'translateY(-50%)' } :
+                          { bottom: '15%' }
+                    )
+                  }}
+                >
+                  ЗДЕСЬ БУДУТ<br />ВАШИ СУБТИТРЫ
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={saveSettings}
+          disabled={saving}
+          className="w-full py-4 mt-8 rounded-xl bg-emerald-500 text-black font-bold uppercase tracking-widest text-sm hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+          {saving ? 'Сохранение настроек...' : 'Сохранить все настройки'}
+        </button>
       </div>
     </div>
   );

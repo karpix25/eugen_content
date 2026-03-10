@@ -21,6 +21,10 @@ export const initDb = async () => {
       watermark_text TEXT,
       watermark_opacity NUMERIC DEFAULT 0.08,
       watermark_position TEXT DEFAULT 'center',
+      subtitle_enabled BOOLEAN DEFAULT true,
+      subtitle_font_size NUMERIC DEFAULT 16,
+      subtitle_font_color TEXT DEFAULT '&H00FFFFFF',
+      subtitle_position TEXT DEFAULT 'Bottom',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -63,6 +67,7 @@ export const initDb = async () => {
       downloaded_at TIMESTAMP,
       ad_plaque_id TEXT,
       transcript TEXT,
+      srt_url TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -119,6 +124,11 @@ export const initDb = async () => {
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_text TEXT");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_opacity NUMERIC DEFAULT 0.08");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_position TEXT DEFAULT 'center'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_enabled BOOLEAN DEFAULT true");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_size NUMERIC DEFAULT 16");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_color TEXT DEFAULT '&H00FFFFFF'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_position TEXT DEFAULT 'Bottom'");
+    await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT");
     console.log("Database migrations applied successfully.");
   } catch (err) {
     console.error("Migration error:", err);

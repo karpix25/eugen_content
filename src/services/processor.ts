@@ -5,6 +5,7 @@ import axios from 'axios';
 import { query } from '../lib/db.js';
 import { uploadToS3 } from '../lib/s3.js';
 import { startDubbing, checkDubbingStatus, getDubbedFile } from './elevenlabs.js';
+import { generateAndCacheSRT } from './deepgram.js';
 
 const downloadFile = async (url: string, outputPath: string) => {
     const writer = fs.createWriteStream(outputPath);
@@ -34,7 +35,16 @@ const pollDubbingStatus = async (dubbingId: string): Promise<boolean> => {
     return false;
 };
 
-export const processClip = async (clipId: string, videoUrl: string, plaqueImageUrl: string | null, targetLang?: string | null, sourceLang?: string | null, skipS3Upload: boolean = false, watermarkConfig?: { text: string, opacity: number, position: string }): Promise<string> => {
+export const processClip = async (
+    clipId: string,
+    videoUrl: string,
+    plaqueImageUrl: string | null,
+    targetLang?: string | null,
+    sourceLang?: string | null,
+    skipS3Upload: boolean = false,
+    watermarkConfig?: { text: string, opacity: number, position: string },
+    subtitleConfig?: { enabled: boolean, font_size: number, font_color: string, position: string }
+): Promise<string> => {
     return new Promise(async (resolve, reject) => {
         try {
             const outputDir = path.join(process.cwd(), 'temp', 'processed');
@@ -70,10 +80,29 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
             const outputFileName = `${clipId}_branded.mp4`;
             const outputPath = path.join(outputDir, outputFileName);
 
+            let srtFilePath: string | null = null;
+            if (subtitleConfig && subtitleConfig.enabled) {
+                const srtRes = await query("SELECT srt_url FROM clips WHERE id = $1", [clipId]);
+                let srtUrl = srtRes.rows[0]?.srt_url;
+
+                if (!srtUrl) {
+                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang);
+                    if (srtUrl) {
+                        await query("UPDATE clips SET srt_url = $1 WHERE id = $2", [srtUrl, clipId]);
+                    }
+                }
+
+                if (srtUrl) {
+                    srtFilePath = path.join(outputDir, `${clipId}.srt`);
+                    await downloadFile(srtUrl, srtFilePath);
+                }
+            }
+
             const cleanupFiles = () => {
                 [outputPath, tempDubbedFile, tempOriginalFile].forEach(f => {
                     if (fs.existsSync(f)) fs.unlinkSync(f);
                 });
+                if (srtFilePath && fs.existsSync(srtFilePath)) fs.unlinkSync(srtFilePath);
             };
 
             const finalizeUpload = async (fileToUpload: string) => {
@@ -91,8 +120,8 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                 resolve(finalUrl);
             };
 
-            if (plaqueImageUrl || watermarkConfig) {
-                console.log(`Starting FFmpeg overlay for ${clipId} (Plaque: ${!!plaqueImageUrl}, Watermark: ${watermarkConfig?.text || 'None'})`);
+            if (plaqueImageUrl || watermarkConfig || srtFilePath) {
+                console.log(`Starting FFmpeg overlay for ${clipId} (Plaque: ${!!plaqueImageUrl}, Watermark: ${watermarkConfig?.text || 'None'}, Subs: ${!!srtFilePath})`);
 
                 let command = ffmpeg(currentVideoUrl);
                 const filters: any[] = [];
@@ -113,6 +142,40 @@ export const processClip = async (clipId: string, videoUrl: string, plaqueImageU
                         outputs: 'with_plaque'
                     });
                     lastOutput = 'with_plaque';
+                }
+
+                if (srtFilePath) {
+                    let alignment = 2; // Bottom Center
+                    let marginV = 20;
+                    if (subtitleConfig?.position === 'Top') {
+                        alignment = 8; // Top Center
+                    } else if (subtitleConfig?.position === 'Center') {
+                        alignment = 5; // Middle Center
+                    }
+
+                    // Convert #RRGGBB to &H00BBGGRR (ASS color format)
+                    let hex = subtitleConfig?.font_color || '#FFFFFF';
+                    hex = hex.replace('#', '');
+                    const r = hex.substring(0, 2);
+                    const g = hex.substring(2, 4);
+                    const b = hex.substring(4, 6);
+                    const assColor = `&H00${b}${g}${r}`;
+
+                    const fontSize = subtitleConfig?.font_size || 16;
+
+                    const escapedSrtPath = srtFilePath.replace(/\\/g, '/').replace(/:/g, '\\:');
+                    const style = `FontName=Arial,FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000,BorderStyle=1,Outline=2,Alignment=${alignment},MarginV=${marginV}`;
+
+                    filters.push({
+                        filter: 'subtitles',
+                        options: {
+                            filename: escapedSrtPath,
+                            force_style: style
+                        },
+                        inputs: lastOutput,
+                        outputs: 'with_subs'
+                    });
+                    lastOutput = 'with_subs';
                 }
 
                 if (watermarkConfig && watermarkConfig.text) {
