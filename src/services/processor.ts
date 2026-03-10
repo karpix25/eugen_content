@@ -87,13 +87,14 @@ export const processClip = async (
                     const r = clean.substring(0, 2);
                     const g = clean.substring(2, 4);
                     const b = clean.substring(4, 6);
-                    return `&H${b}${g}${r}`;
+                    return `&H${b}${g}${r}&`;
                 }
-                return '&HFFFFFF';
+                return '&HFFFFFF&';
             };
             const assColor = toAss(subtitleConfig?.font_color || '#FFFFFF');
             const fontFamily = subtitleConfig?.font_family || 'Anton';
 
+            const finalLang = targetLang || sourceLang || 'auto';
             let srtFilePath: string | null = null;
             if (subtitleConfig && subtitleConfig.enabled) {
                 const srtRes = await query("SELECT srt_url FROM clips WHERE id = $1", [clipId]);
@@ -105,7 +106,7 @@ export const processClip = async (
 
                 if (!srtUrl || !srtUrl.includes(requiredHash)) {
                     console.log(`Generating new subtitles due to missing cache or mismatched style hash (${requiredHash})`);
-                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, targetLang || sourceLang, styleName, assColor, fontFamily);
+                    srtUrl = await generateAndCacheSRT(clipId, currentVideoUrl, finalLang, styleName, assColor, fontFamily);
                     if (srtUrl) {
                         await query("UPDATE clips SET srt_url = $1 WHERE id = $2", [srtUrl, clipId]);
                     }
@@ -259,7 +260,8 @@ export const processClip = async (
                         y,
                         shadowcolor: `black@${opacity * 0.6}`,
                         shadowx: 2,
-                        shadowy: 2
+                        shadowy: 2,
+                        angle: position === 'tilted_center' ? -30 : 0
                     };
 
                     // Note: text rotation via angle requires a build of FFmpeg with FreeType support and specific layout logic, 

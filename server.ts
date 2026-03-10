@@ -811,7 +811,9 @@ async function startServer() {
         enabled: dbUser.subtitle_enabled !== false, // default true
         font_size: dbUser.subtitle_font_size ? parseFloat(dbUser.subtitle_font_size) : 16,
         font_color: dbUser.subtitle_font_color || '#FFFFFF',
-        position: dbUser.subtitle_position || 'Bottom'
+        position: dbUser.subtitle_position || 'Bottom',
+        style: dbUser.subtitle_style || 'ali',
+        font_family: dbUser.subtitle_font_family || 'Anton'
       };
 
       // Pass skipS3Upload = true and watermark object
