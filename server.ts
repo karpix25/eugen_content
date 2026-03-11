@@ -1107,6 +1107,41 @@ async function startServer() {
       res.status(500).json({ error: "Failed to fetch clips" });
     }
   });
+  
+  app.post("/api/clips/:id/reprocess", authenticateToken, async (req: any, res) => {
+    const { id } = req.params;
+    const { plaque_id, target_lang, source_lang } = req.body;
+
+    try {
+      const clipRes = await query("SELECT * FROM clips WHERE id = $1", [id]);
+      if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
+      const clip = clipRes.rows[0];
+
+      const videoRes = await query("SELECT * FROM videos WHERE id = $1", [clip.video_id]);
+      const video = videoRes.rows[0];
+
+      let plaqueImageUrl = null;
+      if (plaque_id || clip.ad_plaque_id) {
+        const pId = plaque_id || clip.ad_plaque_id;
+        const plaqueRes = await query("SELECT * FROM ad_plaques WHERE id = $1", [pId]);
+        if (plaqueRes.rows.length > 0) {
+          plaqueImageUrl = plaqueRes.rows[0].image_url;
+        }
+      }
+
+      const tLang = target_lang || clip.language || video?.target_language;
+      const sLang = source_lang || video?.detected_language;
+
+      console.log(`[Admin] Re-processing clip ${id} (TLang: ${tLang}, SLang: ${sLang})`);
+      
+      processClip(id, clip.url, plaqueImageUrl, tLang, sLang).catch(console.error);
+      
+      res.json({ success: true, message: "Re-processing started" });
+    } catch (err) {
+      console.error("Reprocess error:", err);
+      res.status(500).json({ error: "Failed to re-process clip" });
+    }
+  });
 
   // Ad Plaques
   app.get("/api/ad-plaques", async (req, res) => {
