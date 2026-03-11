@@ -182,18 +182,38 @@ export const processClip = async (
             };
 
             const finalizeUpload = async (fileToUpload: string) => {
-                if (skipS3Upload) {
-                    await query('UPDATE clips SET status = \'processed\' WHERE id = $1', [clipId]);
-                    resolve(fileToUpload); // Resolve with the absolute local system path to the mp4
-                    return;
-                }
+                let fileBuffer: Buffer;
+                let downloadedTempFile: string | null = null;
+                
+                try {
+                    if (fileToUpload.startsWith('http')) {
+                        console.log(`Downloading raw video from URL before S3 upload: ${fileToUpload}`);
+                        downloadedTempFile = path.join(outputDir, `${clipId}_raw_download.mp4`);
+                        await downloadFile(fileToUpload, downloadedTempFile);
+                        fileBuffer = fs.readFileSync(downloadedTempFile);
+                    } else {
+                        fileBuffer = fs.readFileSync(fileToUpload);
+                    }
+                    
+                    if (skipS3Upload) {
+                        await query('UPDATE clips SET status = \'processed\' WHERE id = $1', [clipId]);
+                        resolve(downloadedTempFile || fileToUpload); // Resolve with the absolute local system path to the mp4
+                        return;
+                    }
 
-                const fileBuffer = fs.readFileSync(fileToUpload);
-                const uploadResult = await uploadToS3(fileBuffer, `processed/${outputFileName}`, 'video/mp4');
-                const finalUrl = uploadResult.Location || "";
-                await query('UPDATE clips SET status = \'processed\', url = $1 WHERE id = $2', [finalUrl, clipId]);
-                cleanupFiles();
-                resolve(finalUrl);
+                    const uploadResult = await uploadToS3(fileBuffer, `processed/${outputFileName}`, 'video/mp4');
+                    const finalUrl = uploadResult.Location || "";
+                    await query('UPDATE clips SET status = \'processed\', url = $1 WHERE id = $2', [finalUrl, clipId]);
+                    resolve(finalUrl);
+                } catch (e) {
+                    console.error(`Failed during finalizeUpload for ${clipId}:`, e);
+                    reject(e);
+                } finally {
+                    cleanupFiles();
+                    if (downloadedTempFile && fs.existsSync(downloadedTempFile)) {
+                        fs.unlinkSync(downloadedTempFile);
+                    }
+                }
             };
 
             if (finalPlaqueUrl || watermarkConfig || srtFilePath) {
