@@ -15,6 +15,7 @@ console.warn = (...args) => originalWarn(`[${getTimestamp()}]`, ...args);
 import { createServer as createViteServer } from "vite";
 import axios from "axios";
 import path from "path";
+import fs from "fs";
 import multer from "multer";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -27,6 +28,7 @@ import { s3Client, uploadToS3 } from "./src/lib/s3.js";
 import { getTranscript, getChannelInfo, getLatestVideos } from "./src/services/apify.js";
 import { evaluateContent, translateText, detectLanguage } from "./src/services/openrouter.js";
 import { sendToVizard, getVizardProjectStatus } from "./src/services/vizard.js";
+import { downloadYouTubeVideo } from "./src/services/video-downloader.js";
 import { startBot } from "./src/services/telegram.js";
 import { processClip } from "./src/services/processor.js";
 import cron from "node-cron";
@@ -294,6 +296,47 @@ async function startServer() {
     console.warn("Database initialization failed. Server starting in limited mode (Frontend only). Check .env file.");
   }
 
+  // Vizard Fallback Handler
+  const handleVizardFallback = async (videoId: string) => {
+    try {
+      await query("UPDATE videos SET status = 'vizard_fallback_running', error_message = 'Downloading video for S3 fallback...' WHERE id = $1", [videoId]);
+      
+      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      const downloaded = await downloadYouTubeVideo(videoUrl);
+      
+      if (!downloaded) {
+        throw new Error("Failed to download video via yt-dlp");
+      }
+
+      const { filePath, fileName } = downloaded;
+      const fileBuffer = fs.readFileSync(filePath);
+      
+      console.log(`[Vizard Fallback] Uploading ${fileName} to S3...`);
+      const uploadResult = await uploadToS3(fileBuffer, fileName, 'video/mp4');
+      
+      const s3Url = uploadResult.Location;
+      console.log(`[Vizard Fallback] S3 URL: ${s3Url}`);
+
+      console.log(`[Vizard Fallback] Resending to Vizard with Direct URL...`);
+      const newProjectId = await sendToVizard(s3Url, videoId, 1); // videoType 1 = Direct URL
+
+      if (newProjectId) {
+        await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard', error_message = 'Resent via S3 fallback' WHERE id = $2", [newProjectId, videoId]);
+        console.log(`[Vizard Fallback] Success! New Project ID: ${newProjectId}`);
+      } else {
+        throw new Error("Failed to resend to Vizard after S3 upload");
+      }
+
+      // Cleanup local file
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    } catch (error: any) {
+      console.error(`[Vizard Fallback] Hard failure for ${videoId}:`, error.message);
+      await query("UPDATE videos SET status = 'failed', error_message = $1 WHERE id = $2", 
+        [`Fallback Failed: ${error.message}`, videoId]);
+    }
+  };
+
   // Vizard Polling Cron Job
   cron.schedule('*/2 * * * *', async () => {
     console.log("Polling Vizard for completed projects...");
@@ -320,6 +363,12 @@ async function startServer() {
           const errMsg = statusData.errMsg || statusData.message || "Unknown Vizard error";
           console.error(`[Vizard] Project ${v.vizard_project_id} failed with code ${statusData.code}: ${errMsg}`);
           
+          if (statusData.code === 4008) {
+            console.log(`[Vizard Fallback] Error 4008 detected for ${v.id}. Starting S3 fallback...`);
+            handleVizardFallback(v.id);
+            continue;
+          }
+
           await query("UPDATE videos SET status = 'failed', error_message = $1 WHERE id = $2", 
             [`Vizard Error ${statusData.code}: ${errMsg}`, v.id]);
           continue;
