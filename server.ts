@@ -908,8 +908,19 @@ async function startServer() {
     if (!file) return res.status(400).json({ error: "No file uploaded" });
 
     try {
-      const uploadResult = await uploadToS3(file.buffer, `ad-plaques/${file.originalname}`, file.mimetype);
-      const imageUrl = uploadResult.Location;
+      const key = `ad-plaques/${file.originalname}`;
+      const uploadResult = await uploadToS3(file.buffer, key, file.mimetype);
+      // AWS SDK v3 may not return Location for non-AWS S3 providers
+      let imageUrl = uploadResult.Location;
+      if (!imageUrl) {
+        const endpoint = process.env.S3_ENDPOINT || '';
+        const bucket = process.env.S3_BUCKET_NAME || '';
+        if (endpoint) {
+          imageUrl = `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+        } else {
+          imageUrl = `https://${bucket}.s3.amazonaws.com/${key}`;
+        }
+      }
       const id = Math.random().toString(36).substr(2, 9);
       await query("INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)", [id, name, imageUrl, text || '', user_id || null]);
       res.json({ id, imageUrl });
@@ -927,8 +938,17 @@ async function startServer() {
 
   app.delete("/api/ad-plaques/:id", async (req, res) => {
     const { id } = req.params;
-    await query("DELETE FROM ad_plaques WHERE id = $1", [id]);
-    res.json({ success: true });
+    try {
+      // Nullify all foreign key references before deleting
+      await query("UPDATE publications SET plaque_id = NULL WHERE plaque_id = $1", [id]);
+      await query("UPDATE users SET default_plaque_id = NULL WHERE default_plaque_id = $1", [id]);
+      await query("UPDATE clips SET ad_plaque_id = NULL WHERE ad_plaque_id = $1", [id]);
+      await query("DELETE FROM ad_plaques WHERE id = $1", [id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting plaque:", err);
+      res.status(500).json({ error: "Failed to delete plaque" });
+    }
   });
 
   // Vite middleware for development
