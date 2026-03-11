@@ -264,12 +264,20 @@ export const processClip = async (
                     const pPosition = plaqueConfig?.position || 'top';
                     const pTimerange = plaqueConfig?.timerange || 0;
 
-                    // Scale plaque relative to the main video width
+                    // Scale plaque relative to the main video width (rw) and preserve aspect ratio
                     filters.push({
                         filter: 'scale2ref',
-                        options: `w=iw*${pSize/100}:h=-1`,
+                        options: `w=rw*${pSize/100}:h=-1:force_original_aspect_ratio=decrease`,
                         inputs: ['[1:v]', lastOutput],
-                        outputs: ['[plaque]', '[ref]']
+                        outputs: ['[plaque_raw]', '[ref]']
+                    });
+
+                    // Normalize SAR for the plaque to prevent stretching on non-square SAR videos
+                    filters.push({
+                        filter: 'setsar',
+                        options: '1',
+                        inputs: '[plaque_raw]',
+                        outputs: '[plaque]'
                     });
 
                     // Position: center horizontally, vertical depends on setting
