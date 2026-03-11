@@ -112,13 +112,13 @@ interface User {
   subtitle_outline_color?: string;
   default_plaque_id?: string | null;
   plaque_position?: string;
+  plaque_size?: number;
 }
 
 interface AdPlaque {
   id: string;
   name: string;
   image_url: string;
-  text: string;
 }
 
 interface Task {
@@ -924,10 +924,6 @@ export default function App() {
                       <label className="block text-xs text-white/40 mb-1">Файл изображения (PNG/JPG)</label>
                       <input type="file" name="file" accept="image/*" required className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-emerald-500 text-xs" />
                     </div>
-                    <div>
-                      <label className="block text-xs text-white/40 mb-1">Текст на плашке (CTA)</label>
-                      <input name="text" required placeholder="Напр: Жми по ссылке в профиле!" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-emerald-500" />
-                    </div>
                     <button
                       type="submit"
                       disabled={loading}
@@ -946,7 +942,6 @@ export default function App() {
                       <img src={plaque.image_url} className="w-20 h-20 rounded-lg object-cover bg-black shrink-0" alt="" />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium truncate">{plaque.name}</h4>
-                        <p className="text-sm text-white/40 truncate">{plaque.text}</p>
                       </div>
                       <button
                         onClick={() => handleDeletePlaque(plaque.id)}
@@ -1355,13 +1350,17 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram, currentUserPr
                 initial={{ opacity: 0, scale: 0.8, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute bottom-12 left-4 right-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-3 flex items-center gap-3 shadow-2xl z-20"
+                className={cn(
+                  "absolute left-0 right-0 z-20 flex justify-center px-3 pointer-events-none",
+                  currentUserProfile?.plaque_position === 'top' ? 'top-4' : currentUserProfile?.plaque_position === 'center' ? 'top-1/2 -translate-y-1/2' : 'bottom-12'
+                )}
               >
-                <img src={randomPlaque.image_url} className="w-10 h-10 rounded-lg object-cover" alt="" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-white/60 font-bold uppercase tracking-tighter">Реклама</p>
-                  <p className="text-xs font-medium truncate">{randomPlaque.text}</p>
-                </div>
+                <img
+                  src={randomPlaque.image_url}
+                  className="h-auto rounded-lg object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)]"
+                  style={{ width: `${currentUserProfile?.plaque_size || 80}%` }}
+                  alt=""
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -1480,7 +1479,6 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram, currentUserPr
                     <img src={plaque.image_url} alt="" className="w-12 h-12 rounded object-cover" />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm truncate text-white group-hover:text-emerald-400 transition-colors">{plaque.name}</p>
-                      <p className="text-[10px] text-white/40 truncate">{plaque.text}</p>
                     </div>
                   </button>
                 ))}
@@ -1689,6 +1687,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
 
   const [defaultPlaqueId, setDefaultPlaqueId] = useState<string | null>(currentUser.default_plaque_id || null);
   const [plaquePosition, setPlaquePosition] = useState(currentUser.plaque_position || 'bottom');
+  const [plaqueSize, setPlaqueSize] = useState(currentUser.plaque_size !== undefined && currentUser.plaque_size !== null ? Number(currentUser.plaque_size) : 80);
   const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
@@ -1707,6 +1706,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
       setSubtitleOutlineColor(currentUser.subtitle_outline_color || '#000000');
       setDefaultPlaqueId(currentUser.default_plaque_id || null);
       setPlaquePosition(currentUser.plaque_position || 'bottom');
+      setPlaqueSize(currentUser.plaque_size !== undefined && currentUser.plaque_size !== null ? Number(currentUser.plaque_size) : 80);
     }
   }, [currentUser]);
 
@@ -1748,7 +1748,8 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
           subtitle_highlight_enabled: subtitleHighlightEnabled,
           subtitle_outline_color: subtitleOutlineColor,
           default_plaque_id: defaultPlaqueId,
-          plaque_position: plaquePosition
+          plaque_position: plaquePosition,
+          plaque_size: plaqueSize
         })
       });
       if (res.ok) {
@@ -1915,7 +1916,6 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                         <img src={plaque.image_url} className="w-10 h-10 rounded-lg object-cover bg-black border border-white/10" alt="" />
                         <div className="text-left min-w-0 flex-1">
                           <p className="font-black text-[10px] uppercase tracking-[0.1em] truncate">{plaque.name}</p>
-                          <p className="text-[10px] opacity-60 truncate">{plaque.text}</p>
                         </div>
                       </button>
                       <button
@@ -1943,7 +1943,6 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                         <Plus className="w-4 h-4" />
                       </div>
                     </div>
-                    <input name="text" required placeholder="Текст на плашке (CTA)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-emerald-500 placeholder:text-white/20" />
                     <button
                       type="submit"
                       disabled={uploadLoading}
@@ -1972,6 +1971,14 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em] flex justify-between">
+                    <span>Размер плашки</span>
+                    <span className="text-emerald-400 font-mono">{plaqueSize}%</span>
+                  </label>
+                  <input type="range" min="20" max="100" step="1" value={plaqueSize} onChange={(e) => setPlaqueSize(parseInt(e.target.value))} className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500" />
                 </div>
               </div>
             </div>
@@ -2042,21 +2049,15 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                 {/* Plaque Preview */}
                 {defaultPlaqueId && plaques.find(p => p.id === defaultPlaqueId) && (
                   <div className={cn(
-                    "absolute left-0 right-0 z-20 flex justify-center px-6 transition-all duration-500",
-                    plaquePosition === 'top' ? 'top-12' : plaquePosition === 'center' ? 'top-1/2 -translate-y-1/2' : 'bottom-16'
+                    "absolute left-0 right-0 z-20 flex justify-center px-4 transition-all duration-500 pointer-events-none",
+                    plaquePosition === 'top' ? 'top-8' : plaquePosition === 'center' ? 'top-1/2 -translate-y-1/2' : 'bottom-12'
                   )}>
-                    <div className="relative w-full">
-                      <img
-                        src={plaques.find(p => p.id === defaultPlaqueId)?.image_url}
-                        className="w-full h-auto drop-shadow-[0_20px_40px_rgba(0,0,0,0.9)] rounded-xl"
-                        alt=""
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center p-4">
-                        <p className="text-[10px] font-black text-white text-center leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] uppercase tracking-wider">
-                          {plaques.find(p => p.id === defaultPlaqueId)?.text}
-                        </p>
-                      </div>
-                    </div>
+                    <img
+                      src={plaques.find(p => p.id === defaultPlaqueId)?.image_url}
+                      className="h-auto drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] rounded-xl object-contain"
+                      style={{ width: `${plaqueSize}%` }}
+                      alt=""
+                    />
                   </div>
                 )}
 

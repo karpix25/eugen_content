@@ -364,16 +364,16 @@ async function startServer() {
       subtitle_enabled, subtitle_font_size, subtitle_font_color,
       subtitle_position, subtitle_style, subtitle_font_family,
       subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
-      default_plaque_id, plaque_position
+      default_plaque_id, plaque_position, plaque_size
     } = req.body;
     try {
       await query(`
         INSERT INTO users (
           telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, 
           subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family,
-          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color, default_plaque_id, plaque_position
+          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color, default_plaque_id, plaque_position, plaque_size
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         ON CONFLICT (telegram_id) DO UPDATE SET 
           watermark_text = EXCLUDED.watermark_text,
           watermark_opacity = EXCLUDED.watermark_opacity,
@@ -388,14 +388,15 @@ async function startServer() {
           subtitle_highlight_enabled = EXCLUDED.subtitle_highlight_enabled,
           subtitle_outline_color = EXCLUDED.subtitle_outline_color,
           default_plaque_id = EXCLUDED.default_plaque_id,
-          plaque_position = EXCLUDED.plaque_position
+          plaque_position = EXCLUDED.plaque_position,
+          plaque_size = EXCLUDED.plaque_size
       `, [
         String(req.user.id), req.user.username || '', req.user.first_name || '',
         watermark_text, watermark_opacity, watermark_position,
         subtitle_enabled, subtitle_font_size, subtitle_font_color,
         subtitle_position, subtitle_style, subtitle_font_family,
         subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
-        default_plaque_id, plaque_position
+        default_plaque_id, plaque_position, plaque_size
       ]);
       res.json({ success: true });
     } catch (err) {
@@ -910,7 +911,7 @@ async function startServer() {
       const uploadResult = await uploadToS3(file.buffer, `ad-plaques/${file.originalname}`, file.mimetype);
       const imageUrl = uploadResult.Location;
       const id = Math.random().toString(36).substr(2, 9);
-      await query("INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)", [id, name, imageUrl, text, user_id || null]);
+      await query("INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)", [id, name, imageUrl, text || '', user_id || null]);
       res.json({ id, imageUrl });
     } catch (error) {
       console.error("Error uploading to S3:", error);
