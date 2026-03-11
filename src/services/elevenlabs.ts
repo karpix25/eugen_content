@@ -26,7 +26,8 @@ export const startDubbing = async (fileBuffer: Buffer, fileName: string, targetL
         }
 
         formData.append('num_speakers', '1');
-        formData.append('watermark', 'false');
+        // 'watermark' false requires Creator+ plan min. Standard/Free will crash. So we just skip setting it or explicitly allow watermarks
+        // formData.append('watermark', ''); 
 
         const response = await axios.post(
             'https://api.elevenlabs.io/v1/dubbing',
