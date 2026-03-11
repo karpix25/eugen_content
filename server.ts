@@ -314,11 +314,21 @@ async function startServer() {
         const clips = statusData.videos || statusData.data;
         const isSuccess = (statusData.code === 0 || statusData.code === 2000) && clips && Array.isArray(clips);
         const isPending = statusData.code === 1000 || statusData.code === 0 && (!clips || !Array.isArray(clips));
+        const isError = !isSuccess && !isPending && statusData.code !== undefined;
+
+        if (isError) {
+          const errMsg = statusData.errMsg || statusData.message || "Unknown Vizard error";
+          console.error(`[Vizard] Project ${v.vizard_project_id} failed with code ${statusData.code}: ${errMsg}`);
+          
+          await query("UPDATE videos SET status = 'failed', error_message = $1 WHERE id = $2", 
+            [`Vizard Error ${statusData.code}: ${errMsg}`, v.id]);
+          continue;
+        }
 
         if (isSuccess) {
           console.log(`Vizard project ${v.vizard_project_id} completed. Saving clips... count: ${clips.length}`);
 
-          await query("UPDATE videos SET status = 'completed' WHERE id = $1", [v.id]);
+          await query("UPDATE videos SET status = 'completed', error_message = NULL WHERE id = $1", [v.id]);
 
           // Get plaque to use for branding
           const plaqueResult = await query("SELECT * FROM ad_plaques LIMIT 1");

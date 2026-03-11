@@ -150,6 +150,7 @@ export const initDb = async () => {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_enabled BOOLEAN DEFAULT FALSE;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_videos_per_day NUMERIC DEFAULT 3;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_auto_post TIMESTAMP;
+    ALTER TABLE videos ADD COLUMN IF NOT EXISTS error_message TEXT;
   `);
 
   try {
