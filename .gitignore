@@ -6,3 +6,4 @@ dist
 vizard_*.html
 re_ingest_clips.ts
 metadata.json
+temp/
