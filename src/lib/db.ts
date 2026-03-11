@@ -65,7 +65,7 @@ export const initDb = async () => {
       title TEXT,
       status TEXT DEFAULT 'raw', -- raw, processed
       is_available BOOLEAN DEFAULT TRUE,
-      downloaded_by BIGINT REFERENCES users(telegram_id),
+      downloaded_by TEXT,
       downloaded_at TIMESTAMP,
       ad_plaque_id TEXT,
       transcript TEXT,
@@ -93,7 +93,7 @@ export const initDb = async () => {
     CREATE TABLE IF NOT EXISTS auth_sessions (
       id UUID PRIMARY KEY,
       status TEXT DEFAULT 'pending', -- pending, authorized
-      telegram_id BIGINT,
+      telegram_id TEXT,
       username TEXT,
       first_name TEXT,
       jwt TEXT,
@@ -113,35 +113,50 @@ export const initDb = async () => {
     );
 
 
-    -- Migrations handled separately below
+    -- Robust migration handling for telegram_id / user_id type changes
+    -- Stage 1: Drop formal constraints to allow type conversion
+    ALTER TABLE clips DROP CONSTRAINT IF EXISTS clips_downloaded_by_fkey;
+    ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_user_id_fkey;
+
+    -- Stage 2: Convert types
+    ALTER TABLE users ALTER COLUMN telegram_id TYPE TEXT USING telegram_id::TEXT;
+    ALTER TABLE auth_sessions ALTER COLUMN telegram_id TYPE TEXT USING telegram_id::TEXT;
+    ALTER TABLE publications ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+    ALTER TABLE clips ALTER COLUMN downloaded_by TYPE TEXT USING downloaded_by::TEXT;
+    ALTER TABLE ad_plaques ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+
+    -- Stage 3: Restore constraints
+    ALTER TABLE clips ADD CONSTRAINT clips_downloaded_by_fkey FOREIGN KEY (downloaded_by) REFERENCES users(telegram_id);
+    ALTER TABLE publications ADD CONSTRAINT publications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id);
+
+
+    -- Other Migrations
+    ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT;
+    ALTER TABLE channels ADD COLUMN IF NOT EXISTS handle TEXT;
+    ALTER TABLE channels ADD COLUMN IF NOT EXISTS scrape_days INTEGER DEFAULT 7;
+    ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language TEXT;
+    ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT;
+    ALTER TABLE clips ADD COLUMN IF NOT EXISTS language TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_text TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_opacity NUMERIC DEFAULT 0.08;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_position TEXT DEFAULT 'center';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_enabled BOOLEAN DEFAULT true;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_size NUMERIC DEFAULT 48;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_color TEXT DEFAULT '&H00FFFFFF';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_position TEXT DEFAULT 'Bottom';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_style TEXT DEFAULT 'karaoke';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_family TEXT DEFAULT 'Anton';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_color TEXT DEFAULT '#FFFF00';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_enabled BOOLEAN DEFAULT true;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_outline_color TEXT DEFAULT '#000000';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS default_plaque_id TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS plaque_position TEXT;
+    ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT;
   `);
 
   try {
-    await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT");
-    await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS handle TEXT");
-    await query("ALTER TABLE channels ADD COLUMN IF NOT EXISTS scrape_days INTEGER DEFAULT 7");
-    await query("ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language TEXT");
-    await query("ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT");
-    await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS language TEXT");
-    await query("ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS user_id TEXT");
-    await query("ALTER TABLE users ALTER COLUMN telegram_id TYPE TEXT");
-    await query("ALTER TABLE auth_sessions ALTER COLUMN telegram_id TYPE TEXT");
-    await query("ALTER TABLE publications ALTER COLUMN user_id TYPE TEXT");
-    await query("ALTER TABLE clips ALTER COLUMN downloaded_by TYPE TEXT");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_text TEXT");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_opacity NUMERIC DEFAULT 0.08");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_position TEXT DEFAULT 'center'");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_enabled BOOLEAN DEFAULT true");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_size NUMERIC DEFAULT 48");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_color TEXT DEFAULT '&H00FFFFFF'");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_position TEXT DEFAULT 'Bottom'");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_style TEXT DEFAULT 'karaoke'");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_font_family TEXT DEFAULT 'Anton'");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_color TEXT DEFAULT '#FFFF00'");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_enabled BOOLEAN DEFAULT true");
-    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_outline_color TEXT DEFAULT '#000000'");
+    // Ensuring constraints on columns that might have been added manually
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS default_plaque_id TEXT REFERENCES ad_plaques(id)");
-    await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT");
     console.log("Database migrations applied successfully.");
   } catch (err) {
     console.error("Migration error:", err);

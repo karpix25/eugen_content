@@ -1664,6 +1664,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
   onAddPlaque: (e: React.FormEvent<HTMLFormElement>) => Promise<void>,
   onDeletePlaque: (id: string) => Promise<void>
 }) {
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark'>('subtitles');
   const [watermarkText, setWatermarkText] = useState(currentUser.watermark_text !== null && currentUser.watermark_text !== undefined ? currentUser.watermark_text : `@${currentUser.username || currentUser.first_name}`);
   const [watermarkOpacity, setWatermarkOpacity] = useState(currentUser.watermark_opacity !== undefined && currentUser.watermark_opacity !== null ? Number(currentUser.watermark_opacity) : 0.08);
   const [watermarkPosition, setWatermarkPosition] = useState(currentUser.watermark_position || 'center');
@@ -1763,311 +1764,274 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
     }
   };
 
+  const SETTINGS_TABS = [
+    { id: 'subtitles' as const, label: 'Субтитры', icon: <Layers className="w-4 h-4" /> },
+    { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
+    { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto pb-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-8">
-          {/* Subtitles Section */}
-          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 space-y-6 backdrop-blur-xl">
-            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-              <Layers className="w-5 h-5 text-emerald-500" />
-              <h3 className="text-lg font-bold uppercase tracking-[0.2em] text-emerald-400">Субтитры</h3>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-white/60 uppercase tracking-widest">Включить субтитры</span>
+    <div className="max-w-4xl mx-auto pb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          {/* Sub-tab Navigation */}
+          <div className="flex gap-1 bg-white/5 border border-white/10 rounded-2xl p-1.5">
+            {SETTINGS_TABS.map(tab => (
               <button
-                onClick={() => setSubtitleEnabled(!subtitleEnabled)}
-                className={`w-14 h-7 rounded-full transition-all relative ${subtitleEnabled ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/10'}`}
+                key={tab.id}
+                onClick={() => setSettingsSection(tab.id)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all",
+                  settingsSection === tab.id
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                )}
               >
-                <div className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${subtitleEnabled ? 'translate-x-7' : ''}`} />
+                {tab.icon}
+                {tab.label}
               </button>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em]">Стиль отображения</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {SUBTITLE_STYLES.map(style => (
-                    <button
-                      key={style.id}
-                      onClick={() => setSubtitleStyle(style.id)}
-                      className={`text-[10px] uppercase font-black py-4 px-1 rounded-2xl transition-all border ${subtitleStyle === style.id ? 'bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}
-                    >
-                      {style.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em]">Шрифт</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {FONT_FAMILIES.map(font => (
-                    <button
-                      key={font.id}
-                      onClick={() => setSubtitleFontFamily(font.id)}
-                      className={`text-center py-3 px-3 rounded-xl text-xs font-bold transition-all border ${subtitleFontFamily === font.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
-                    >
-                      {font.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em] flex justify-between">
-                  <span>Размер шрифта</span>
-                  <span className="text-emerald-400 font-mono">{subtitleFontSize}px</span>
-                </label>
-                <input
-                  type="range"
-                  min="10" max="32" step="1"
-                  value={subtitleFontSize}
-                  onChange={(e) => setSubtitleFontSize(parseInt(e.target.value))}
-                  className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                  <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em]">Цвет текста</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={subtitleFontColor}
-                      onChange={(e) => setSubtitleFontColor(e.target.value)}
-                      className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer p-0"
-                    />
-                    <input
-                      type="text"
-                      value={subtitleFontColor}
-                      onChange={(e) => setSubtitleFontColor(e.target.value)}
-                      className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                  <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em]">Цвет обводки</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={subtitleOutlineColor}
-                      onChange={(e) => setSubtitleOutlineColor(e.target.value)}
-                      className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer p-0"
-                    />
-                    <input
-                      type="text"
-                      value={subtitleOutlineColor}
-                      onChange={(e) => setSubtitleOutlineColor(e.target.value)}
-                      className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className={subtitleEnabled && (subtitleStyle === 'karaoke') ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Выделение активного слова</label>
-                  <button onClick={() => setSubtitleHighlightEnabled(!subtitleHighlightEnabled)} className={`w-10 h-5 rounded-full transition-all relative ${subtitleHighlightEnabled ? 'bg-emerald-500' : 'bg-white/10'}`}>
-                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${subtitleHighlightEnabled ? 'translate-x-5' : ''}`} />
-                  </button>
-                </div>
-                <div className={`flex gap-2 transition-opacity ${subtitleHighlightEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-                  <input
-                    type="color"
-                    value={subtitleHighlightColor}
-                    onChange={(e) => setSubtitleHighlightColor(e.target.value)}
-                    className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer p-0"
-                  />
-                  <input
-                    type="text"
-                    value={subtitleHighlightColor}
-                    onChange={(e) => setSubtitleHighlightColor(e.target.value)}
-                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
-                <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em] flex justify-between">
-                  <span>Положение (Вертикаль)</span>
-                  <span className="text-emerald-400 font-mono">{subtitlePosition}%</span>
-                </label>
-                <input
-                  type="range"
-                  min="0" max="100" step="1"
-                  value={subtitlePosition}
-                  onChange={(e) => setSubtitlePosition(e.target.value)}
-                  className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer mt-2 accent-emerald-500"
-                />
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Ad Plaque Section */}
-          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 space-y-6 backdrop-blur-xl">
-            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-              <ImageIcon className="w-5 h-5 text-emerald-500" />
-              <h3 className="text-lg font-bold uppercase tracking-[0.2em] text-emerald-400">Рекламная плашка</h3>
-            </div>
-
-            <div className="space-y-6">
-              <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em]">Выбрать основную</label>
-
-              <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+          {/* Subtitles Section */}
+          {settingsSection === 'subtitles' && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-white/60 uppercase tracking-widest">Включить субтитры</span>
                 <button
-                  onClick={() => setDefaultPlaqueId(null)}
-                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${defaultPlaqueId === null ? 'bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 font-bold'}`}
+                  onClick={() => setSubtitleEnabled(!subtitleEnabled)}
+                  className={`w-14 h-7 rounded-full transition-all relative ${subtitleEnabled ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/10'}`}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center border border-white/10">
-                    <XCircle className="w-6 h-6 opacity-40" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-black text-[10px] uppercase tracking-[0.1em]">Без плашки</p>
-                    <p className="text-[10px] opacity-60">Только видео без оверлеев</p>
-                  </div>
+                  <div className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${subtitleEnabled ? 'translate-x-7' : ''}`} />
                 </button>
-
-                {plaques.map(plaque => (
-                  <div key={plaque.id} className="relative group">
-                    <button
-                      onClick={() => setDefaultPlaqueId(plaque.id)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${defaultPlaqueId === plaque.id ? 'bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 font-bold'}`}
-                    >
-                      <img src={plaque.image_url} className="w-12 h-12 rounded-xl object-cover bg-black border border-white/10" alt="" />
-                      <div className="text-left min-w-0 flex-1">
-                        <p className="font-black text-[10px] uppercase tracking-[0.1em] truncate">{plaque.name}</p>
-                        <p className="text-[10px] opacity-60 truncate">{plaque.text}</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDeletePlaque(plaque.id); }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg group-hover:opacity-100 opacity-0 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
               </div>
 
-              <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
-                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">Добавить в коллекцию</p>
-                <form onSubmit={async (e) => {
-                  setUploadLoading(true);
-                  await onAddPlaque(e);
-                  setUploadLoading(false);
-                }} className="space-y-3">
-                  <input name="name" required placeholder="Название (для списка)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-emerald-500 placeholder:text-white/20" />
-                  <div className="relative group/file">
-                    <input type="file" name="file" accept="image/*" required className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white/40 group-hover/file:border-white/20 transition-all flex items-center justify-between">
-                      <span>Выбрать файл изображения</span>
-                      <Plus className="w-4 h-4" />
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em]">Стиль отображения</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SUBTITLE_STYLES.map(style => (
+                      <button
+                        key={style.id}
+                        onClick={() => setSubtitleStyle(style.id)}
+                        className={`text-[10px] uppercase font-black py-3 px-1 rounded-xl transition-all border ${subtitleStyle === style.id ? 'bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}
+                      >
+                        {style.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                  <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em]">Шрифт</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {FONT_FAMILIES.map(font => (
+                      <button
+                        key={font.id}
+                        onClick={() => setSubtitleFontFamily(font.id)}
+                        className={`text-center py-2 px-2 rounded-lg text-[10px] font-bold transition-all border ${subtitleFontFamily === font.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:border-white/20'}`}
+                      >
+                        {font.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`grid grid-cols-2 gap-4 ${subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                  <div>
+                    <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em] flex justify-between">
+                      <span>Размер</span>
+                      <span className="text-emerald-400 font-mono">{subtitleFontSize}px</span>
+                    </label>
+                    <input type="range" min="10" max="32" step="1" value={subtitleFontSize} onChange={(e) => setSubtitleFontSize(parseInt(e.target.value))} className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em] flex justify-between">
+                      <span>Позиция</span>
+                      <span className="text-emerald-400 font-mono">{subtitlePosition}%</span>
+                    </label>
+                    <input type="range" min="0" max="100" step="1" value={subtitlePosition} onChange={(e) => setSubtitlePosition(e.target.value)} className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                  </div>
+                </div>
+
+                <div className={`grid grid-cols-2 gap-4 ${subtitleEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                  <div>
+                    <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em]">Цвет текста</label>
+                    <div className="flex gap-2">
+                      <input type="color" value={subtitleFontColor} onChange={(e) => setSubtitleFontColor(e.target.value)} className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer p-0" />
+                      <input type="text" value={subtitleFontColor} onChange={(e) => setSubtitleFontColor(e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none" />
                     </div>
                   </div>
-                  <input name="text" required placeholder="Текст на плашке (CTA)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-emerald-500 placeholder:text-white/20" />
-                  <button
-                    type="submit"
-                    disabled={uploadLoading}
-                    className="w-full bg-emerald-500 font-black text-[10px] uppercase tracking-[0.2em] text-black py-4 rounded-xl hover:bg-emerald-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
-                  >
-                    {uploadLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    {uploadLoading ? "ЗАГРУЗКА..." : "ЗАГРУЗИТЬ И ДОБАВИТЬ"}
-                  </button>
-                </form>
-              </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em]">Цвет обводки</label>
+                    <div className="flex gap-2">
+                      <input type="color" value={subtitleOutlineColor} onChange={(e) => setSubtitleOutlineColor(e.target.value)} className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer p-0" />
+                      <input type="text" value={subtitleOutlineColor} onChange={(e) => setSubtitleOutlineColor(e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none" />
+                    </div>
+                  </div>
+                </div>
 
-              <div className="space-y-4">
-                <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Расположение на видео</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'top', label: 'Сверху' },
-                    { id: 'center', label: 'Центр' },
-                    { id: 'bottom', label: 'Снизу' }
-                  ].map(pos => (
-                    <button
-                      key={pos.id}
-                      onClick={() => setPlaquePosition(pos.id)}
-                      className={`text-[10px] uppercase font-black py-4 rounded-xl border transition-all ${plaquePosition === pos.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 font-black' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}
-                    >
-                      {pos.label}
+                <div className={subtitleEnabled && (subtitleStyle === 'karaoke') ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Выделение активного слова</label>
+                    <button onClick={() => setSubtitleHighlightEnabled(!subtitleHighlightEnabled)} className={`w-10 h-5 rounded-full transition-all relative ${subtitleHighlightEnabled ? 'bg-emerald-500' : 'bg-white/10'}`}>
+                      <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${subtitleHighlightEnabled ? 'translate-x-5' : ''}`} />
                     </button>
-                  ))}
+                  </div>
+                  <div className={`flex gap-2 transition-opacity ${subtitleHighlightEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                    <input type="color" value={subtitleHighlightColor} onChange={(e) => setSubtitleHighlightColor(e.target.value)} className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer p-0" />
+                    <input type="text" value={subtitleHighlightColor} onChange={(e) => setSubtitleHighlightColor(e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Ad Plaque Section */}
+          {settingsSection === 'plaque' && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5 backdrop-blur-xl">
+              <div className="space-y-4">
+                <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Выбрать основную</label>
+
+                <div className="grid grid-cols-1 gap-2 max-h-[240px] overflow-y-auto pr-1 custom-scrollbar">
+                  <button
+                    onClick={() => setDefaultPlaqueId(null)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${defaultPlaqueId === null ? 'bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 font-bold'}`}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center border border-white/10">
+                      <XCircle className="w-5 h-5 opacity-40" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-black text-[10px] uppercase tracking-[0.1em]">Без плашки</p>
+                    </div>
+                  </button>
+
+                  {plaques.map(plaque => (
+                    <div key={plaque.id} className="relative group">
+                      <button
+                        onClick={() => setDefaultPlaqueId(plaque.id)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${defaultPlaqueId === plaque.id ? 'bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/20' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 font-bold'}`}
+                      >
+                        <img src={plaque.image_url} className="w-10 h-10 rounded-lg object-cover bg-black border border-white/10" alt="" />
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="font-black text-[10px] uppercase tracking-[0.1em] truncate">{plaque.name}</p>
+                          <p className="text-[10px] opacity-60 truncate">{plaque.text}</p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDeletePlaque(plaque.id); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg group-hover:opacity-100 opacity-0 transition-opacity"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-4 bg-black/40 rounded-2xl border border-white/5 space-y-3">
+                  <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Добавить в коллекцию</p>
+                  <form onSubmit={async (e) => {
+                    setUploadLoading(true);
+                    await onAddPlaque(e);
+                    setUploadLoading(false);
+                  }} className="space-y-2">
+                    <input name="name" required placeholder="Название (для списка)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-emerald-500 placeholder:text-white/20" />
+                    <div className="relative group/file">
+                      <input type="file" name="file" accept="image/*" required className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                      <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/40 group-hover/file:border-white/20 transition-all flex items-center justify-between">
+                        <span>Выбрать файл изображения</span>
+                        <Plus className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <input name="text" required placeholder="Текст на плашке (CTA)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-emerald-500 placeholder:text-white/20" />
+                    <button
+                      type="submit"
+                      disabled={uploadLoading}
+                      className="w-full bg-emerald-500 font-black text-[10px] uppercase tracking-[0.2em] text-black py-3 rounded-xl hover:bg-emerald-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {uploadLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      {uploadLoading ? "ЗАГРУЗКА..." : "ЗАГРУЗИТЬ"}
+                    </button>
+                  </form>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em]">Расположение на видео</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'top', label: 'Сверху' },
+                      { id: 'center', label: 'Центр' },
+                      { id: 'bottom', label: 'Снизу' }
+                    ].map(pos => (
+                      <button
+                        key={pos.id}
+                        onClick={() => setPlaquePosition(pos.id)}
+                        className={`text-[10px] uppercase font-black py-3 rounded-xl border transition-all ${plaquePosition === pos.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 font-black' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}
+                      >
+                        {pos.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Watermark Section */}
-          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 space-y-6 backdrop-blur-xl">
-            <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-              <Zap className="w-5 h-5 text-emerald-500" />
-              <h3 className="text-lg font-bold uppercase tracking-[0.2em] text-emerald-400">Водяной знак</h3>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em]">Текст знака</label>
-                <input
-                  value={watermarkText}
-                  onChange={(e) => setWatermarkText(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-xs font-bold text-white focus:border-emerald-500 outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+          {settingsSection === 'watermark' && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5 backdrop-blur-xl">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em] flex justify-between">
-                    <span>Прозрачность</span>
-                    <span className="text-emerald-400 font-mono">{Math.round(watermarkOpacity * 100)}%</span>
-                  </label>
+                  <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em]">Текст знака</label>
                   <input
-                    type="range"
-                    min="0.01" max="0.5" step="0.01"
-                    value={watermarkOpacity}
-                    onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    value={watermarkText}
+                    onChange={(e) => setWatermarkText(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white focus:border-emerald-500 outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-black text-white/40 mb-3 uppercase tracking-[0.2em]">Позиция</label>
-                  <select
-                    value={watermarkPosition}
-                    onChange={(e) => setWatermarkPosition(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-4 text-[10px] font-black uppercase text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer"
-                  >
-                    <option value="center">По центру</option>
-                    <option value="top_left">Слева сверху</option>
-                    <option value="top_right">Справа сверху</option>
-                    <option value="bottom_left">Слева снизу</option>
-                    <option value="bottom_right">Справа снизу</option>
-                    <option value="tilted_center">Наклон (Центр)</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em] flex justify-between">
+                      <span>Прозрачность</span>
+                      <span className="text-emerald-400 font-mono">{Math.round(watermarkOpacity * 100)}%</span>
+                    </label>
+                    <input type="range" min="0.01" max="0.5" step="0.01" value={watermarkOpacity} onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))} className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em]">Позиция</label>
+                    <select value={watermarkPosition} onChange={(e) => setWatermarkPosition(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-[10px] font-black uppercase text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer">
+                      <option value="center">По центру</option>
+                      <option value="top_left">Слева сверху</option>
+                      <option value="top_right">Справа сверху</option>
+                      <option value="bottom_left">Слева снизу</option>
+                      <option value="bottom_right">Справа снизу</option>
+                      <option value="tilted_center">Наклон (Центр)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           <button
             onClick={saveSettings}
             disabled={saving}
-            className="w-full py-5 rounded-2xl bg-emerald-500 text-black font-black uppercase tracking-[0.3em] text-xs hover:bg-emerald-400 transition-all shadow-[0_15px_40px_rgba(16,185,129,0.2)] disabled:opacity-50 flex items-center justify-center gap-3 group"
+            className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-black uppercase tracking-[0.3em] text-xs hover:bg-emerald-400 transition-all shadow-[0_15px_40px_rgba(16,185,129,0.2)] disabled:opacity-50 flex items-center justify-center gap-3 group"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5 transition-transform group-hover:scale-110" />}
             {saving ? 'СОХРАНЕНИЕ...' : 'ПРИМЕНИТЬ ДЛЯ ВСЕХ ВИДЕО'}
           </button>
         </div>
 
-        <div className="space-y-8">
-          <div className="sticky top-24 space-y-6">
+        <div className="space-y-6">
+          <div className="sticky top-24 space-y-4">
             <div className="flex flex-col items-center">
               <style>
                 {`@import url('https://fonts.googleapis.com/css2?family=${FONT_FAMILIES.find(f => f.id === subtitleFontFamily)?.googleUrl || 'Anton'}&display=swap');`}
               </style>
-              <div className="flex items-center gap-2 mb-4 self-start md:self-center">
+              <div className="flex items-center gap-2 mb-3 self-start md:self-center">
                 <ImageIcon className="w-4 h-4 text-emerald-500" />
                 <span className="block text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">ФИНАЛЬНЫЙ ПРЕДПРОСМОТР</span>
               </div>
@@ -2171,11 +2135,11 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                 </div>
               </div>
 
-              <div className="mt-8 flex items-center gap-4">
+              <div className="mt-4 flex items-center gap-3 justify-center">
                 <div className="flex -space-x-2">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-emerald-500/20 flex items-center justify-center">
-                      <Zap className="w-3 h-3 text-emerald-500" />
+                    <div key={i} className="w-6 h-6 rounded-full border-2 border-black bg-emerald-500/20 flex items-center justify-center">
+                      <Zap className="w-2.5 h-2.5 text-emerald-500" />
                     </div>
                   ))}
                 </div>
