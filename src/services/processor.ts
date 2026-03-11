@@ -43,6 +43,7 @@ export const processClip = async (
     sourceLang?: string | null,
     skipS3Upload: boolean = false,
     watermarkConfig?: { text: string, opacity: number, position: string },
+    plaqueConfig?: { position: string, size: number },
     subtitleConfig?: {
         enabled: boolean,
         font_size: number,
@@ -205,15 +206,32 @@ export const processClip = async (
                 if (finalPlaqueUrl) {
                     const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
                     command = command.input(escapedPlaquePath);
+
+                    // Use plaqueConfig for size (percentage of video width) and position
+                    const pSize = plaqueConfig?.size || 80;
+                    const pPosition = plaqueConfig?.position || 'top';
+
+                    // Scale plaque to pSize% of the assumed 720px video width
+                    const scaledWidth = Math.round(720 * pSize / 100);
                     filters.push({
                         filter: 'scale',
-                        options: '720:-1',
+                        options: `${scaledWidth}:-1`,
                         inputs: '[1:v]',
                         outputs: '[plaque]'
                     });
+
+                    // Position: center horizontally, vertical depends on setting
+                    // x = (W-w)/2   centers the plaque
+                    // y: top = 30px from top, center = (H-h)/2, bottom = H-h-50
+                    let overlayY = 'H-h-50';
+                    if (pPosition === 'top') {
+                        overlayY = '30';
+                    } else if (pPosition === 'center') {
+                        overlayY = '(H-h)/2';
+                    }
                     filters.push({
                         filter: 'overlay',
-                        options: '0:H-h-50',
+                        options: `(W-w)/2:${overlayY}`,
                         inputs: [lastOutput, '[plaque]'],
                         outputs: '[with_plaque]'
                     });

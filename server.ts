@@ -844,7 +844,11 @@ async function startServer() {
 
       // Pass skipS3Upload = true and watermark object
       const watermarkConfig = text ? { text, opacity, position } : null;
-      const localFilePath = await processClip(id, clip.url, plaqueImageUrl, clip.language, null, true, watermarkConfig as any, subtitleConfig);
+      const plaqueConfig = {
+        position: dbUser.plaque_position || 'top',
+        size: dbUser.plaque_size ? Number(dbUser.plaque_size) : 80
+      };
+      const localFilePath = await processClip(id, clip.url, plaqueImageUrl, clip.language, null, true, watermarkConfig as any, plaqueConfig, subtitleConfig);
 
       // Now send via Telegram directly
       if (telegramId !== 'dev') {
