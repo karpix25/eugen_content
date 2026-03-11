@@ -101,7 +101,7 @@ export const processClip = async (
                     const fileBuffer = fs.readFileSync(tempOriginalFile);
 
                     console.log(`[Processor] Uploading to ElevenLabs...`);
-                    const dubbingId = await startDubbing(fileBuffer, `${clipId}.mp4`, targetLang, sourceLang);
+                    const dubbingId = await startDubbing(targetLang, sourceLang, { buffer: fileBuffer, name: `${clipId}.mp4` }, undefined, clipId);
 
                     if (dubbingId) {
                         console.log(`[Processor] Dubbing ID: ${dubbingId}. Polling status...`);

@@ -10,7 +10,13 @@ export interface DubbingStatus {
     error?: string;
 }
 
-export const startDubbing = async (fileBuffer: Buffer, fileName: string, targetLanguage: string, sourceLanguage?: string): Promise<string | null> => {
+export const startDubbing = async (
+    targetLanguage: string, 
+    sourceLanguage?: string,
+    file?: { buffer: Buffer, name: string },
+    sourceUrl?: string,
+    name?: string
+): Promise<string | null> => {
     if (!ELEVENLABS_API_KEY) {
         console.error('ELEVENLABS_API_KEY is not set');
         return null;
@@ -18,16 +24,25 @@ export const startDubbing = async (fileBuffer: Buffer, fileName: string, targetL
 
     try {
         const formData = new FormData();
-        formData.append('file', fileBuffer, fileName);
         formData.append('target_lang', targetLanguage);
-
+        
         if (sourceLanguage) {
             formData.append('source_lang', sourceLanguage);
         }
 
+        if (file) {
+            formData.append('file', file.buffer, file.name);
+        } else if (sourceUrl) {
+            formData.append('source_url', sourceUrl);
+        } else {
+            throw new Error('Either file or sourceUrl must be provided');
+        }
+
+        if (name) {
+            formData.append('name', name);
+        }
+
         formData.append('num_speakers', '1');
-        // 'watermark' false requires Creator+ plan min. Standard/Free will crash. So we just skip setting it or explicitly allow watermarks
-        // formData.append('watermark', ''); 
 
         const response = await axios.post(
             'https://api.elevenlabs.io/v1/dubbing',
