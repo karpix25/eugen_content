@@ -68,7 +68,6 @@ export const processClip = async (
             let currentVideoUrl = videoUrl;
             let tempDubbedFile = path.join(outputDir, `${clipId}_dubbed.mp4`);
             let tempOriginalFile = path.join(outputDir, `${clipId}_original.mp4`);
-            let tempDubbedFile = path.join(outputDir, `${clipId}_dubbed.mp4`);
             let tempPlaqueFile = path.join(outputDir, `${clipId}_plaque.png`);
 
             // Robustness: if plaqueImageUrl is actually a stringified JSON (legacy bug), parse it
