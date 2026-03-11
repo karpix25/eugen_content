@@ -7,6 +7,28 @@ dotenv.config();
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
+// --- Simple Concurrency Lock (Max 2 simultaneous dubbing requests) ---
+let activeRequests = 0;
+const MAX_CONCURRENT_DUBBING = 2;
+const queue: (() => void)[] = [];
+
+const acquireLock = async () => {
+    if (activeRequests < MAX_CONCURRENT_DUBBING) {
+        activeRequests++;
+        return;
+    }
+    return new Promise<void>(resolve => queue.push(resolve));
+};
+
+const releaseLock = () => {
+    activeRequests--;
+    if (queue.length > 0) {
+        activeRequests++;
+        const next = queue.shift();
+        if (next) next();
+    }
+};
+
 export interface DubbingStatus {
     status: 'dubbing' | 'dubbed' | 'failed';
     error?: string;
@@ -23,7 +45,9 @@ export const startDubbing = async (
         console.error('!!! ELEVENLABS_API_KEY is not set !!!');
         return null;
     }
-    console.log(`[ElevenLabs] Starting dubbing for ${name}. Key length: ${ELEVENLABS_API_KEY.length}`);
+
+    await acquireLock();
+    console.log(`[ElevenLabs] [Lock Acquired] Starting dubbing for ${name}.`);
 
     try {
         const formData = new FormData();
@@ -60,6 +84,9 @@ export const startDubbing = async (
     } catch (error: any) {
         console.error('Error starting ElevenLabs dubbing:', error.response?.data || error.message);
         return null;
+    } finally {
+        releaseLock();
+        console.log(`[ElevenLabs] [Lock Released] for ${name}`);
     }
 };
 

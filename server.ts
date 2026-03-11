@@ -445,13 +445,17 @@ async function startServer() {
               );
 
               // Process dubbed without plaque
-              processClip(
-                dubbedClipId,
-                c.videoUrl || c.url || c.video_url,
-                null, // No automatic plaque
-                finalLanguage,
-                originalLanguage
-              ).catch(console.error);
+              try {
+                await processClip(
+                  dubbedClipId,
+                  c.videoUrl || c.url || c.video_url,
+                  null, // No automatic plaque
+                  finalLanguage,
+                  originalLanguage
+                );
+              } catch (err) {
+                console.error(`Error processing dubbed clip ${dubbedClipId}:`, err);
+              }
             }
           }
         } else if (!isPending) {

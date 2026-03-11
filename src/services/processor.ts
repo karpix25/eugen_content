@@ -257,20 +257,19 @@ export const processClip = async (
 
                 if (finalPlaqueUrl) {
                     const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
-                    command = command.input(escapedPlaquePath);
+                    command = command.input(escapedPlaquePath).inputOptions('-loop 1');
 
                     // Use plaqueConfig for size (percentage of video width) and position
                     const pSize = plaqueConfig?.size || 80;
                     const pPosition = plaqueConfig?.position || 'top';
                     const pTimerange = plaqueConfig?.timerange || 0;
 
-                    // Scale plaque to pSize% of the assumed 720px video width
-                    const scaledWidth = Math.round(720 * pSize / 100);
+                    // Scale plaque relative to the main video width
                     filters.push({
-                        filter: 'scale',
-                        options: `${scaledWidth}:-1`,
-                        inputs: '[1:v]',
-                        outputs: '[plaque]'
+                        filter: 'scale2ref',
+                        options: `w=iw*${pSize/100}:h=-1`,
+                        inputs: ['[1:v]', lastOutput],
+                        outputs: ['[plaque]', '[ref]']
                     });
 
                     // Position: center horizontally, vertical depends on setting
@@ -304,8 +303,8 @@ export const processClip = async (
 
                     filters.push({
                         filter: 'overlay',
-                        options: `(W-w)/2:${overlayY}${enableFilter}`,
-                        inputs: [lastOutput, '[plaque]'],
+                        options: `(W-w)/2:${overlayY}${enableFilter}:shortest=1`,
+                        inputs: ['[ref]', '[plaque]'],
                         outputs: '[with_plaque]'
                     });
                     lastOutput = '[with_plaque]';
@@ -441,7 +440,11 @@ Dialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rotate}}${text}
                     .complexFilter(filters, lastOutput)
                     .videoCodec('libx264')
                     .audioCodec('aac')
-                    .outputOptions('-map 0:a?') // Map the audio from the first input if it exists
+                    .outputOptions([
+                        '-map', '0:a?', // Map the audio from the first input if it exists
+                        '-crf', '18',
+                        '-preset', 'fast'
+                    ])
                     .on('start', (cmd) => console.log('FFmpeg spawned with command:', cmd))
                     .on('progress', (progress) => console.log(`Processing ${clipId}: ${progress.percent}%`))
                     .on('end', () => {
