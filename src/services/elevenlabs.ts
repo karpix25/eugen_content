@@ -73,7 +73,7 @@ export const getDubbedFile = async (dubbingId: string, language: string): Promis
     try {
         console.log(`[ElevenLabs] Downloading dubbed video for ${dubbingId} in ${language}...`);
         const response = await axios.get(
-            `https://api.elevenlabs.io/v1/dubbing/${dubbingId}/video/${language}`,
+            `https://api.elevenlabs.io/v1/dubbing/${dubbingId}/audio/${language}`,
             {
                 headers: {
                     'xi-api-key': ELEVENLABS_API_KEY,
