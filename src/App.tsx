@@ -260,7 +260,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'monitor' | 'tasks' | 'clips' | 'ads' | 'workers' | 'publications' | 'settings'>('clips');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'tasks' | 'clips' | 'workers' | 'publications' | 'settings'>('clips');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelId, setNewChannelId] = useState('');
@@ -292,7 +292,7 @@ export default function App() {
   }, [authToken]);
 
   useEffect(() => {
-    if (currentUser && !currentUser.is_admin && !['clips', 'ads', 'settings'].includes(activeTab)) {
+    if (currentUser && !currentUser.is_admin && !['clips', 'settings'].includes(activeTab)) {
       setActiveTab('clips');
     }
   }, [currentUser, activeTab]);
@@ -600,12 +600,7 @@ export default function App() {
             icon={<Video className="w-5 h-5" />}
             label="Нарезки"
           />
-          <NavButton
-            active={activeTab === 'ads'}
-            onClick={() => setActiveTab('ads')}
-            icon={<ImageIcon className="w-5 h-5" />}
-            label="Меню плашек"
-          />
+
           <NavButton
             active={activeTab === 'settings'}
             onClick={() => setActiveTab('settings')}
@@ -670,7 +665,7 @@ export default function App() {
             <h1 className="text-lg md:text-2xl font-semibold truncate">
               {activeTab === 'monitor' && 'Мониторинг YouTube'}
               {activeTab === 'clips' && 'Готовые нарезки'}
-              {activeTab === 'ads' && 'Меню плашек'}
+
               {activeTab === 'tasks' && 'Задания на публикацию'}
               {activeTab === 'workers' && 'Работники'}
               {activeTab === 'publications' && 'Публикации'}
@@ -910,57 +905,7 @@ export default function App() {
             );
           })()}
 
-          {activeTab === 'ads' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1 space-y-6">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 sticky top-24">
-                  <h3 className="text-lg font-medium mb-4">Загрузить новую плашку</h3>
-                  <form onSubmit={handleAddPlaque} className="space-y-4">
-                    <div>
-                      <label className="block text-xs text-white/40 mb-1">Название (для себя)</label>
-                      <input name="name" required placeholder="Напр: Скидка 20%" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-emerald-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-white/40 mb-1">Файл изображения (PNG/JPG)</label>
-                      <input type="file" name="file" accept="image/*" required className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-emerald-500 text-xs" />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-emerald-500 text-black py-2 rounded-lg font-semibold hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      {loading ? "Загрузка..." : "Добавить в меню"}
-                    </button>
-                  </form>
-                </div>
-              </div>
-              <div className="lg:col-span-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {plaques.map(plaque => (
-                    <div key={plaque.id} className="group bg-white/5 border border-white/10 rounded-2xl p-4 flex gap-4 items-center relative overflow-hidden">
-                      <img src={plaque.image_url} className="w-20 h-20 rounded-lg object-cover bg-black shrink-0" alt="" />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate">{plaque.name}</h4>
-                      </div>
-                      <button
-                        onClick={() => handleDeletePlaque(plaque.id)}
-                        className="p-2 bg-red-500/10 text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  {plaques.length === 0 && (
-                    <div className="col-span-full py-20 text-center text-white/20 border-2 border-dashed border-white/5 rounded-2xl">
-                      <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                      <p>В меню пока нет плашек. Загрузите первую!</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {activeTab === 'tasks' && (
             <div className="space-y-6">
