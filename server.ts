@@ -291,6 +291,7 @@ async function startServer() {
         // Assume format is like: { code: 0, videos: [{ videoUrl: '...', title: '...' }] }
         const clips = statusData.videos || statusData.data;
         const isSuccess = (statusData.code === 0 || statusData.code === 2000) && clips && Array.isArray(clips);
+        const isPending = statusData.code === 1000 || statusData.code === 0 && (!clips || !Array.isArray(clips));
 
         if (isSuccess) {
           console.log(`Vizard project ${v.vizard_project_id} completed. Saving clips... count: ${clips.length}`);
@@ -355,11 +356,11 @@ async function startServer() {
               ).catch(console.error);
             }
           }
-        } else if (statusData.status === 'failed' || statusData.state === 'failed' || statusData.code === -1) {
-          console.log(`Vizard project ${v.vizard_project_id} failed.`);
+        } else if (!isPending) {
+          console.log(`Vizard project ${v.vizard_project_id} failed with code ${statusData.code}: ${statusData.errMsg || 'Unknown error'}`);
           await query("UPDATE videos SET status = 'rejected' WHERE id = $1", [v.id]);
         } else {
-          console.log(`Project ${v.vizard_project_id} still in progress or unknown response format. Code: ${statusData.code}`);
+          console.log(`Project ${v.vizard_project_id} still in progress. Code: ${statusData.code}`);
         }
       }
     } catch (e) {
