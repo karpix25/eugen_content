@@ -68,6 +68,7 @@ export const processClip = async (
             let currentVideoUrl = videoUrl;
             let tempDubbedFile = path.join(outputDir, `${clipId}_dubbed.mp4`);
             let tempOriginalFile = path.join(outputDir, `${clipId}_original.mp4`);
+            let tempDubbedFile = path.join(outputDir, `${clipId}_dubbed.mp4`);
             let tempPlaqueFile = path.join(outputDir, `${clipId}_plaque.png`);
 
             // Robustness: if plaqueImageUrl is actually a stringified JSON (legacy bug), parse it
@@ -110,7 +111,7 @@ export const processClip = async (
                             if (dubbedBuffer) {
                                 fs.writeFileSync(tempDubbedFile, dubbedBuffer);
                                 currentVideoUrl = tempDubbedFile;
-                                console.log(`[Processor] Successfully dubbed clip ${clipId}.`);
+                                console.log(`[Processor] Successfully dubbed clip ${clipId} (Video downloaded).`);
                             } else {
                                 console.error(`[Processor] Dubbing finished but failed to download file for ${clipId}.`);
                             }

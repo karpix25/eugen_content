@@ -71,8 +71,9 @@ export const getDubbedFile = async (dubbingId: string, language: string): Promis
     if (!ELEVENLABS_API_KEY) return null;
 
     try {
+        console.log(`[ElevenLabs] Downloading dubbed video for ${dubbingId} in ${language}...`);
         const response = await axios.get(
-            `https://api.elevenlabs.io/v1/dubbing/${dubbingId}/audio/${language}`,
+            `https://api.elevenlabs.io/v1/dubbing/${dubbingId}/video/${language}`,
             {
                 headers: {
                     'xi-api-key': ELEVENLABS_API_KEY,
@@ -80,6 +81,11 @@ export const getDubbedFile = async (dubbingId: string, language: string): Promis
                 responseType: 'arraybuffer'
             }
         );
+
+        console.log(`[ElevenLabs] Download headers for ${dubbingId}:`, {
+            contentType: response.headers['content-type'],
+            contentLength: response.headers['content-length']
+        });
 
         return Buffer.from(response.data);
     } catch (error: any) {
