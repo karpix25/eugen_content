@@ -14,7 +14,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
 export const initDb = async () => {
   await query(`
     CREATE TABLE IF NOT EXISTS users (
-      telegram_id BIGINT PRIMARY KEY,
+      telegram_id TEXT PRIMARY KEY,
       username TEXT,
       first_name TEXT,
       is_authorized BOOLEAN DEFAULT FALSE,
@@ -75,6 +75,7 @@ export const initDb = async () => {
 
     CREATE TABLE IF NOT EXISTS ad_plaques (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
       name TEXT,
       image_url TEXT,
       text TEXT
@@ -102,7 +103,7 @@ export const initDb = async () => {
     CREATE TABLE IF NOT EXISTS publications (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       clip_id TEXT REFERENCES clips(id),
-      user_id BIGINT REFERENCES users(telegram_id),
+      user_id TEXT,
       plaque_id TEXT REFERENCES ad_plaques(id),
       message_id BIGINT, -- The Telegram message ID of the sent video
       social_links TEXT[] DEFAULT '{}',
@@ -122,7 +123,11 @@ export const initDb = async () => {
     await query("ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language TEXT");
     await query("ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT");
     await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS language TEXT");
-    await query("ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS user_id BIGINT");
+    await query("ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS user_id TEXT");
+    await query("ALTER TABLE users ALTER COLUMN telegram_id TYPE TEXT");
+    await query("ALTER TABLE auth_sessions ALTER COLUMN telegram_id TYPE TEXT");
+    await query("ALTER TABLE publications ALTER COLUMN user_id TYPE TEXT");
+    await query("ALTER TABLE clips ALTER COLUMN downloaded_by TYPE TEXT");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_text TEXT");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_opacity NUMERIC DEFAULT 0.08");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_position TEXT DEFAULT 'center'");
@@ -135,6 +140,7 @@ export const initDb = async () => {
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_color TEXT DEFAULT '#FFFF00'");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_highlight_enabled BOOLEAN DEFAULT true");
     await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subtitle_outline_color TEXT DEFAULT '#000000'");
+    await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS default_plaque_id TEXT REFERENCES ad_plaques(id)");
     await query("ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT");
     console.log("Database migrations applied successfully.");
   } catch (err) {

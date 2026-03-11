@@ -326,7 +326,7 @@ async function startServer() {
   // Simple token verification / "Who am I" hydration
   app.get("/api/auth/check", authenticateToken, async (req: any, res) => {
     try {
-      let userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [req.user.id]);
+      let userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [String(req.user.id)]);
 
       if (userRes.rows.length === 0) {
         // Automatically insert the user to satisfy foreign key constraints across the DB
@@ -335,7 +335,7 @@ async function startServer() {
           [req.user.id, req.user.username, req.user.first_name]
         );
         // Refetch after insertion
-        userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [req.user.id]);
+        userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [String(req.user.id)]);
       }
 
       const dbUser = userRes.rows[0];
@@ -363,16 +363,17 @@ async function startServer() {
       watermark_text, watermark_opacity, watermark_position,
       subtitle_enabled, subtitle_font_size, subtitle_font_color,
       subtitle_position, subtitle_style, subtitle_font_family,
-      subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color
+      subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
+      default_plaque_id, plaque_position
     } = req.body;
     try {
       await query(`
         INSERT INTO users (
           telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, 
           subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family,
-          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color
+          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color, default_plaque_id, plaque_position
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         ON CONFLICT (telegram_id) DO UPDATE SET 
           watermark_text = EXCLUDED.watermark_text,
           watermark_opacity = EXCLUDED.watermark_opacity,
@@ -385,13 +386,16 @@ async function startServer() {
           subtitle_font_family = EXCLUDED.subtitle_font_family,
           subtitle_highlight_color = EXCLUDED.subtitle_highlight_color,
           subtitle_highlight_enabled = EXCLUDED.subtitle_highlight_enabled,
-          subtitle_outline_color = EXCLUDED.subtitle_outline_color
+          subtitle_outline_color = EXCLUDED.subtitle_outline_color,
+          default_plaque_id = EXCLUDED.default_plaque_id,
+          plaque_position = EXCLUDED.plaque_position
       `, [
-        req.user.id, req.user.username || '', req.user.first_name || '',
+        String(req.user.id), req.user.username || '', req.user.first_name || '',
         watermark_text, watermark_opacity, watermark_position,
         subtitle_enabled, subtitle_font_size, subtitle_font_color,
         subtitle_position, subtitle_style, subtitle_font_family,
-        subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color
+        subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
+        default_plaque_id, plaque_position
       ]);
       res.json({ success: true });
     } catch (err) {
@@ -809,7 +813,7 @@ async function startServer() {
         ON CONFLICT (telegram_id) DO NOTHING
       `, [telegramId, user.username || '', user.first_name || 'Worker']);
 
-      const userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [telegramId]);
+      const userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [String(telegramId)]);
       const dbUser = userRes.rows[0] || {};
 
       const defaultText = user.username ? `@${user.username}` : user.first_name;
@@ -886,7 +890,7 @@ async function startServer() {
 
   // Ad Plaques
   app.get("/api/ad-plaques", async (req, res) => {
-    const userId = req.query.user_id as string;
+    const userId = req.query.user_id ? String(req.query.user_id) : null;
     let result;
     if (userId) {
       result = await query("SELECT * FROM ad_plaques WHERE user_id = $1 OR user_id IS NULL", [userId]);
