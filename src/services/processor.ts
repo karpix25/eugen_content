@@ -95,22 +95,36 @@ export const processClip = async (
 
 
             if (targetLang && sourceLang && targetLang !== sourceLang) {
-                console.log(`Starting ElevenLabs dubbing ${sourceLang} -> ${targetLang}`);
-                await downloadFile(videoUrl, tempOriginalFile);
-                const fileBuffer = fs.readFileSync(tempOriginalFile);
+                console.log(`[Processor] Starting ElevenLabs dubbing ${sourceLang} -> ${targetLang} for ${clipId}`);
+                try {
+                    await downloadFile(videoUrl, tempOriginalFile);
+                    const fileBuffer = fs.readFileSync(tempOriginalFile);
 
-                const dubbingId = await startDubbing(fileBuffer, `${clipId}.mp4`, targetLang, sourceLang);
+                    console.log(`[Processor] Uploading to ElevenLabs...`);
+                    const dubbingId = await startDubbing(fileBuffer, `${clipId}.mp4`, targetLang, sourceLang);
 
-                if (dubbingId && await pollDubbingStatus(dubbingId)) {
-                    const dubbedBuffer = await getDubbedFile(dubbingId, targetLang);
-                    if (dubbedBuffer) {
-                        fs.writeFileSync(tempDubbedFile, dubbedBuffer);
-                        currentVideoUrl = tempDubbedFile;
-                        console.log(`Successfully dubbed clip ${clipId}.`);
+                    if (dubbingId) {
+                        console.log(`[Processor] Dubbing ID: ${dubbingId}. Polling status...`);
+                        if (await pollDubbingStatus(dubbingId)) {
+                            const dubbedBuffer = await getDubbedFile(dubbingId, targetLang);
+                            if (dubbedBuffer) {
+                                fs.writeFileSync(tempDubbedFile, dubbedBuffer);
+                                currentVideoUrl = tempDubbedFile;
+                                console.log(`[Processor] Successfully dubbed clip ${clipId}.`);
+                            } else {
+                                console.error(`[Processor] Dubbing finished but failed to download file for ${clipId}.`);
+                            }
+                        } else {
+                            console.warn(`[Processor] Dubbing failed during polling for ${clipId}.`);
+                        }
+                    } else {
+                        console.warn(`[Processor] Dubbing skipped: failed to start (check ElevenLabs logs/Plan).`);
                     }
-                } else {
-                    console.warn(`Dubbing failed for ${clipId}. Falling back to original.`);
+                } catch (err: any) {
+                    console.error(`[Processor] Exception during dubbing process for ${clipId}:`, err.message);
                 }
+            } else {
+                console.log(`[Processor] Dubbing NOT needed for ${clipId}: target=${targetLang}, source=${sourceLang}`);
             }
 
             const outputFileName = `${clipId}_branded.mp4`;

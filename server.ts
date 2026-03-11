@@ -1,4 +1,17 @@
 import express from "express";
+
+// --- Logger Override for Timestamps ---
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+const getTimestamp = () => new Date().toLocaleString('ru-RU', { 
+  year: 'numeric', month: '2-digit', day: '2-digit', 
+  hour: '2-digit', minute: '2-digit', second: '2-digit' 
+});
+console.log = (...args) => originalLog(`[${getTimestamp()}]`, ...args);
+console.error = (...args) => originalError(`[${getTimestamp()}]`, ...args);
+console.warn = (...args) => originalWarn(`[${getTimestamp()}]`, ...args);
+
 import { createServer as createViteServer } from "vite";
 import axios from "axios";
 import path from "path";
@@ -12,7 +25,7 @@ import { v4 as uuidv4 } from "uuid";
 import { query, initDb } from "./src/lib/db.js";
 import { s3Client, uploadToS3 } from "./src/lib/s3.js";
 import { getTranscript, getChannelInfo, getLatestVideos } from "./src/services/apify.js";
-import { evaluateContent, translateText } from "./src/services/openrouter.js";
+import { evaluateContent, translateText, detectLanguage } from "./src/services/openrouter.js";
 import { sendToVizard, getVizardProjectStatus } from "./src/services/vizard.js";
 import { startBot } from "./src/services/telegram.js";
 import { processClip } from "./src/services/processor.js";
@@ -73,6 +86,15 @@ function calculateNextCheck(interval: string): Date {
   }
   return now;
 }
+
+const normalizeLang = (lang: string | null): string | null => {
+  if (!lang) return null;
+  const l = lang.toLowerCase().trim();
+  if (l.includes('russian') || l === 'ru') return 'ru';
+  if (l.includes('english') || l === 'en') return 'en';
+  if (l.includes('spanish') || l === 'es') return 'es';
+  return l;
+};
 
 const syncChannel = async (channelId: string, name: string, monitoringInterval: string, scrapeDays: number = 7, handle?: string) => {
   console.log(`Syncing channel: ${name} (${channelId}) - Handle: ${handle || 'N/A'}`);
@@ -303,10 +325,27 @@ async function startServer() {
           const plaque = plaqueResult.rows[0];
 
           // Get final language logic
-          const videoResult = await query("SELECT detected_language, target_language FROM videos WHERE id = $1", [v.id]);
+          const videoResult = await query("SELECT detected_language, target_language, transcript FROM videos WHERE id = $1", [v.id]);
           const video = videoResult.rows[0];
-          const finalLanguage = video?.target_language || video?.detected_language || null;
-          const needsTranslation = video?.target_language && video?.detected_language && video.target_language !== video.detected_language;
+          
+          let detLang = normalizeLang(video?.detected_language);
+          const tarLang = normalizeLang(video?.target_language);
+
+          // FALLBACK DETECTION: If detected_language is missing, try to detect it now from the transcript
+          if (!detLang && video?.transcript) {
+            console.log(`[Lang] Detected language missing for ${v.id}. Attempting fallback detection...`);
+            detLang = await detectLanguage(video.transcript);
+            if (detLang) {
+              detLang = normalizeLang(detLang);
+              await query("UPDATE videos SET detected_language = $1 WHERE id = $2", [detLang, v.id]);
+              console.log(`[Lang] Fallback detection successful for ${v.id}: ${detLang}`);
+            }
+          }
+
+          const finalLanguage = tarLang || detLang || null;
+          const needsTranslation = tarLang && detLang && tarLang !== detLang;
+
+          console.log(`[Lang] Decision for ${v.id}: Target=${tarLang}, Detected=${detLang}, NeedsTranslation=${needsTranslation}`);
 
 
           for (const c of clips) {

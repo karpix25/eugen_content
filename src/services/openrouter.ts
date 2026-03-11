@@ -99,3 +99,38 @@ export const translateText = async (text: string, targetLanguage: string): Promi
         return null;
     }
 };
+
+export const detectLanguage = async (text: string): Promise<string | null> => {
+    if (!OPENROUTER_API_KEY || !text) {
+        return null;
+    }
+
+    try {
+        const response = await axios.post(
+            'https://openrouter.ai/api/v1/chat/completions',
+            {
+                model: 'openai/gpt-4o-mini',
+                messages: [{
+                    role: 'system',
+                    content: 'Detect the primary language of the following text. Return ONLY the 2-letter ISO language code (e.g., "ru", "en", "es"). Nothing else.'
+                }, {
+                    role: 'user',
+                    content: text.substring(0, 1000)
+                }],
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                    'HTTP-Referer': 'https://github.com/karlo-carousel',
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        const lang = response.data.choices[0].message.content.trim().toLowerCase();
+        return lang.length <= 3 ? lang : null; // Basic validation
+    } catch (error) {
+        console.error('Error detecting language:', error);
+        return null;
+    }
+};
