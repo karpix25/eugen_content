@@ -63,6 +63,7 @@ export const processClip = async (
                 fs.mkdirSync(outputDir, { recursive: true });
             }
 
+            console.error(`!!! [Processor] processClip started for ${clipId} !!!`);
             console.log(`Processing clip ${clipId} from ${videoUrl} (Target: ${targetLang || 'Original'})`);
 
             let currentVideoUrl = videoUrl;
@@ -94,28 +95,38 @@ export const processClip = async (
             }
 
 
+            console.log(`[Processor] Debug Dubbing: target='${targetLang}' (type: ${typeof targetLang}), source='${sourceLang}' (type: ${typeof sourceLang}), different: ${targetLang !== sourceLang}`);
             if (targetLang && sourceLang && targetLang !== sourceLang) {
                 console.log(`[Processor] Starting ElevenLabs dubbing ${sourceLang} -> ${targetLang} for ${clipId}`);
                 try {
-                    await downloadFile(videoUrl, tempOriginalFile);
-                    const fileBuffer = fs.readFileSync(tempOriginalFile);
+                    // Always download source video first to ensure ElevenLabs gets the file (more robust)
+                    if (!fs.existsSync(tempOriginalFile)) {
+                        console.log(`[Processor] Downloading original video for dubbing: ${videoUrl}`);
+                        await downloadFile(videoUrl, tempOriginalFile);
+                    }
+                    const videoBuffer = fs.readFileSync(tempOriginalFile);
 
-                    console.log(`[Processor] Uploading to ElevenLabs...`);
-                    const dubbingId = await startDubbing(targetLang, sourceLang, { buffer: fileBuffer, name: `${clipId}.mp4` }, undefined, clipId);
+                    const dubbingId = await startDubbing(
+                        targetLang, 
+                        sourceLang, 
+                        { buffer: videoBuffer, name: `${clipId}.mp4` },
+                        undefined, // No sourceUrl
+                        clipId
+                    );
 
                     if (dubbingId) {
-                        console.log(`[Processor] Dubbing ID: ${dubbingId}. Polling status...`);
+                        console.log(`[Processor] ElevenLabs dubbing triggered: ${dubbingId}. Polling status...`);
                         if (await pollDubbingStatus(dubbingId)) {
                             const dubbedBuffer = await getDubbedFile(dubbingId, targetLang);
                             if (dubbedBuffer) {
                                 fs.writeFileSync(tempDubbedFile, dubbedBuffer);
                                 currentVideoUrl = tempDubbedFile;
-                                console.log(`[Processor] Successfully dubbed clip ${clipId} (Video downloaded).`);
+                                console.log(`[Processor] Successfully dubbed ${clipId}. New video URL: ${currentVideoUrl}`);
                             } else {
-                                console.error(`[Processor] Dubbing finished but failed to download file for ${clipId}.`);
+                                console.error(`[Processor] Failed to download dubbed file for ${clipId}`);
                             }
                         } else {
-                            console.warn(`[Processor] Dubbing failed during polling for ${clipId}.`);
+                            console.error(`[Processor] Dubbing status polling failed for ${clipId}`);
                         }
                     } else {
                         console.warn(`[Processor] Dubbing skipped: failed to start (check ElevenLabs logs/Plan).`);
@@ -210,8 +221,10 @@ export const processClip = async (
                     }
                     
                     if (skipS3Upload) {
+                        const finalLocalPath = (downloadedTempFile && fs.existsSync(downloadedTempFile)) ? downloadedTempFile : fileToUpload;
                         await query('UPDATE clips SET status = \'processed\' WHERE id = $1', [clipId]);
-                        resolve(downloadedTempFile || fileToUpload); // Resolve with the absolute local system path to the mp4
+                        console.log(`[Processor] S3 upload skipped. Resolved with local path: ${finalLocalPath}`);
+                        resolve(finalLocalPath);
                         return;
                     }
 
@@ -223,9 +236,14 @@ export const processClip = async (
                     console.error(`Failed during finalizeUpload for ${clipId}:`, e);
                     reject(e);
                 } finally {
-                    cleanupFiles();
-                    if (downloadedTempFile && fs.existsSync(downloadedTempFile)) {
-                        fs.unlinkSync(downloadedTempFile);
+                    if (skipS3Upload) {
+                        // DO NOT delete the file if we are resolving with its path!
+                        console.log(`[Processor] Keeping local file for further steps: ${fileToUpload}`);
+                    } else {
+                        cleanupFiles();
+                        if (downloadedTempFile && fs.existsSync(downloadedTempFile)) {
+                            fs.unlinkSync(downloadedTempFile);
+                        }
                     }
                 }
             };
@@ -418,6 +436,7 @@ Dialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rotate}}${text}
 
                 console.log(`FFmpeg starting for ${clipId} with filters:`, JSON.stringify(filters, null, 2));
 
+                console.log(`[Processor] Final call to FFmpeg with currentVideoUrl: ${currentVideoUrl}`);
                 command
                     .complexFilter(filters, lastOutput)
                     .videoCodec('libx264')
@@ -437,6 +456,7 @@ Dialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rotate}}${text}
                     })
                     .save(outputPath);
             } else {
+                console.log(`[Processor] No overlays needed. Finalizing with currentVideoUrl: ${currentVideoUrl}`);
                 finalizeUpload(currentVideoUrl);
             }
         } catch (err) {

@@ -1,7 +1,9 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
 import fs from 'fs';
-import path from 'path';
 import FormData from 'form-data';
+
+dotenv.config();
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
@@ -18,9 +20,10 @@ export const startDubbing = async (
     name?: string
 ): Promise<string | null> => {
     if (!ELEVENLABS_API_KEY) {
-        console.error('ELEVENLABS_API_KEY is not set');
+        console.error('!!! ELEVENLABS_API_KEY is not set !!!');
         return null;
     }
+    console.log(`[ElevenLabs] Starting dubbing for ${name}. Key length: ${ELEVENLABS_API_KEY.length}`);
 
     try {
         const formData = new FormData();
@@ -30,34 +33,32 @@ export const startDubbing = async (
             formData.append('source_lang', sourceLanguage);
         }
 
+        if (name) {
+            formData.append('name', name);
+        }
+
         if (file) {
-            formData.append('file', file.buffer, file.name);
+            formData.append('file', file.buffer, { filename: file.name });
         } else if (sourceUrl) {
             formData.append('source_url', sourceUrl);
         } else {
             throw new Error('Either file or sourceUrl must be provided');
         }
 
-        if (name) {
-            formData.append('name', name);
-        }
-
         formData.append('num_speakers', '1');
 
-        const response = await axios.post(
-            'https://api.elevenlabs.io/v1/dubbing',
-            formData,
-            {
-                headers: {
-                    'xi-api-key': ELEVENLABS_API_KEY,
-                    ...formData.getHeaders(),
-                },
+        console.log(`[ElevenLabs] Posting to https://api.elevenlabs.io/v1/dubbing...`);
+        const response = await axios.post('https://api.elevenlabs.io/v1/dubbing', formData, {
+            headers: {
+                ...formData.getHeaders(),
+                'xi-api-key': ELEVENLABS_API_KEY,
             }
-        );
+        });
 
+        console.log(`[ElevenLabs] Dubbing started: ${response.data.dubbing_id}`);
         return response.data.dubbing_id;
     } catch (error: any) {
-        console.error('Error starting ElevenLabs dubbing:', error?.response?.data || error.message);
+        console.error('Error starting ElevenLabs dubbing:', error.response?.data || error.message);
         return null;
     }
 };
@@ -88,7 +89,7 @@ export const getDubbedFile = async (dubbingId: string, language: string): Promis
     try {
         console.log(`[ElevenLabs] Downloading dubbed video for ${dubbingId} in ${language}...`);
         const response = await axios.get(
-            `https://api.elevenlabs.io/v1/dubbing/${dubbingId}/audio/${language}`,
+            `https://api.elevenlabs.io/v1/dubbing/${dubbingId}/video/${language}`,
             {
                 headers: {
                     'xi-api-key': ELEVENLABS_API_KEY,
@@ -96,11 +97,6 @@ export const getDubbedFile = async (dubbingId: string, language: string): Promis
                 responseType: 'arraybuffer'
             }
         );
-
-        console.log(`[ElevenLabs] Download headers for ${dubbingId}:`, {
-            contentType: response.headers['content-type'],
-            contentLength: response.headers['content-length']
-        });
 
         return Buffer.from(response.data);
     } catch (error: any) {
