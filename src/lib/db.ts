@@ -154,6 +154,9 @@ export const initDb = async () => {
     ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS plaque_size NUMERIC DEFAULT 80;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS plaque_timerange NUMERIC DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_enabled BOOLEAN DEFAULT FALSE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_videos_per_day NUMERIC DEFAULT 3;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_auto_post TIMESTAMP;
   `);
 
   try {

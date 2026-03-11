@@ -135,6 +135,132 @@ const monitorChannels = async () => {
 // Run every hour
 cron.schedule('0 * * * *', monitorChannels);
 
+const autoPublish = async () => {
+  console.log("Running scheduled auto-publish check...");
+  try {
+    // Get all users who have auto mode enabled
+    const usersRes = await query("SELECT * FROM users WHERE auto_mode_enabled = true AND telegram_id IS NOT NULL");
+    
+    for (const user of usersRes.rows) {
+      const telegramId = user.telegram_id;
+      const videosPerDay = parseFloat(user.auto_mode_videos_per_day) || 3;
+      
+      // Calculate how many hours we should wait between posts
+      // e.g., if 3 videos per day, spacing is 8 hours
+      const hoursSpacing = 24 / videosPerDay;
+      const lastPost = user.last_auto_post ? new Date(user.last_auto_post) : new Date(0);
+      const now = new Date();
+      const diffHours = (now.getTime() - lastPost.getTime()) / (1000 * 60 * 60);
+      
+      if (diffHours >= hoursSpacing) {
+        console.log(`Auto-publishing for user ${telegramId} - diffHours: ${diffHours}, spacing: ${hoursSpacing}`);
+        
+        // Find an eligible clip
+        // An eligible clip: 
+        // 1. Must be from a channel they track, OR generally available if the app is global
+        // 2. Status 'raw' or 'processed' depends on your pipeline, we'll pick 'raw' or 'processed'. 
+        // Let's pick a 'processed' clip (already transcribed/dubbed) that hasn't been sent to this user.
+        
+        const clipRes = await query(`
+          SELECT * FROM clips 
+          WHERE status IN ('raw', 'processed') 
+          AND id NOT IN (
+            SELECT clip_id FROM publications WHERE user_id = $1
+          )
+          ORDER BY random() 
+          LIMIT 1
+        `, [telegramId]);
+
+        if (clipRes.rows.length === 0) {
+          console.log(`No completely new clips available for auto-publish for user ${telegramId}`);
+          continue;
+        }
+
+        const clip = clipRes.rows[0];
+
+        // Pick a random plaque for this user
+        const plaqueRes = await query("SELECT * FROM ad_plaques WHERE user_id = $1 ORDER BY random() LIMIT 1", [telegramId]);
+        const plaque = plaqueRes.rows[0];
+
+        // Ensure user is authorized before processing and sending
+        if (!user.is_authorized) {
+          console.log(`Skipping auto-publish for unauthorized user ${telegramId}`);
+          continue;
+        }
+
+        // Set up processor settings
+        const defaultText = user.username ? `@${user.username}` : user.first_name;
+        const watermarkConfig = {
+          text: user.watermark_text !== null && user.watermark_text !== undefined ? user.watermark_text : defaultText,
+          opacity: user.watermark_opacity !== null && user.watermark_opacity !== undefined ? parseFloat(user.watermark_opacity) : 0.08,
+          position: user.watermark_position || 'center'
+        };
+
+        const plaqueConfig = {
+          position: user.plaque_position || 'top',
+          size: user.plaque_size !== null && user.plaque_size !== undefined ? parseFloat(user.plaque_size) : 80,
+          timerange: user.plaque_timerange || 0
+        };
+
+        const subtitleConfig = {
+          enabled: user.subtitle_enabled !== false,
+          font_size: user.subtitle_font_size ? parseFloat(user.subtitle_font_size) : 16,
+          font_color: user.subtitle_font_color || '#FFFFFF',
+          position: user.subtitle_position || '80',
+          style: user.subtitle_style || 'karaoke',
+          font_family: user.subtitle_font_family || 'Anton',
+          highlight_color: user.subtitle_highlight_color || '#FFFF00',
+          highlight_enabled: user.subtitle_highlight_enabled !== false,
+          outline_color: user.subtitle_outline_color || '#000000'
+        };
+
+        try {
+          const { bot } = await import("./src/services/telegram.js");
+
+          // Send loading message to track progress? For auto mode, usually silent until ready.
+          
+          console.log(`Processing clip ${clip.id} for auto-publish to ${telegramId}`);
+          const processedUrl = await processClip(
+            clip.id,
+            clip.url,
+            plaque ? plaque.image_url : null,
+            null, // targetLang handled early if needed
+            null, // detectedLang handled early if needed
+            true, // skip s3 upload if local telegram send is fine 
+            watermarkConfig,
+            plaqueConfig,
+            subtitleConfig
+          );
+
+          await bot.telegram.sendVideo(telegramId, { source: processedUrl }, {
+            caption: `🎬 **Автоматическая публикация**\n\n${clip.title}\n\n#auto`,
+            parse_mode: 'Markdown'
+          });
+
+          // Record publication
+          await query(`
+            INSERT INTO publications (clip_id, user_id, plaque_id, status)
+            VALUES ($1, $2, $3, 'sent')
+          `, [clip.id, telegramId, plaque ? plaque.id : null]);
+
+          // Update last post
+          await query("UPDATE users SET last_auto_post = NOW() WHERE telegram_id = $1", [telegramId]);
+          
+          console.log(`Successfully auto-published to ${telegramId}`);
+
+        } catch (err: any) {
+          console.error(`Error processing/sending auto-publish clip for user ${telegramId}:`, err);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Auto-publish check failed:", err);
+  }
+};
+
+// Run auto-publish check every hour at 30 minutes past the hour (so it offsets from monitorChannels)
+cron.schedule('30 * * * *', autoPublish);
+
 async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
 
@@ -364,16 +490,18 @@ async function startServer() {
       subtitle_enabled, subtitle_font_size, subtitle_font_color,
       subtitle_position, subtitle_style, subtitle_font_family,
       subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
-      default_plaque_id, plaque_position, plaque_size, plaque_timerange
+      default_plaque_id, plaque_position, plaque_size, plaque_timerange,
+      auto_mode_enabled, auto_mode_videos_per_day
     } = req.body;
     try {
       await query(`
         INSERT INTO users (
           telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, 
           subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family,
-          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color, default_plaque_id, plaque_position, plaque_size, plaque_timerange
+          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color, default_plaque_id, plaque_position, plaque_size, plaque_timerange,
+          auto_mode_enabled, auto_mode_videos_per_day
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         ON CONFLICT (telegram_id) DO UPDATE SET 
           watermark_text = EXCLUDED.watermark_text,
           watermark_opacity = EXCLUDED.watermark_opacity,
@@ -390,14 +518,17 @@ async function startServer() {
           default_plaque_id = EXCLUDED.default_plaque_id,
           plaque_position = EXCLUDED.plaque_position,
           plaque_size = EXCLUDED.plaque_size,
-          plaque_timerange = EXCLUDED.plaque_timerange
+          plaque_timerange = EXCLUDED.plaque_timerange,
+          auto_mode_enabled = EXCLUDED.auto_mode_enabled,
+          auto_mode_videos_per_day = EXCLUDED.auto_mode_videos_per_day
       `, [
         String(req.user.id), req.user.username || '', req.user.first_name || '',
         watermark_text, watermark_opacity, watermark_position,
         subtitle_enabled, subtitle_font_size, subtitle_font_color,
         subtitle_position, subtitle_style, subtitle_font_family,
         subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
-        default_plaque_id, plaque_position, plaque_size, plaque_timerange
+        default_plaque_id, plaque_position, plaque_size, plaque_timerange,
+        auto_mode_enabled, auto_mode_videos_per_day
       ]);
       res.json({ success: true });
     } catch (err) {

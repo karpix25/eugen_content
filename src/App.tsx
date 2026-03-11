@@ -10,6 +10,7 @@ import {
   CheckCircle,
   XCircle,
   Play,
+  Bot,
   Settings,
   Plus,
   RefreshCw,
@@ -114,6 +115,8 @@ interface User {
   plaque_position?: string;
   plaque_size?: number;
   plaque_timerange?: number;
+  auto_mode_enabled?: boolean;
+  auto_mode_videos_per_day?: number;
 }
 
 interface AdPlaque {
@@ -1608,7 +1611,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
   onAddPlaque: (e: React.FormEvent<HTMLFormElement>) => Promise<void>,
   onDeletePlaque: (id: string) => Promise<void>
 }) {
-  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark'>('subtitles');
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto'>('subtitles');
   const [watermarkText, setWatermarkText] = useState(currentUser.watermark_text !== null && currentUser.watermark_text !== undefined ? currentUser.watermark_text : `@${currentUser.username || currentUser.first_name}`);
   const [watermarkOpacity, setWatermarkOpacity] = useState(currentUser.watermark_opacity !== undefined && currentUser.watermark_opacity !== null ? Number(currentUser.watermark_opacity) : 0.08);
   const [watermarkPosition, setWatermarkPosition] = useState(currentUser.watermark_position || 'center');
@@ -1635,6 +1638,10 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
   const [plaquePosition, setPlaquePosition] = useState(currentUser.plaque_position || 'bottom');
   const [plaqueSize, setPlaqueSize] = useState(currentUser.plaque_size !== undefined && currentUser.plaque_size !== null ? Number(currentUser.plaque_size) : 80);
   const [plaqueTimerange, setPlaqueTimerange] = useState(currentUser.plaque_timerange !== undefined && currentUser.plaque_timerange !== null ? Number(currentUser.plaque_timerange) : 0);
+  
+  const [autoModeEnabled, setAutoModeEnabled] = useState(currentUser.auto_mode_enabled || false);
+  const [autoModeVideosPerDay, setAutoModeVideosPerDay] = useState(currentUser.auto_mode_videos_per_day !== undefined && currentUser.auto_mode_videos_per_day !== null ? Number(currentUser.auto_mode_videos_per_day) : 3);
+
   const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
@@ -1655,6 +1662,8 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
       setPlaquePosition(currentUser.plaque_position || 'bottom');
       setPlaqueSize(currentUser.plaque_size !== undefined && currentUser.plaque_size !== null ? Number(currentUser.plaque_size) : 80);
       setPlaqueTimerange(currentUser.plaque_timerange !== undefined && currentUser.plaque_timerange !== null ? Number(currentUser.plaque_timerange) : 0);
+      setAutoModeEnabled(currentUser.auto_mode_enabled || false);
+      setAutoModeVideosPerDay(currentUser.auto_mode_videos_per_day !== undefined && currentUser.auto_mode_videos_per_day !== null ? Number(currentUser.auto_mode_videos_per_day) : 3);
     }
   }, [currentUser]);
 
@@ -1698,7 +1707,9 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
           default_plaque_id: defaultPlaqueId,
           plaque_position: plaquePosition,
           plaque_size: plaqueSize,
-          plaque_timerange: plaqueTimerange
+          plaque_timerange: plaqueTimerange,
+          auto_mode_enabled: autoModeEnabled,
+          auto_mode_videos_per_day: autoModeVideosPerDay
         })
       });
       if (res.ok) {
@@ -1718,6 +1729,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
     { id: 'subtitles' as const, label: 'Субтитры', icon: <Layers className="w-4 h-4" /> },
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
+    { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
   ];
 
   return (
@@ -1979,6 +1991,41 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Auto Mode Section */}
+          {settingsSection === 'auto' && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-white/60 uppercase tracking-widest">Включить Авто-постинг</span>
+                <button
+                  onClick={() => setAutoModeEnabled(!autoModeEnabled)}
+                  className={`w-14 h-7 rounded-full transition-all relative ${autoModeEnabled ? 'bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-white/10'}`}
+                >
+                  <div className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${autoModeEnabled ? 'translate-x-7' : ''}`} />
+                </button>
+              </div>
+
+              {autoModeEnabled && (
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                  <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em] flex justify-between">
+                    <span>Количество роликов в день</span>
+                    <span className="text-purple-400 font-mono">{autoModeVideosPerDay}</span>
+                  </label>
+                  <input
+                    type="range" min="1" max="20" step="1"
+                    value={autoModeVideosPerDay}
+                    onChange={(e) => setAutoModeVideosPerDay(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-white/20 px-1 pt-1">
+                    <span>1</span>
+                    <span>20</span>
+                  </div>
+                  <p className="text-[10px] text-white/30 font-medium pt-2">Система будет автоматически отправлять вам по {autoModeVideosPerDay} видео в день.</p>
+                </div>
+              )}
             </div>
           )}
 
