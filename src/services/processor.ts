@@ -43,7 +43,7 @@ export const processClip = async (
     sourceLang?: string | null,
     skipS3Upload: boolean = false,
     watermarkConfig?: { text: string, opacity: number, position: string },
-    plaqueConfig?: { position: string, size: number },
+    plaqueConfig?: { position: string, size: number, timerange?: number },
     subtitleConfig?: {
         enabled: boolean,
         font_size: number,
@@ -210,6 +210,7 @@ export const processClip = async (
                     // Use plaqueConfig for size (percentage of video width) and position
                     const pSize = plaqueConfig?.size || 80;
                     const pPosition = plaqueConfig?.position || 'top';
+                    const pTimerange = plaqueConfig?.timerange || 0;
 
                     // Scale plaque to pSize% of the assumed 720px video width
                     const scaledWidth = Math.round(720 * pSize / 100);
@@ -229,9 +230,29 @@ export const processClip = async (
                     } else if (pPosition === 'center') {
                         overlayY = '(H-h)/2';
                     }
+                    let enableFilter = '';
+                    if (pTimerange > 0) {
+                        try {
+                            const duration = await new Promise<number>((res, rej) => {
+                                ffmpeg.ffprobe(currentVideoUrl, (err, metadata) => {
+                                    if (err) rej(err);
+                                    else res(metadata.format.duration || 0);
+                                });
+                            });
+                            if (duration > 0) {
+                                const maxStartTime = duration * (pTimerange / 100);
+                                const startTime = Math.random() * maxStartTime;
+                                enableFilter = `:enable='gte(t,${startTime})'`;
+                                console.log(`Plaque will appear at ${startTime.toFixed(2)}s (max ${maxStartTime.toFixed(2)}s, total duration ${duration}s)`);
+                            }
+                        } catch (e) {
+                            console.error('Failed to get video duration for plaque timerange', e);
+                        }
+                    }
+
                     filters.push({
                         filter: 'overlay',
-                        options: `(W-w)/2:${overlayY}`,
+                        options: `(W-w)/2:${overlayY}${enableFilter}`,
                         inputs: [lastOutput, '[plaque]'],
                         outputs: '[with_plaque]'
                     });

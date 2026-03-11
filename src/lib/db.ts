@@ -153,6 +153,7 @@ export const initDb = async () => {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS plaque_position TEXT;
     ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS plaque_size NUMERIC DEFAULT 80;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS plaque_timerange NUMERIC DEFAULT 0;
   `);
 
   try {

@@ -113,6 +113,7 @@ interface User {
   default_plaque_id?: string | null;
   plaque_position?: string;
   plaque_size?: number;
+  plaque_timerange?: number;
 }
 
 interface AdPlaque {
@@ -1633,6 +1634,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
   const [defaultPlaqueId, setDefaultPlaqueId] = useState<string | null>(currentUser.default_plaque_id || null);
   const [plaquePosition, setPlaquePosition] = useState(currentUser.plaque_position || 'bottom');
   const [plaqueSize, setPlaqueSize] = useState(currentUser.plaque_size !== undefined && currentUser.plaque_size !== null ? Number(currentUser.plaque_size) : 80);
+  const [plaqueTimerange, setPlaqueTimerange] = useState(currentUser.plaque_timerange !== undefined && currentUser.plaque_timerange !== null ? Number(currentUser.plaque_timerange) : 0);
   const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
@@ -1652,6 +1654,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
       setDefaultPlaqueId(currentUser.default_plaque_id || null);
       setPlaquePosition(currentUser.plaque_position || 'bottom');
       setPlaqueSize(currentUser.plaque_size !== undefined && currentUser.plaque_size !== null ? Number(currentUser.plaque_size) : 80);
+      setPlaqueTimerange(currentUser.plaque_timerange !== undefined && currentUser.plaque_timerange !== null ? Number(currentUser.plaque_timerange) : 0);
     }
   }, [currentUser]);
 
@@ -1694,7 +1697,8 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
           subtitle_outline_color: subtitleOutlineColor,
           default_plaque_id: defaultPlaqueId,
           plaque_position: plaquePosition,
-          plaque_size: plaqueSize
+          plaque_size: plaqueSize,
+          plaque_timerange: plaqueTimerange
         })
       });
       if (res.ok) {
@@ -1924,6 +1928,17 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                     <span className="text-emerald-400 font-mono">{plaqueSize}%</span>
                   </label>
                   <input type="range" min="20" max="100" step="1" value={plaqueSize} onChange={(e) => setPlaqueSize(parseInt(e.target.value))} className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-[0.2em] flex justify-between">
+                    <span>Появление на видео</span>
+                    <span className="text-emerald-400 font-mono">
+                      {plaqueTimerange === 0 ? 'Сразу' : `Случайно до ${plaqueTimerange}%`}
+                    </span>
+                  </label>
+                  <input type="range" min="0" max="100" step="5" value={plaqueTimerange} onChange={(e) => setPlaqueTimerange(parseInt(e.target.value))} className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                  <p className="text-[10px] text-white/30 mt-2 font-medium">Если 0, плашка появится с самого начала. Если больше, она появится в случайный момент времени до указанного процента видео и останется до конца.</p>
                 </div>
               </div>
             </div>

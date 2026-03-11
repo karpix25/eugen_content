@@ -364,16 +364,16 @@ async function startServer() {
       subtitle_enabled, subtitle_font_size, subtitle_font_color,
       subtitle_position, subtitle_style, subtitle_font_family,
       subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
-      default_plaque_id, plaque_position, plaque_size
+      default_plaque_id, plaque_position, plaque_size, plaque_timerange
     } = req.body;
     try {
       await query(`
         INSERT INTO users (
           telegram_id, username, first_name, watermark_text, watermark_opacity, watermark_position, 
           subtitle_enabled, subtitle_font_size, subtitle_font_color, subtitle_position, subtitle_style, subtitle_font_family,
-          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color, default_plaque_id, plaque_position, plaque_size
+          subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color, default_plaque_id, plaque_position, plaque_size, plaque_timerange
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
         ON CONFLICT (telegram_id) DO UPDATE SET 
           watermark_text = EXCLUDED.watermark_text,
           watermark_opacity = EXCLUDED.watermark_opacity,
@@ -389,14 +389,15 @@ async function startServer() {
           subtitle_outline_color = EXCLUDED.subtitle_outline_color,
           default_plaque_id = EXCLUDED.default_plaque_id,
           plaque_position = EXCLUDED.plaque_position,
-          plaque_size = EXCLUDED.plaque_size
+          plaque_size = EXCLUDED.plaque_size,
+          plaque_timerange = EXCLUDED.plaque_timerange
       `, [
         String(req.user.id), req.user.username || '', req.user.first_name || '',
         watermark_text, watermark_opacity, watermark_position,
         subtitle_enabled, subtitle_font_size, subtitle_font_color,
         subtitle_position, subtitle_style, subtitle_font_family,
         subtitle_highlight_color, subtitle_highlight_enabled, subtitle_outline_color,
-        default_plaque_id, plaque_position, plaque_size
+        default_plaque_id, plaque_position, plaque_size, plaque_timerange
       ]);
       res.json({ success: true });
     } catch (err) {
@@ -846,7 +847,8 @@ async function startServer() {
       const watermarkConfig = text ? { text, opacity, position } : null;
       const plaqueConfig = {
         position: dbUser.plaque_position || 'top',
-        size: dbUser.plaque_size ? Number(dbUser.plaque_size) : 80
+        size: dbUser.plaque_size ? Number(dbUser.plaque_size) : 80,
+        timerange: dbUser.plaque_timerange ? Number(dbUser.plaque_timerange) : 0
       };
       const localFilePath = await processClip(id, clip.url, plaqueImageUrl, clip.language, null, true, watermarkConfig as any, plaqueConfig, subtitleConfig);
 
