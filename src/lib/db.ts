@@ -81,14 +81,7 @@ export const initDb = async () => {
       text TEXT
     );
 
-    CREATE TABLE IF NOT EXISTS tasks (
-      id TEXT PRIMARY KEY,
-      clip_id TEXT REFERENCES clips(id),
-      description TEXT,
-      status TEXT DEFAULT 'pending', -- pending, completed
-      published_link TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+
 
     CREATE TABLE IF NOT EXISTS auth_sessions (
       id UUID PRIMARY KEY,

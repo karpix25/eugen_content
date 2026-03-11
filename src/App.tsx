@@ -125,18 +125,6 @@ interface AdPlaque {
   image_url: string;
 }
 
-interface Task {
-  id: string;
-  clip_id: string;
-  description: string;
-  status: 'pending' | 'completed';
-  published_link: string | null;
-  created_at: string;
-  clip_url: string;
-  clip_thumbnail: string;
-  clip_title: string;
-}
-
 const formatNumber = (num: number) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -264,7 +252,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'monitor' | 'tasks' | 'clips' | 'workers' | 'publications' | 'settings'>('clips');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'clips' | 'workers' | 'publications' | 'settings'>('clips');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelId, setNewChannelId] = useState('');
@@ -273,7 +261,7 @@ export default function App() {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [clips, setClips] = useState<Clip[]>([]);
   const [plaques, setPlaques] = useState<AdPlaque[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+
   const [users, setUsers] = useState<User[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [selectedWorker, setSelectedWorker] = useState<User | null>(null);
@@ -322,12 +310,11 @@ export default function App() {
   const fetchData = async () => {
     const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
     try {
-      const [chRes, vidRes, clipRes, adRes, taskRes, userRes, pubRes] = await Promise.all([
+      const [chRes, vidRes, clipRes, adRes, userRes, pubRes] = await Promise.all([
         fetch('/api/channels', { headers }),
         fetch('/api/videos', { headers }),
         fetch('/api/clips', { headers }),
         fetch(`/api/ad-plaques${currentUser ? `?user_id=${currentUser.id}` : ''}`, { headers }),
-        fetch('/api/tasks', { headers }),
         fetch('/api/users', { headers }),
         currentUser?.is_admin ? fetch('/api/admin/publications', { headers }) : Promise.resolve({ json: () => [] })
       ]);
@@ -337,7 +324,6 @@ export default function App() {
         vidRes.json(),
         clipRes.json(),
         adRes.json(),
-        taskRes.json(),
         userRes.json(),
         pubRes.json()
       ]);
@@ -352,9 +338,8 @@ export default function App() {
       setVideos(Array.isArray(resData[1]) ? resData[1] : []);
       setClips(Array.isArray(resData[2]) ? resData[2] : []);
       setPlaques(Array.isArray(resData[3]) ? resData[3] : []);
-      setTasks(Array.isArray(resData[4]) ? resData[4] : []);
-      setUsers(Array.isArray(resData[5]) ? resData[5] : []);
-      setPublications(Array.isArray(resData[6]) ? resData[6] : []);
+      setUsers(Array.isArray(resData[4]) ? resData[4] : []);
+      setPublications(Array.isArray(resData[5]) ? resData[5] : []);
 
 
       // If we got here, we're authorized. Let's explicitly check who we are if we don't know yet
@@ -489,35 +474,6 @@ export default function App() {
     }
   };
 
-  const handleCreateTask = async (clipId: string) => {
-    const description = prompt("Введите описание для публикации:");
-    if (!description) return;
-
-    try {
-      await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clip_id: clipId, description })
-      });
-      fetchData();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleSubmitTask = async (taskId: string, link: string) => {
-    if (!link) return;
-    try {
-      await fetch(`/api/tasks/${taskId}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ published_link: link })
-      });
-      fetchData();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleDeletePlaque = async (id: string) => {
     if (!confirm("Удалить эту плашку?")) return;
@@ -614,12 +570,6 @@ export default function App() {
           {currentUser?.is_admin && (
             <>
               <NavButton
-                active={activeTab === 'tasks'}
-                onClick={() => setActiveTab('tasks')}
-                icon={<ClipboardList className="w-5 h-5" />}
-                label="Задания"
-              />
-              <NavButton
                 active={activeTab === 'workers'}
                 onClick={() => setActiveTab('workers')}
                 icon={<Users className="w-5 h-5" />}
@@ -669,8 +619,6 @@ export default function App() {
             <h1 className="text-lg md:text-2xl font-semibold truncate">
               {activeTab === 'monitor' && 'Мониторинг YouTube'}
               {activeTab === 'clips' && 'Готовые нарезки'}
-
-              {activeTab === 'tasks' && 'Задания на публикацию'}
               {activeTab === 'workers' && 'Работники'}
               {activeTab === 'publications' && 'Публикации'}
               {activeTab === 'settings' && 'Настройки'}
@@ -875,7 +823,6 @@ export default function App() {
                       clip={clip}
                       plaques={plaques}
                       currentUserProfile={currentUser}
-                      onCreateTask={() => handleCreateTask(clip.id)}
                       onSendToTelegram={async (clipId, plaqueId) => {
                         try {
                           const head = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
@@ -908,24 +855,6 @@ export default function App() {
               </div>
             );
           })()}
-
-
-
-          {activeTab === 'tasks' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {tasks.map(task => (
-                  <TaskCard key={task.id} task={task} onSubmit={(link) => handleSubmitTask(task.id, link)} />
-                ))}
-              </div>
-              {tasks.length === 0 && (
-                <div className="py-20 text-center text-white/20">
-                  <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                  <p>Заданий пока нет. Создайте задание из раздела "Нарезки".</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {activeTab === 'workers' && (
             <div className="space-y-6">
@@ -990,7 +919,7 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'publications' && <PublicationsTab publications={publications} />}
+          {activeTab === 'publications' && <PublicationsTab publications={publications} authToken={authToken || ''} isAdmin={!!currentUser?.is_admin} />}
           {activeTab === 'settings' && currentUser && authToken && (
             <SettingsTab
               currentUser={currentUser}
@@ -1223,7 +1152,7 @@ function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
     </>
   );
 }
-function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram, currentUserProfile }: { clip: Clip, plaques: AdPlaque[], onCreateTask: () => void, onSendToTelegram?: (clipId: string, plaqueId: string | null) => void, currentUserProfile?: any }) {
+function ClipCard({ clip, plaques, onSendToTelegram, currentUserProfile }: { clip: Clip, plaques: AdPlaque[], onSendToTelegram?: (clipId: string, plaqueId: string | null) => void, currentUserProfile?: any }) {
   const [randomPlaque, setRandomPlaque] = useState<AdPlaque | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlaqueSelector, setShowPlaqueSelector] = useState(false);
@@ -1365,15 +1294,6 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram, currentUserPr
             >
               <Send className="w-3 h-3" /> {clip.published_by_me ? 'Отправить еще раз' : 'В Telegram с плашкой'}
             </button>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onCreateTask()}
-                disabled={!clip.is_available}
-                className="flex-1 text-[10px] uppercase tracking-widest font-black py-2 bg-emerald-500 text-black rounded-lg hover:bg-emerald-400 transition-all disabled:opacity-30 flex items-center justify-center gap-2"
-              >
-                <ClipboardList className="w-3 h-3" /> Задача
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1440,81 +1360,6 @@ function ClipCard({ clip, plaques, onCreateTask, onSendToTelegram, currentUserPr
   );
 }
 
-function TaskCard({ task, onSubmit }: { task: Task, onSubmit: (link: string) => void }) {
-  const [link, setLink] = useState('');
-
-  const handleDownload = () => {
-    // In a real app, this would trigger a download of the clip_url
-    // For now, we'll open it in a new tab
-    window.open(task.clip_url, '_blank');
-  };
-
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col sm:flex-row min-w-0">
-      <div className="w-full sm:w-40 md:w-48 aspect-[9/16] bg-black relative shrink-0">
-        <img src={task.clip_thumbnail} className="w-full h-full object-cover opacity-60" alt="" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Play className="w-8 h-8 text-white/40" />
-        </div>
-        <button
-          onClick={handleDownload}
-          className="absolute bottom-3 right-3 p-2 bg-white/10 backdrop-blur-md rounded-lg hover:bg-white/20 transition-colors group"
-          title="Скачать видео"
-        >
-          <Download className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-        </button>
-      </div>
-
-      <div className="flex-1 p-4 md:p-6 flex flex-col min-w-0">
-        <div className="flex justify-between items-start mb-4 gap-2">
-          <div className="min-w-0">
-            <h3 className="font-semibold text-base md:text-lg truncate">{task.clip_title}</h3>
-            <p className="text-[10px] md:text-xs text-white/40">{format(new Date(task.created_at), 'dd.MM.yyyy HH:mm')}</p>
-          </div>
-          <div className={cn(
-            "px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider shrink-0",
-            task.status === 'completed' ? "bg-emerald-500/20 text-emerald-400" : "bg-yellow-500/20 text-yellow-400"
-          )}>
-            {task.status === 'completed' ? 'Выполнено' : 'В работе'}
-          </div>
-        </div>
-
-        <div className="bg-black/20 p-3 md:p-4 rounded-xl mb-4 md:mb-6 flex-1 overflow-y-auto max-h-32">
-          <p className="text-[10px] text-white/40 mb-1 uppercase font-bold tracking-widest">Описание для поста:</p>
-          <p className="text-xs md:text-sm text-white/80 whitespace-pre-wrap break-words">{task.description}</p>
-        </div>
-
-        {task.status === 'pending' ? (
-          <div className="mt-auto space-y-3">
-            <div className="flex flex-col xl:flex-row gap-2">
-              <input
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="Ссылка на пост"
-                className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-emerald-500 text-xs md:text-sm min-w-0"
-              />
-              <button
-                onClick={() => onSubmit(link)}
-                className="bg-emerald-500 text-black px-4 py-2 rounded-lg font-medium hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2 text-xs md:text-sm whitespace-nowrap"
-              >
-                <Send className="w-4 h-4" />
-                Отправить
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-auto flex items-center gap-2 text-xs md:text-sm text-emerald-400">
-            <CheckCircle className="w-4 h-4 shrink-0" />
-            <a href={task.published_link || '#'} target="_blank" rel="noreferrer" className="underline truncate">
-              Посмотреть публикацию
-            </a>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function NavButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
   return (
     <button
@@ -1535,7 +1380,55 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
   );
 }
 
-function PublicationsTab({ publications }: { publications: Publication[] }) {
+function AdminStatsView({ authToken }: { authToken: string }) {
+  const [stats, setStats] = useState<any>(null);
+  
+  useEffect(() => {
+    fetch('/api/admin/stats', {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+    .then(r => r.json())
+    .then(data => setStats(data))
+    .catch(console.error);
+  }, [authToken]);
+
+  if (!stats) return null;
+
+  return (
+    <div className="mb-8 space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <p className="text-white/40 text-sm mb-2">Пользователей с публикациями</p>
+          <p className="text-3xl font-bold text-emerald-400">{stats.reporting_users}</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <p className="text-white/40 text-sm mb-2">Опубликованных роликов</p>
+          <p className="text-3xl font-bold text-emerald-400">{stats.total_published_videos}</p>
+        </div>
+      </div>
+      
+      {stats.top_clips && stats.top_clips.length > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <h3 className="text-lg font-bold mb-4">Самые популярные ролики</h3>
+          <div className="space-y-4">
+            {stats.top_clips.map((clip: any, i: number) => (
+              <div key={clip.id} className="flex items-center gap-4 bg-black/20 p-3 rounded-xl border border-white/5">
+                <span className="text-white/40 font-bold w-6">{i + 1}.</span>
+                <img src={clip.thumbnail} className="w-12 h-12 rounded bg-black object-cover" alt="" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{clip.title}</p>
+                  <p className="text-emerald-400 text-xs mt-1">{clip.publish_count} публикаций</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PublicationsTab({ publications, authToken, isAdmin }: { publications: Publication[], authToken?: string, isAdmin?: boolean }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1544,6 +1437,8 @@ function PublicationsTab({ publications }: { publications: Publication[] }) {
           <p className="text-white/40 text-sm">Отслеживание отправленных видео и ссылок от пользователей</p>
         </div>
       </div>
+
+      {isAdmin && authToken && <AdminStatsView authToken={authToken} />}
 
       <div className="grid grid-cols-1 gap-4">
         {publications.length === 0 && (

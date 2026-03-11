@@ -583,23 +583,6 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // Tasks
-  app.get("/api/tasks", async (req, res) => {
-    const result = await query(`
-      SELECT tasks.*, clips.url as clip_url, clips.thumbnail as clip_thumbnail, clips.title as clip_title 
-      FROM tasks 
-      JOIN clips ON tasks.clip_id = clips.id
-      ORDER BY tasks.created_at DESC
-    `);
-    res.json(result.rows);
-  });
-
-  app.post("/api/tasks", async (req, res) => {
-    const { clip_id, description } = req.body;
-    const id = Math.random().toString(36).substr(2, 9);
-    await query("INSERT INTO tasks (id, clip_id, description) VALUES ($1, $2, $3)", [id, clip_id, description]);
-    res.json({ id });
-  });
 
   // Channels
   app.get("/api/channels", async (req, res) => {
@@ -656,7 +639,7 @@ async function startServer() {
       for (const video of videos.rows) {
         const clips = await query("SELECT id FROM clips WHERE video_id = $1", [video.id]);
         for (const clip of clips.rows) {
-          await query("DELETE FROM tasks WHERE clip_id = $1", [clip.id]);
+
         }
         await query("DELETE FROM clips WHERE video_id = $1", [video.id]);
       }
@@ -1140,6 +1123,41 @@ async function startServer() {
       res.status(500).json({ error: "Failed to fetch users" });
     }
   });
+
+  // Admin Statistics
+  app.get('/api/admin/stats', authenticateToken, async (req, res) => {
+    if (!isAdmin(req.user.id)) return res.sendStatus(403);
+    try {
+      const stats = await query(`
+        SELECT 
+          (SELECT COUNT(DISTINCT user_id) FROM publications WHERE status = 'published' AND array_length(social_links, 1) > 0) as reporting_users,
+          (SELECT COUNT(id) FROM publications WHERE status = 'published' AND array_length(social_links, 1) > 0) as total_published_videos
+      `);
+
+      const topClips = await query(`
+        SELECT c.id, c.title, c.thumbnail, COUNT(p.id) as publish_count
+        FROM publications p
+        JOIN clips c ON p.clip_id = c.id
+        WHERE p.status = 'published' AND array_length(p.social_links, 1) > 0
+        GROUP BY c.id, c.title, c.thumbnail
+        ORDER BY publish_count DESC
+        LIMIT 10
+      `);
+
+      res.json({
+        reporting_users: parseInt(stats.rows[0].reporting_users) || 0,
+        total_published_videos: parseInt(stats.rows[0].total_published_videos) || 0,
+        top_clips: topClips.rows.map((row: any) => ({
+          ...row,
+          publish_count: parseInt(row.publish_count) || 0
+        }))
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
 
   // SPA fallback (Redirect all non-API routes to index.html)
   app.get("*", (req, res) => {

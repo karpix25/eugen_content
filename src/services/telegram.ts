@@ -137,6 +137,57 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
     return ctx.replyWithVideo(clip.url);
 });
 
+// Handle URL reporting
+bot.on('text', authMiddleware, async (ctx) => {
+    const text = ctx.message.text;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = text.match(urlRegex);
+
+    if (urls && urls.length > 0) {
+        const from = ctx.from!;
+        const replyToMessage = ctx.message.reply_to_message;
+        let publicationId = null;
+
+        if (replyToMessage && replyToMessage.message_id) {
+            // Check if this reply is to a known publication message
+            const res = await query(
+                'SELECT id FROM publications WHERE user_id = $1 AND message_id = $2',
+                [from.id.toString(), replyToMessage.message_id]
+            );
+            if (res.rows.length > 0) {
+                publicationId = res.rows[0].id;
+            }
+        }
+
+        if (!publicationId) {
+            // Fallback to the most recent publication
+            const res = await query(
+                'SELECT id FROM publications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
+                [from.id.toString()]
+            );
+            if (res.rows.length > 0) {
+                publicationId = res.rows[0].id;
+            }
+        }
+
+        if (publicationId) {
+            // Update the publication
+            await query(
+                `UPDATE publications 
+                 SET social_links = social_links || $1::text[], 
+                     status = 'published', 
+                     updated_at = NOW() 
+                 WHERE id = $2`,
+                [urls, publicationId]
+            );
+            
+            return ctx.reply('✅ Ссылка сохранена! Отличная работа.');
+        } else {
+             return ctx.reply('Не удалось найти публикацию для этой ссылки. Пожалуйста, отправьте ссылку ответом (Reply) на сообщение с видео.');
+        }
+    }
+});
+
 export const startBot = () => {
     bot.launch()
         .then(() => console.log('Telegram Bot started'))
