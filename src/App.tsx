@@ -2090,6 +2090,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
         )}
       </AnimatePresence>
     </div>
+    </div>
   );
 }
 
