@@ -255,6 +255,22 @@ export const processClip = async (
                 const filters: any[] = [];
                 let lastOutput = '[0:v]';
 
+                // 1. Normalize background to square pixels (iw*sar:ih) 
+                // to prevent distortion of overlays (plaques/subs)
+                filters.push({
+                    filter: 'scale',
+                    options: 'w=iw*sar:h=ih',
+                    inputs: lastOutput,
+                    outputs: '[bg_norm]'
+                });
+                filters.push({
+                    filter: 'setsar',
+                    options: '1',
+                    inputs: '[bg_norm]',
+                    outputs: '[bg_final]'
+                });
+                lastOutput = '[bg_final]';
+
                 if (finalPlaqueUrl) {
                     const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
                     command = command.input(escapedPlaquePath).inputOptions('-loop 1');
