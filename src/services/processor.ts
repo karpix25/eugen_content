@@ -199,20 +199,20 @@ export const processClip = async (
             let lastOutput = '[0:v]';
             let command = ffmpeg(currentVideoUrl);
 
-            // Plaque
+            // 4a. Normalize Background Video (720x1280, SAR 1:1)
+            filters.push({ filter: 'scale', options: 'w=720:h=1280:force_original_aspect_ratio=decrease', inputs: '[0:v]', outputs: '[scaled_v]' });
+            filters.push({ filter: 'pad', options: '720:1280:(720-iw)/2:(1280-ih)/2:color=black', inputs: '[scaled_v]', outputs: '[padded_v]' });
+            filters.push({ filter: 'setsar', options: '1', inputs: '[padded_v]', outputs: '[normalized_v]' });
+            lastOutput = '[normalized_v]';
+
+            // 4b. Plaque
             if (finalPlaqueUrl) {
                 command = command.input(tempPlaqueFile.replace(/\\/g, '/')).inputOptions('-loop 1');
                 const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(currentVideoUrl, (err, meta) => res(meta)));
-                const vStream = metadata?.streams.find((s: any) => s.codec_type === 'video');
-                const sarStr = vStream?.sample_aspect_ratio || '1:1';
-                let sarValue = 1;
-                if (sarStr && sarStr !== '0:1') {
-                    const [sW, sH] = sarStr.split(':').map(Number);
-                    if (sW && sH) sarValue = sW / sH;
-                }
 
                 filters.push({ filter: 'setsar', options: '1', inputs: '[1:v]', outputs: '[plaque_in]' });
-                filters.push({ filter: 'scale2ref', options: `w=iw*${(plaqueConfig?.size || 40) / 100 / sarValue}:h=-1`, inputs: ['[plaque_in]', lastOutput], outputs: ['[plaque]', '[bg_ref]'] });
+                // Scale plaque relative to the normalized video width
+                filters.push({ filter: 'scale2ref', options: `w=ref_w*${(plaqueConfig?.size || 40) / 100}:h=-1`, inputs: ['[plaque_in]', lastOutput], outputs: ['[plaque]', '[bg_ref]'] });
                 
                 let y = plaqueConfig?.position === 'top' ? '30' : plaqueConfig?.position === 'center' ? '(H-h)/2' : 'H-h-50';
                 let enable = '';
