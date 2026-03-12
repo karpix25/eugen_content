@@ -199,9 +199,9 @@ export const processClip = async (
             let lastOutput = '[0:v]';
             let command = ffmpeg(currentVideoUrl);
 
-            // 4a. Normalize Background Video (720x1280, SAR 1:1)
-            filters.push({ filter: 'scale', options: 'w=720:h=1280:force_original_aspect_ratio=decrease', inputs: '[0:v]', outputs: '[scaled_v]' });
-            filters.push({ filter: 'pad', options: '720:1280:(720-iw)/2:(1280-ih)/2:color=black', inputs: '[scaled_v]', outputs: '[padded_v]' });
+            // 4a. Normalize Background Video (1080x1920, SAR 1:1)
+            filters.push({ filter: 'scale', options: 'w=1080:h=1920:force_original_aspect_ratio=decrease', inputs: '[0:v]', outputs: '[scaled_v]' });
+            filters.push({ filter: 'pad', options: '1080:1920:(1080-iw)/2:(1920-ih)/2:color=black', inputs: '[scaled_v]', outputs: '[padded_v]' });
             filters.push({ filter: 'setsar', options: '1', inputs: '[padded_v]', outputs: '[normalized_v]' });
             lastOutput = '[normalized_v]';
 
@@ -210,7 +210,7 @@ export const processClip = async (
                 command = command.input(tempPlaqueFile.replace(/\\/g, '/')).inputOptions('-loop 1');
                 const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(currentVideoUrl, (err, meta) => res(meta)));
 
-                const plaqueWidth = Math.floor(720 * (plaqueConfig?.size || 40) / 100);
+                const plaqueWidth = Math.floor(1080 * (plaqueConfig?.size || 40) / 100);
                 filters.push({ 
                     filter: 'scale', 
                     options: `w=${plaqueWidth}:h=-1`, 
@@ -239,7 +239,7 @@ export const processClip = async (
                 else if (subtitleConfig?.position === 'Center') pos = 50;
                 else if (subtitleConfig?.position === 'Top') pos = 15;
 
-                const style = getSubtitleStyle(subtitleConfig, toAssColor(subtitleConfig?.font_color || '#FFF'), toAssColor(subtitleConfig?.highlight_color || '#FF0'), toAssColor(subtitleConfig?.outline_color || '#000'), 2, Math.floor((1 - pos / 100) * 1280));
+                const style = getSubtitleStyle(subtitleConfig, toAssColor(subtitleConfig?.font_color || '#FFF'), toAssColor(subtitleConfig?.highlight_color || '#FF0'), toAssColor(subtitleConfig?.outline_color || '#000'), 2, Math.floor((1 - pos / 100) * 1920));
 
                 filters.push({
                     filter: 'subtitles',
@@ -261,7 +261,7 @@ export const processClip = async (
                 else if (watermarkConfig.position === 'tilted_center') { align = 5; rot = -30; fsz = 84; }
 
                 watermarkAssPath = path.join(outputDir, `watermark_${clipId}.ass`);
-                fs.writeFileSync(watermarkAssPath, `[Script Info]\nScriptType: v4.00+\nPlayResX: 720\nPlayResY: 1280\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,${fsz},&H${alpha}FFFFFF,&H000000FF,&H${alpha}000000,&H${alpha}000000,-1,0,0,0,100,100,0,0,1,2,2,${align},${l},${r},${v},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rot}}${watermarkConfig.text}\n`);
+                fs.writeFileSync(watermarkAssPath, `[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,${fsz},&H${alpha}FFFFFF,&H000000FF,&H${alpha}000000,&H${alpha}000000,-1,0,0,0,100,100,0,0,1,2,2,${align},${l},${r},${v},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rot}}${watermarkConfig.text}\n`);
 
                 filters.push({ filter: 'subtitles', options: `filename='${watermarkAssPath.replace(/'/g, "'\\''").replace(/\\/g, '/')}':fontsdir='${path.join(process.cwd(), 'fonts')}'`, inputs: lastOutput, outputs: '[final]' });
                 lastOutput = '[final]';
