@@ -34,15 +34,22 @@ export const sendToVizard = async (videoUrl: string, videoId: string, videoType:
                     'VIZARDAI_API_KEY': VIZARD_API_KEY,
                     'Content-Type': 'application/json',
                 },
+                validateStatus: (status) => true // Handle all status codes
             }
         );
 
         console.log(`Vizard API Response:`, JSON.stringify(response.data, null, 2));
 
-        // Let's check the response structure carefully
         const data = response.data;
-        if (data.code === 0 || data.code === 2000 || data.success || data.id || data.project_id || data.data?.project_id) {
-            return data.projectId || data.id || data.project_id || data.data?.project_id || data.data?.id || "unknown_id";
+        // Check for success codes or presence of project ID
+        const vizardId = data.projectId || data.id || data.project_id || data.data?.project_id || data.data?.id;
+        
+        if (data.code === 0 || data.code === 2000 || data.success || vizardId) {
+            return vizardId || "unknown_id";
+        } else if (data.code === 4005 || (data.errMsg && data.errMsg.includes("exists"))) {
+            // Project might already exist, try to return ID if present or log it
+            console.warn(`Vizard project might already exist: ${data.errMsg}`);
+            return vizardId || null;
         } else {
             console.error(`Vizard returned error code ${data.code}: ${data.errMsg || data.message}`);
             return null;

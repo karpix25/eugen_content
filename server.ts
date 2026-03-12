@@ -132,6 +132,12 @@ const syncChannel = async (channelId: string, name: string, monitoringInterval: 
             await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4",
               [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);
             console.log(`[AI] Evaluation complete for ${videoId}: Score ${evaluation.score}/100, Lang: ${evaluation.detected_language}`);
+            
+            // AUTO APPROVAL: Automatically approve videos with high score (80+)
+            if (evaluation.score >= 80) {
+              console.log(`[Auto] High score (${evaluation.score}) detected for ${videoId}. Automatically approving...`);
+              await query("UPDATE videos SET status = 'approved' WHERE id = $1", [videoId]);
+            }
           } else {
             console.error(`[AI] Evaluation failed for ${videoId}`);
           }
@@ -159,11 +165,32 @@ const monitorChannels = async () => {
 // Run every hour
 cron.schedule('0 * * * *', monitorChannels);
 
+const autoSendToVizard = async () => {
+  console.log("Checking for approved videos to send to Vizard...");
+  try {
+    const approvedVideos = await query("SELECT id FROM videos WHERE status = 'approved' AND vizard_project_id IS NULL LIMIT 5");
+    for (const video of approvedVideos.rows) {
+      console.log(`[Auto] Sending approved video ${video.id} to Vizard...`);
+      const videoUrl = `https://www.youtube.com/watch?v=${video.id}`;
+      const vizardId = await sendToVizard(videoUrl, video.id);
+      if (vizardId) {
+        await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, video.id]);
+        console.log(`[Auto] Successfully sent ${video.id} to Vizard. ID: ${vizardId}`);
+      }
+    }
+  } catch (err) {
+    console.error("Auto-Vizard error:", err);
+  }
+};
+
+// Run auto-Vizard check every 15 minutes
+cron.schedule('*/15 * * * *', autoSendToVizard);
+
 const autoPublish = async () => {
   console.log("Running scheduled auto-publish check...");
   try {
-    // Get all users who have auto mode enabled
-    const usersRes = await query("SELECT * FROM users WHERE auto_mode_enabled = true AND telegram_id IS NOT NULL");
+    // Get all users who have auto mode enabled AND are authorized
+    const usersRes = await query("SELECT * FROM users WHERE auto_mode_enabled = true AND is_authorized = true AND telegram_id IS NOT NULL");
     
     for (const user of usersRes.rows) {
       const telegramId = user.telegram_id;
@@ -205,12 +232,6 @@ const autoPublish = async () => {
         // Pick a random plaque for this user
         const plaqueRes = await query("SELECT * FROM ad_plaques WHERE user_id = $1 ORDER BY random() LIMIT 1", [telegramId]);
         const plaque = plaqueRes.rows[0];
-
-        // Ensure user is authorized before processing and sending
-        if (!user.is_authorized) {
-          console.log(`Skipping auto-publish for unauthorized user ${telegramId}`);
-          continue;
-        }
 
         // Set up processor settings
         const defaultText = user.username ? `@${user.username}` : user.first_name;
@@ -256,7 +277,9 @@ const autoPublish = async () => {
             subtitleConfig
           );
 
-          await bot.telegram.sendVideo(telegramId, { source: processedUrl }, {
+          const videoSource = processedUrl.startsWith('http') ? { url: processedUrl } : { source: processedUrl };
+
+          await bot.telegram.sendVideo(telegramId, videoSource, {
             caption: `🎬 **Автоматическая публикация**\n\n${clip.title}\n\n#auto`,
             parse_mode: 'Markdown'
           });
@@ -952,40 +975,7 @@ async function startServer() {
     }
   });
 
-  // Vizard Webhook
-  app.post("/api/webhooks/vizard", async (req, res) => {
-    const { external_id, clips } = req.body;
-    const videoId = external_id;
 
-    // Get plaque to use for branding (for now, take first available or allow selection in UI)
-    const plaqueResult = await query("SELECT * FROM ad_plaques LIMIT 1");
-    const plaque = plaqueResult.rows[0];
-
-    // Get the video info to see if we need dubbing
-    const videoResult = await query("SELECT detected_language, target_language FROM videos WHERE id = $1", [videoId]);
-    const video = videoResult.rows[0];
-
-    const finalLanguage = video?.target_language || video?.detected_language || null;
-
-    for (const clip of clips) {
-      const clipId = Math.random().toString(36).substr(2, 9);
-      await query(`
-        INSERT INTO clips (id, video_id, url, thumbnail, title, ad_plaque_id, language)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [clipId, videoId, clip.url, clip.thumbnail, clip.title, plaque?.id, finalLanguage]);
-
-      // Start asynchronous processing (branding + dubbing + subs)
-      if (plaque || (video?.detected_language && video?.target_language)) {
-        processClip(clipId, clip.url, plaque?.image_url || null, video?.target_language, video?.detected_language).catch(console.error);
-      } else {
-        // No branding, just mark as processed/raw
-        await query("UPDATE clips SET status = 'processed' WHERE id = $1", [clipId]);
-      }
-    }
-
-    await query("UPDATE videos SET status = 'completed' WHERE id = $1", [videoId]);
-    res.json({ received: true });
-  });
 
   // Apply Plaque on Demand & Send to Telegram
   app.post("/api/clips/:id/apply-plaque", async (req, res) => {
