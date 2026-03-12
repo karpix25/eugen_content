@@ -134,7 +134,7 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
     );
 
     await ctx.reply(`Вы скачали: ${clip.title}`);
-    return ctx.replyWithVideo(clip.url);
+    return ctx.replyWithVideo(clip.url, { width: 1080, height: 1920 });
 });
 
 // Handle URL reporting

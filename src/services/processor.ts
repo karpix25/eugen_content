@@ -314,7 +314,16 @@ export const processClip = async (
 
             return new Promise((resolve, reject) => {
                 command.complexFilter(filters, lastOutput)
-                    .videoCodec('libx264').audioCodec('aac').outputOptions(['-map', '0:a?', '-crf', '18', '-preset', 'fast', '-aspect', '9:16', '-movflags', '+faststart'])
+                    .videoCodec('libx264')
+                    .audioCodec('aac')
+                    .outputOptions([
+                        '-map', '0:a?', 
+                        '-crf', '18', 
+                        '-preset', 'fast', 
+                        '-aspect', '9:16', 
+                        '-movflags', '+faststart',
+                        '-metadata:s:v', 'rotate=0'
+                    ])
                     .on('start', cmd => console.log('FFmpeg command:', cmd))
                     .on('progress', p => console.log(`Processing ${clipId}: ${p.percent}%`))
                     .on('end', async () => {
