@@ -199,10 +199,31 @@ export const processClip = async (
             let lastOutput = '[0:v]';
             let command = ffmpeg(currentVideoUrl);
 
-            // 4a. Normalize Background Video (1080x1920, SAR 1:1)
-            filters.push({ filter: 'scale', options: 'w=1080:h=1920:force_original_aspect_ratio=decrease', inputs: '[0:v]', outputs: '[scaled_v]' });
-            filters.push({ filter: 'pad', options: '1080:1920:(1080-iw)/2:(1920-ih)/2:color=black', inputs: '[scaled_v]', outputs: '[padded_v]' });
-            filters.push({ filter: 'setsar', options: '1', inputs: '[padded_v]', outputs: '[normalized_v]' });
+            // 4a. Normalize Background Video to 1080x1920 (Vertical)
+            filters.push({ 
+                filter: 'scale', 
+                options: '1080:1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
+                inputs: '[0:v]', 
+                outputs: '[scaled_v]' 
+            });
+            filters.push({ 
+                filter: 'pad', 
+                options: '1080:1920:(ow-iw)/2:(oh-ih)/2:color=black', 
+                inputs: '[scaled_v]', 
+                outputs: '[padded_v]' 
+            });
+            filters.push({ 
+                filter: 'format', 
+                options: 'yuv420p', 
+                inputs: '[padded_v]', 
+                outputs: '[formatted_v]' 
+            });
+            filters.push({ 
+                filter: 'setsar', 
+                options: '1', 
+                inputs: '[formatted_v]', 
+                outputs: '[normalized_v]' 
+            });
             lastOutput = '[normalized_v]';
 
             // 4b. Plaque
