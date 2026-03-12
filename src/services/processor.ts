@@ -287,13 +287,13 @@ export const processClip = async (
                     });
 
                     // Advanced SAR Compensation:
-                    // w=main_w*percent/main_sar: 
-                    // 1. main_w*percent sets the target display width.
-                    // 2. Dividing by main_sar "compresses" the pixels if the background is stretched.
-                    // Result: Plaque looks square on any SAR.
+                    // 1. Target Visual Width = main_w * percent
+                    // 2. Storage Width (w) = Target Visual Width / main_sar
+                    // 3. Target Visual Height = Target Visual Width / (iw/ih)
+                    // 4. Storage Height (h) = Target Visual Height
                     filters.push({
                         filter: 'scale2ref',
-                        options: `w=main_w*${pSize / 100}/main_sar:h=-1`,
+                        options: `w=main_w*${pSize / 100}/main_sar:h=main_w*${pSize / 100}*ih/iw`,
                         inputs: ['[plaque_in]', lastOutput],
                         outputs: ['[plaque]', '[bg_ref]']
                     });
