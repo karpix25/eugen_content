@@ -255,22 +255,6 @@ export const processClip = async (
                 const filters: any[] = [];
                 let lastOutput = '[0:v]';
 
-                // 1. Normalize background to square pixels (iw*sar:ih) 
-                // to prevent distortion of overlays (plaques/subs)
-                filters.push({
-                    filter: 'scale',
-                    options: 'w=iw*sar:h=ih',
-                    inputs: lastOutput,
-                    outputs: '[bg_norm]'
-                });
-                filters.push({
-                    filter: 'setsar',
-                    options: '1',
-                    inputs: '[bg_norm]',
-                    outputs: '[bg_final]'
-                });
-                lastOutput = '[bg_final]';
-
                 if (finalPlaqueUrl) {
                     const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
                     command = command.input(escapedPlaquePath).inputOptions('-loop 1');
@@ -286,7 +270,16 @@ export const processClip = async (
                         return null;
                     });
 
+                    const videoStream = metadata?.streams.find(s => s.codec_type === 'video');
                     const duration = metadata?.format?.duration || 0;
+
+                    // Get Sample Aspect Ratio (SAR) for distortion compensation
+                    const sarStr = videoStream?.sample_aspect_ratio || '1:1';
+                    let sarValue = 1;
+                    if (sarStr && sarStr !== '0:1') {
+                        const [sW, sH] = sarStr.split(':').map(Number);
+                        if (sW && sH) sarValue = sW / sH;
+                    }
 
                     // 2. Configure Plaque
                     const pSize = plaqueConfig?.size || 40;
@@ -294,7 +287,7 @@ export const processClip = async (
                     const pTimerange = plaqueConfig?.timerange || 0;
 
                     // 3. Process Plaque using scale2ref (proportional to background)
-                    // We need to setsar=1 on plaque first to avoid distortion
+                    // We need to setsar=1 on plaque first
                     filters.push({
                         filter: 'setsar',
                         options: '1',
@@ -302,9 +295,11 @@ export const processClip = async (
                         outputs: '[plaque_in]'
                     });
 
+                    // Compensate for background SAR to keep plaque square on screen
+                    // If background is stretched by X, we pre-compress plaque pixels by X
                     filters.push({
                         filter: 'scale2ref',
-                        options: `w=iw*${pSize/100}:h=-1`,
+                        options: `w=iw*${pSize / 100 / sarValue}:h=-1`,
                         inputs: ['[plaque_in]', lastOutput],
                         outputs: ['[plaque]', '[bg_ref]']
                     });
