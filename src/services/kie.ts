@@ -17,7 +17,7 @@ export const generateGridImage = async (prompt: string, aspectRatio: string = "2
         input: {
           prompt: prompt,
           aspect_ratio: aspectRatio,
-          resolution: "1K", // Default resolution as per docs
+          resolution: "2K", // High-fidelity 2K resolution
           output_format: "png"
         }
       },

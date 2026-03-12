@@ -156,23 +156,24 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
 
   const prompt = `
-    Create a detailed midjourney-style visual prompt for an image generation AI.
-    The goal is to create a professional 2x3 grid Instagram carousel (single unified canvas).
+    Create a professional Instagram carousel as a single, unified, continuous vertical artwork.
+    The goal is to create a high-end 2x3 grid (2 columns wide, 3 rows tall) of 6 slides.
     
-    CONTENT HIERARCHY:
-    ${script.map((s, i) => `Slide ${i + 1}: ${s.title} | ${s.body}`).join('\n')}
+    CONTENT TO RENDER (STRICT HIERARCHY):
+    ${script.map((s, i) => `Slide ${i + 1}: TITLE: "${s.title}" | BODY: "${s.body}"`).join('\n')}
     
-    STYLE SPECIFICATIONS (FOLLOW CLOSELY):
+    STYLE SPECIFICATIONS & DESIGN RULES:
     ${JSON.stringify(styleAnalysis, null, 2)}
     
-    INSTRUCTIONS:
-    1. Describe a clean, corporate, high-end minimalist design.
-    2. Mention specific fonts and colors from the analysis.
-    3. Specify "single unified vertical continuous artwork, 2x3 grid, totaling 6 slides".
-    4. Emphasize "ample white space, professional layout, no borders between slides".
-    5. The prompt should be in English.
+    TYPOGRAPHY & LAYOUT GUIDELINES:
+    1. MINIMALISM: Use ample white space. Do NOT crowd the slides.
+    2. VISUAL HIERARCHY: Titles must be significantly LARGER and BOLDER than the body text.
+    3. ALIGNMENT: Strict grid alignment. Place exactly one title+body pair on each of the 6 slides.
+    4. NO BORDERS: Absolutely no grid lines, borders, or dividers between slides.
+    5. SEAMLESS FLOW: The background design must flow fluidly and continuously across the entire 2x3 canvas.
+    6. TEXT PLACEMENT: Ensure text is vertically and horizontally centered within each slide's zone. Do NOT split text between slides.
     
-    Return ONLY the prompt string.
+    Return ONLY the Midjourney-style prompt string in English.
   `;
 
   const response = await axios.post(
