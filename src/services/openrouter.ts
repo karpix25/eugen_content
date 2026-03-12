@@ -98,12 +98,12 @@ export const detectLanguage = async (text: string): Promise<string | null> => {
   }
 };
 
-export const generateCarouselScript = async (transcript: string, topic: string, styleId?: string): Promise<CarouselSlide[]> => {
+export const generateCarouselScript = async (transcript: string, topic: string, styleId?: string, lang: string = 'ru'): Promise<CarouselSlide[]> => {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
 
   let styleInstruction = "Corporate professional, minimalist, and authoritative. Avoid fluff.";
   if (styleId === 'ios-notes') {
-    styleInstruction = "Casual, friendly, yet highly informative. Use bullet points and occasionally relevant emojis. Like a digital sticky note.";
+    styleInstruction = "Aesthetic: Digital Sticky Note / iOS Notes app. Text should look like handwritten-but-clean notes or quick thoughts. Use bullet points (-) for the body where it makes sense. Occasionally use simple system emojis (💡, ✅, 📌). Layout should feel spacious and informal but clear.";
   } else if (styleId === 'dark-luxury') {
     styleInstruction = "High-end, sophisticated, extremely minimalist. Punchy headers and high-value insights. Very professional.";
   } else if (styleId === 'cyber-brutalist') {
@@ -113,6 +113,8 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
   const prompt = `
     You are a world-class social media copywriter specializing in high-retention Instagram carousels.
     Base your writing on this topic: "${topic}" and this transcript: "${transcript}".
+    
+    IMPORTANT: You must write the entire script in this language: ${lang === 'ru' ? 'Russian' : 'English'}.
     
     RULES:
     1. STYLE: ${styleInstruction}

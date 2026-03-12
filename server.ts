@@ -1413,9 +1413,9 @@ async function startServer() {
       let analysis: any;
       if (['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(styleId)) {
         const templates: any = {
-          'ios-notes': { prompt: "Aesthetic: iOS Notes app. Background: Light cream/off-white paper texture. Typography: Clean system sans-serif (Inter). Accents: Subtle yellow highlights. Layout: Minimalist, organized." },
-          'dark-luxury': { prompt: "Aesthetic: Premium Dark Minimalist. Background: Pure black (#000000). Typography: High-contrast white. Mix of bold sans-serif and elegant italic serifs. Layout: Spacious, high-end feel." },
-          'cyber-brutalist': { prompt: "Aesthetic: Modern Cyber Brutalist. Background: Dark charcoal. Typography: Bold sans-serif and Monospace. Accents: Neon green or electric blue. Layout: Thick borders, edgy." }
+          'ios-notes': { prompt: "Aesthetic: iOS Notes app. Background: Light cream/off-white paper texture. Typography: Clean system sans-serif (Inter). Accents: Subtle yellow highlights, a 'Done' button style in top right corner, and a checklist icon in the bottom menu. Layout: Minimalist, organized, feels like a curated digital note." },
+          'dark-luxury': { prompt: "Aesthetic: Premium Dark Minimalist. Background: Pure black (#000000). Typography: High-contrast white. Mix of bold sans-serif and elegant italic serifs. Layout: Thin dividers, spacious, high-end fashion magazine feel." },
+          'cyber-brutalist': { prompt: "Aesthetic: Modern Cyber Brutalist. Background: Dark charcoal. Typography: Bold sans-serif and Monospace. Accents: Neon green or electric blue. Layout: Thick borders, aggressive headings, technical and edgy." }
         };
         analysis = templates[styleId];
       } else {
@@ -1433,7 +1433,11 @@ async function startServer() {
       // Background pipeline
       (async () => {
         try {
-          const script = await generateCarouselScript(transcript, topic || title, styleId);
+          // Detect language
+          const detectedLang = await detectLanguage(transcript) || 'ru';
+          console.log(`Detected language for carousel ${carouselId}: ${detectedLang}`);
+
+          const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang);
           const gridUrl = await generateGridImage(script, analysis);
           
           const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
