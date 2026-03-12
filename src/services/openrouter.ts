@@ -103,7 +103,7 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
 
   let styleInstruction = "Corporate professional, minimalist, and authoritative. Avoid fluff.";
   if (styleId === 'ios-notes') {
-    styleInstruction = "Aesthetic: Digital Sticky Note / iOS Notes app. Text should look like handwritten-but-clean notes or quick thoughts. Use bullet points (-) for the body where it makes sense. Occasionally use simple system emojis (💡, ✅, 📌). Layout should feel spacious and informal but clear.";
+    styleInstruction = "Aesthetic: Digital Sticky Note / iOS Notes app. Text should look like handwritten-but-clean notes or quick thoughts. Use bullet points (-) for the body. Use professional emojis sparingly (💡, ✅, 📌). Layout should feel spacious and informal but clear.";
   } else if (styleId === 'dark-luxury') {
     styleInstruction = "High-end, sophisticated, extremely minimalist. Punchy headers and high-value insights. Very professional.";
   } else if (styleId === 'cyber-brutalist') {
@@ -120,7 +120,7 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     
     PHASE 1: CONTENT MINING (Internal Monologue)
     - Identify the single most provocative, counter-intuitive, or valuable "Diamond Insight" in the transcript.
-    - Ignore generic fluff. Find the core "Aha!" moment.
+    - Ignore generic fluff. Find the core expert wisdom.
     
     PHASE 2: STRATEGIC TRIGGER SELECTION
     Select the most effective psychological trigger for Slide 1 based on the insight:
@@ -131,7 +131,7 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     
     PHASE 3: NARRATIVE MAPPING (The Strategic Pivot)
     Plan the bridge between each slide:
-    1. THE DISRUPTION: Use the selected trigger. Bridge to why the status quo is trap.
+    1. THE DISRUPTION: Use the selected trigger. Bridge to why the status quo is a trap.
     2. THE STATUS QUO TRAP: The "Cost of Inaction." Bridge to the solution.
     3. THE STRATEGIC PIVOT: The "Diamond Insight." Bridge to the mechanics.
     4. THE MECHANICS: How it works. Bridge to the ROI.
@@ -139,16 +139,18 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     6. THE VISIONARY CTA: Closing statement + Professional Call to Action.
     
     PHASE 4: FINAL SCRIPTING
-    Apply the following constraints:
+    Apply the following constraints (MANDATORY):
+    - NO NAVIGATION CUES: Never write "Что дальше?", "Next slide", or use arrow emojis (➡️) for navigation. It looks cheap.
+    - NO REPETITION: Every slide must stand on its own but flow into the next using a narrative hook.
     - STYLE: ${styleInstruction}
-    - CONTINUITY: Every slide must end with a thought or phrasing that pulls the reader into the next slide.
+    - DEPTH: Write for experts, not beginners. Avoid primitive phrases.
     - LANGUAGE: Everything (except for JSON keys) must be in ${lang === 'ru' ? 'Russian' : 'English'}.
-    - WORD LIMITS: Title: Max 6 words. Body: Max 18 words.
+    - WORD LIMITS: Title: Max 6 words. Body: Max 25 words (aim for density).
     
     OUTPUT FORMAT:
     Return ONLY a JSON object with two fields: "thinking" (your reasoning for steps 1-3) and "slides" (the final 6 objects).
     Example: {
-      "thinking": "Analysis of the transcript...",
+      "thinking": "Analysis...",
       "slides": [{"title": "...", "body": "..."}]
     }
   `;
