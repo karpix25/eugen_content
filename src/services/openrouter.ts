@@ -98,9 +98,10 @@ export const detectLanguage = async (text: string): Promise<string | null> => {
   }
 };
 
-export const generateCarouselScript = async (transcript: string, topic: string, styleId?: string, lang: string = 'ru'): Promise<CarouselSlide[]> => {
+export const generateCarouselScript = async (transcript: string, topic: string, styleId?: string, lang: string = 'ru', targetAudience?: string): Promise<CarouselSlide[]> => {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
 
+  const ta = targetAudience || "Entrepreneurs interested in AI and automation";
   let styleInstruction = "Corporate professional, minimalist, and authoritative. Avoid fluff.";
   if (styleId === 'ios-notes') {
     styleInstruction = "Aesthetic: Digital Sticky Note / iOS Notes app. Text should look like handwritten-but-clean notes or quick thoughts. Use bullet points (-) for the body. Use professional emojis sparingly (💡, ✅, 📌). Layout should feel spacious and informal but clear.";
@@ -111,48 +112,42 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
   }
 
   const prompt = `
-    You are a Strategic Chief Content Officer for high-net-worth audiences. 
-    Your mission is to perform deep reasoning to create a hyper-cohesive 6-slide Instagram carousel script.
+    You are a Strategic Chief Content Officer communicating AS an expert TO another expert.
     
+    Target Audience: "${ta}"
     Topic: "${topic}"
     Transcript Content: "${transcript}"
     Language: ${lang === 'ru' ? 'Russian' : 'English'}
     
+    Your mission is to perform deep reasoning to create a hyper-cohesive 6-slide Instagram carousel script that provides ACTUAL VALUE.
+    
+    CRITICAL RULES FOR TONE & CONTENT:
+    1. EXPERT-TO-EXPERT: Treat the reader as an equal. Do not explain basic concepts. Use sophisticated business/technical vocabulary.
+    2. NO MARKETING CLICHES: Strictly avoid "Stop lying to yourself", "Price of inaction", "The secret to...", "Call me", "Ready to start?", "Don't miss out", or similar cheap sales tactics.
+    3. BROAD BUT INTELLECTUAL HOOK: Slide 1 must be intriguing to a wider professional audience but maintain a high intellectual bar. Avoid "clickbait." 
+    4. NO CHEAP NAVIGATION: Never write "Next slide", "Swipe", or use ➡️ emojis for movement. Use narrative logic to pull the reader through.
+    5. VALUE-LED CONCLUSION: Slide 6 is NOT a sales pitch. It is a visionary closing thought, a strategic summary, or a mental model that leaves the reader with a new perspective.
+    
     PHASE 1: CONTENT MINING (Internal Monologue)
-    - Identify the single most provocative, counter-intuitive, or valuable "Diamond Insight" in the transcript.
-    - Ignore generic fluff. Find the core expert wisdom.
+    - Identify the single "Cold Hard Truth" or "Hidden Efficiency" in the transcript.
     
-    PHASE 2: STRATEGIC TRIGGER SELECTION
-    Select the most effective psychological trigger for Slide 1 based on the insight:
-    - [The Impossible Result]: High achievment with minimal effort/cost.
-    - [The Expensive Mistake]: A common industry practice that is actually killing ROI.
-    - [The Secret Framework]: A unique methodology revealed in the transcript.
-    - [The Industry Lie]: Challenging a status quo belief.
-    
-    PHASE 3: NARRATIVE MAPPING (The Strategic Pivot)
+    PHASE 2: NARRATIVE MAPPING (The Strategic Pivot)
     Plan the bridge between each slide:
-    1. THE DISRUPTION: Use the selected trigger. Bridge to why the status quo is a trap.
-    2. THE STATUS QUO TRAP: The "Cost of Inaction." Bridge to the solution.
-    3. THE STRATEGIC PIVOT: The "Diamond Insight." Bridge to the mechanics.
-    4. THE MECHANICS: How it works. Bridge to the ROI.
-    5. THE COMPETITIVE ADVANTAGE: Business impact. Bridge to the next level.
-    6. THE VISIONARY CTA: Closing statement + Professional Call to Action.
+    1. THE HOOK: A broad but sophisticated entry point into the specific problem.
+    2. THE COMPLICATION: Why standard solutions/beliefs fail in this context.
+    3. THE PIVOT: The core expert insight that changes the perspective.
+    4. THE MECHANISM: How exactly this insight applies technically or strategically.
+    5. THE SCALE: The organizational or systemic impact of this implementation.
+    6. THE SYNTHESIS: A closing high-level reflection (Expert-tier insight).
     
     PHASE 4: FINAL SCRIPTING
-    Apply the following constraints (MANDATORY):
-    - NO NAVIGATION CUES: Never write "Что дальше?", "Next slide", or use arrow emojis (➡️) for navigation. It looks cheap.
-    - NO REPETITION: Every slide must stand on its own but flow into the next using a narrative hook.
+    Apply constraints (MANDATORY):
     - STYLE: ${styleInstruction}
-    - DEPTH: Write for experts, not beginners. Avoid primitive phrases.
     - LANGUAGE: Everything (except for JSON keys) must be in ${lang === 'ru' ? 'Russian' : 'English'}.
-    - WORD LIMITS: Title: Max 6 words. Body: Max 25 words (aim for density).
+    - WORD LIMITS: Title: Max 6 words. Body: Max 25 words (aim for density and precision).
     
     OUTPUT FORMAT:
-    Return ONLY a JSON object with two fields: "thinking" (your reasoning for steps 1-3) and "slides" (the final 6 objects).
-    Example: {
-      "thinking": "Analysis...",
-      "slides": [{"title": "...", "body": "..."}]
-    }
+    Return ONLY a JSON object with two fields: "thinking" and "slides".
   `;
 
   const response = await axios.post(

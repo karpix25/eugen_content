@@ -14,10 +14,11 @@ interface CarouselStyle {
 interface CarouselWizardProps {
   clip: { id: string; title: string, transcript: string };
   authToken: string;
+  targetAudience: string;
   onClose: () => void;
 }
 
-export default function CarouselWizard({ clip, authToken, onClose }: CarouselWizardProps) {
+export default function CarouselWizard({ clip, authToken, targetAudience, onClose }: CarouselWizardProps) {
   const [step, setStep] = useState<'style' | 'progress' | 'success'>('style');
   const [topic, setTopic] = useState(clip.title);
   const [styles, setStyles] = useState<CarouselStyle[]>([]);
@@ -57,7 +58,7 @@ export default function CarouselWizard({ clip, authToken, onClose }: CarouselWiz
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({ clipId: clip.id, styleId: selectedStyleId, topic })
+        body: JSON.stringify({ clipId: clip.id, styleId: selectedStyleId, topic, targetAudience })
       });
       const data = await res.json();
       setCarouselId(data.carouselId);

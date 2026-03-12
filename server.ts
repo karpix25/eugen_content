@@ -1403,7 +1403,7 @@ async function startServer() {
 
   // --- Carousel Generation ---
   app.post("/api/carousel/generate", authenticateToken, async (req: any, res) => {
-    const { clipId, styleId, topic } = req.body;
+    const { clipId, styleId, topic, targetAudience } = req.body;
     
     try {
       const clipRes = await query("SELECT transcript, title FROM clips WHERE id = $1", [clipId]);
@@ -1437,7 +1437,7 @@ async function startServer() {
           const detectedLang = await detectLanguage(transcript) || 'ru';
           console.log(`Detected language for carousel ${carouselId}: ${detectedLang}`);
 
-          const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang);
+          const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
           const gridUrl = await generateGridImage(script, analysis);
           
           const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');

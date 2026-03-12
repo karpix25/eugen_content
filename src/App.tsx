@@ -943,6 +943,7 @@ export default function App() {
           <CarouselWizard 
             clip={activeCarouselClip} 
             authToken={authToken || ""} 
+            targetAudience={targetAudience}
             onClose={() => setActiveCarouselClip(null)} 
           />
         )}
