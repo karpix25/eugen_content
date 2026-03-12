@@ -939,6 +939,16 @@ export default function App() {
       </main>
 
       <AnimatePresence>
+        {activeCarouselClip && (
+          <CarouselWizard 
+            clip={activeCarouselClip} 
+            authToken={authToken || ""} 
+            onClose={() => setActiveCarouselClip(null)} 
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {selectedWorker && (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4 md:p-8">
             <motion.div
@@ -2080,15 +2090,7 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
           </div>
         </div>
       </div>
-      <AnimatePresence>
-        {activeCarouselClip && authToken && (
-          <CarouselWizard 
-            clip={activeCarouselClip} 
-            authToken={authToken} 
-            onClose={() => setActiveCarouselClip(null)} 
-          />
-        )}
-      </AnimatePresence>
+      
     </div>
     </div>
   );
