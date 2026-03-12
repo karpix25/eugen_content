@@ -74,7 +74,7 @@ const getSubtitleStyle = (config: any, assColor: string, highlightColor: string,
     } else if (styleName === 'sage') {
         return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00FFFFFF&,BackColour=&H00FFFFFF&,BorderStyle=1,Outline=2,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
     }
-    
+
     // Default Style (Clean Outline, No Box)
     return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=${outlineColor},BackColour=&H00000000&,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV},MarginL=10,MarginR=10`;
 };
@@ -210,20 +210,24 @@ export const processClip = async (
                 command = command.input(tempPlaqueFile.replace(/\\/g, '/')).inputOptions('-loop 1');
                 const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(currentVideoUrl, (err, meta) => res(meta)));
 
-                filters.push({ filter: 'setsar', options: '1', inputs: '[1:v]', outputs: '[plaque_in]' });
-                // Scale plaque relative to the normalized video width
-                filters.push({ filter: 'scale2ref', options: `w=ref_w*${(plaqueConfig?.size || 40) / 100}:h=-1`, inputs: ['[plaque_in]', lastOutput], outputs: ['[plaque]', '[bg_ref]'] });
-                
+                const plaqueWidth = Math.floor(720 * (plaqueConfig?.size || 40) / 100);
+                filters.push({ 
+                    filter: 'scale', 
+                    options: `w=${plaqueWidth}:h=-1`, 
+                    inputs: '[1:v]', 
+                    outputs: '[plaque_scaled]' 
+                });
+
                 let y = plaqueConfig?.position === 'top' ? 'H*0.1' : plaqueConfig?.position === 'center' ? '(H-h)/2' : 'H-h-H*0.1';
                 let enable = '';
                 if (plaqueConfig?.timerange && metadata?.format?.duration) {
                     enable = `:enable='gte(t,${Math.random() * metadata.format.duration * (plaqueConfig.timerange / 100)})'`;
                 }
-                filters.push({ 
-                    filter: 'overlay', 
-                    options: `x=(W-w)/2:y=${y}:shortest=1${enable}`, 
-                    inputs: ['[bg_ref]', '[plaque]'], 
-                    outputs: '[with_plaque]' 
+                filters.push({
+                    filter: 'overlay',
+                    options: `x=(W-w)/2:y=${y}:shortest=1${enable}`,
+                    inputs: [lastOutput, '[plaque_scaled]'],
+                    outputs: '[with_plaque]'
                 });
                 lastOutput = '[with_plaque]';
             }
