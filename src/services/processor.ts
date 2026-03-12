@@ -200,19 +200,11 @@ export const processClip = async (
             let command = ffmpeg(currentVideoUrl);
 
             // 4a. Normalize Background Video to 1080x1920 (Full HD Vertical)
-            // We apply setsar=1 FIRST to clear any weird aspect ratio metadata
-            // Then scale to fit within 1080x1920 while preserving proportions
-            // Then pad to create the exact 1080x1920 canvas
-            filters.push({ 
-                filter: 'setsar', 
-                options: '1', 
-                inputs: '[0:v]', 
-                outputs: '[sar_v]' 
-            });
+            // We scale and pad FIRST to allow FFmpeg to handle source rotation metadata correctly.
             filters.push({ 
                 filter: 'scale', 
                 options: 'w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
-                inputs: '[sar_v]', 
+                inputs: '[0:v]', 
                 outputs: '[scaled_v]' 
             });
             filters.push({ 
@@ -222,9 +214,15 @@ export const processClip = async (
                 outputs: '[padded_v]' 
             });
             filters.push({ 
+                filter: 'setsar', 
+                options: '1', 
+                inputs: '[padded_v]', 
+                outputs: '[sar_v]' 
+            });
+            filters.push({ 
                 filter: 'format', 
                 options: 'yuv420p', 
-                inputs: '[padded_v]', 
+                inputs: '[sar_v]', 
                 outputs: '[normalized_v]' 
             });
             lastOutput = '[normalized_v]';
@@ -293,7 +291,7 @@ export const processClip = async (
 
             return new Promise((resolve, reject) => {
                 command.complexFilter(filters, lastOutput)
-                    .videoCodec('libx264').audioCodec('aac').outputOptions(['-map', '0:a?', '-crf', '18', '-preset', 'fast'])
+                    .videoCodec('libx264').audioCodec('aac').outputOptions(['-map', '0:a?', '-crf', '18', '-preset', 'fast', '-aspect', '9:16'])
                     .on('start', cmd => console.log('FFmpeg command:', cmd))
                     .on('progress', p => console.log(`Processing ${clipId}: ${p.percent}%`))
                     .on('end', async () => {
