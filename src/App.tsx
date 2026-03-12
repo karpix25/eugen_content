@@ -31,7 +31,8 @@ import {
   Trash2,
   Users,
   LogOut,
-  Zap
+  Zap,
+  Layout
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -843,6 +844,23 @@ export default function App() {
                           alert("Ошибка сети при отправке видео");
                         }
                       }}
+                      onSendCarousel={async (clipId) => {
+                        try {
+                          const head = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+                          const r = await fetch(`/api/clips/${clipId}/carousel`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...head }
+                          });
+                          if (!r.ok) {
+                            const e = await r.json();
+                            alert(e.error || "Ошибка при генерации карусели");
+                          } else {
+                            alert("Карусель скриншотов успешно отправлена вам в Telegram!");
+                          }
+                        } catch (e) {
+                          alert("Ошибка сети при отправке карусели");
+                        }
+                      }}
                     />
                   ))}
                   {visibleClips.length === 0 && (
@@ -1152,11 +1170,12 @@ function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: {
     </>
   );
 }
-function ClipCard({ clip, plaques, onSendToTelegram, currentUserProfile }: { clip: Clip, plaques: AdPlaque[], onSendToTelegram?: (clipId: string, plaqueId: string | null) => void, currentUserProfile?: any }) {
+function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, currentUserProfile }: { clip: Clip, plaques: AdPlaque[], onSendToTelegram?: (clipId: string, plaqueId: string | null) => void, onSendCarousel?: (clipId: string) => void, currentUserProfile?: any }) {
   const [randomPlaque, setRandomPlaque] = useState<AdPlaque | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlaqueSelector, setShowPlaqueSelector] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isSendingCarousel, setIsSendingCarousel] = useState(false);
 
   const applyRandomPlaque = () => {
     if (plaques.length === 0) return;
@@ -1172,6 +1191,16 @@ function ClipCard({ clip, plaques, onSendToTelegram, currentUserProfile }: { cli
       await onSendToTelegram(clip.id, plaqueId);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleSendCarousel = async () => {
+    if (!onSendCarousel) return;
+    setIsSendingCarousel(true);
+    try {
+      await onSendCarousel(clip.id);
+    } finally {
+      setIsSendingCarousel(false);
     }
   };
 
@@ -1263,6 +1292,12 @@ function ClipCard({ clip, plaques, onSendToTelegram, currentUserProfile }: { cli
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Рендеринг и отправка...</p>
             </div>
           )}
+          {isSendingCarousel && (
+            <div className="absolute inset-0 z-40 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
+              <Loader2 className="w-10 h-10 text-[#229ED9] mb-3 animate-spin" />
+              <p className="text-xs font-bold uppercase tracking-widest text-[#229ED9]">Создание карусели...</p>
+            </div>
+          )}
         </div>
 
         <div className="p-4">
@@ -1286,13 +1321,20 @@ function ClipCard({ clip, plaques, onSendToTelegram, currentUserProfile }: { cli
             </div>
           )}
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={() => setShowPlaqueSelector(true)}
-              disabled={!clip.is_available || isSending || !onSendToTelegram}
+              disabled={!clip.is_available || isSending || isSendingCarousel || !onSendToTelegram}
+              className="flex-1 text-[11px] uppercase tracking-widest font-black py-3 bg-emerald-500 text-black rounded-xl hover:bg-emerald-400 transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
+            >
+              <Send className="w-3 h-3" /> {clip.published_by_me ? 'ВИДЕО ЕЩЕ РАЗ' : 'ВИДЕО'}
+            </button>
+            <button
+              onClick={handleSendCarousel}
+              disabled={!clip.is_available || isSending || isSendingCarousel || !onSendCarousel}
               className="flex-1 text-[11px] uppercase tracking-widest font-black py-3 bg-[#229ED9] text-white rounded-xl hover:bg-[#1f8ebf] transition-all shadow-[0_4px_20px_rgba(34,158,217,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
             >
-              <Send className="w-3 h-3" /> {clip.published_by_me ? 'Отправить еще раз' : 'В Telegram с плашкой'}
+              <Layout className="w-3 h-3" /> КАРУСЕЛЬ
             </button>
           </div>
         </div>

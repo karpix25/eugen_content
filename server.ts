@@ -30,7 +30,7 @@ import { evaluateContent, translateText, detectLanguage } from "./src/services/o
 import { sendToVizard, getVizardProjectStatus } from "./src/services/vizard.js";
 import { downloadYouTubeVideo } from "./src/services/video-downloader.js";
 import { startBot } from "./src/services/telegram.js";
-import { processClip } from "./src/services/processor.js";
+import { processClip, extractScreenshots } from "./src/services/processor.js";
 import cron from "node-cron";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -1093,6 +1093,60 @@ async function startServer() {
     } catch (err) {
       console.error("Apply plaque error:", err);
       res.status(500).json({ error: "Failed to process video" });
+    }
+  });
+
+  app.post("/api/clips/:id/carousel", async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: "Missing authorization token" });
+
+    let decodedUser: any;
+    try {
+      decodedUser = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(403).json({ error: "Invalid token" });
+    }
+
+    const { id } = req.params;
+    const telegramId = decodedUser.telegram_id || decodedUser.id;
+
+    try {
+      const clipRes = await query("SELECT * FROM clips WHERE id = $1", [id]);
+      if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
+      const clip = clipRes.rows[0];
+
+      // Use the raw video URL for screenshots to avoid processing overhead
+      const screenshotPaths = await extractScreenshots(clip.url, id, 5);
+      
+      const { bot } = await import("./src/services/telegram.js");
+      const fs = await import('fs');
+
+      if (telegramId !== 'dev') {
+        const mediaGroup = screenshotPaths.map((p, idx) => ({
+          type: 'photo' as const,
+          media: { source: fs.createReadStream(p) },
+          caption: idx === 0 ? `🖼️ Карусель скриншотов: ${clip.title}` : undefined
+        }));
+
+        await bot.telegram.sendMediaGroup(telegramId, mediaGroup);
+
+        // Cleanup screenshots
+        screenshotPaths.forEach(p => fs.unlinkSync(p));
+        const dir = path.dirname(screenshotPaths[0]);
+        if (fs.existsSync(dir)) {
+          try {
+            fs.rmdirSync(dir);
+          } catch (e) {
+            console.error("Failed to remove screenshots directory:", e);
+          }
+        }
+      }
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Carousel generation error:", err);
+      res.status(500).json({ error: "Failed to generate carousel" });
     }
   });
 

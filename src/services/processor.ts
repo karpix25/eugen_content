@@ -373,3 +373,42 @@ export const processClip = async (
     }
 };
 
+export const extractScreenshots = async (videoUrl: string, clipId: string, count: number = 5): Promise<string[]> => {
+    const outputDir = path.join(process.cwd(), 'temp', 'screenshots', clipId);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const screenshots: string[] = [];
+    const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(videoUrl, (err, meta) => res(meta)));
+    const duration = metadata?.format?.duration || 0;
+
+    if (duration === 0) throw new Error("Could not determine video duration");
+
+    return new Promise((resolve, reject) => {
+        const command = ffmpeg(videoUrl);
+        const interval = duration / (count + 1);
+        
+        const timestamps: string[] = [];
+        for (let i = 1; i <= count; i++) {
+            timestamps.push((i * interval).toFixed(2));
+        }
+
+        command
+            .on('end', () => {
+                const files = fs.readdirSync(outputDir).filter(f => f.endsWith('.jpg')).sort();
+                resolve(files.map(f => path.join(outputDir, f)));
+            })
+            .on('error', (err) => {
+                console.error(`Screenshot extraction failed for ${clipId}:`, err);
+                reject(err);
+            })
+            .screenshots({
+                count,
+                timemarks: timestamps,
+                folder: outputDir,
+                filename: 'screenshot-%i.jpg',
+                size: '1080x1920'
+            });
+    });
+};
