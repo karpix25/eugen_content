@@ -197,42 +197,58 @@ export const processClip = async (
         if (finalPlaqueUrl || watermarkConfig || srtFilePath) {
             const filters: any[] = [];
             let lastOutput = '[0:v]';
-            let command = ffmpeg(currentVideoUrl);
+            const command = ffmpeg(currentVideoUrl);
 
-            // 4a. Normalize Background Video to 1080x1920 (Full HD Vertical)
-            // We scale and pad FIRST to allow FFmpeg to handle source rotation metadata correctly.
-            filters.push({ 
-                filter: 'scale', 
-                options: 'w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
-                inputs: '[0:v]', 
-                outputs: '[scaled_v]' 
-            });
-            filters.push({ 
-                filter: 'pad', 
-                options: '1080:1920:(1080-iw)/2:(1920-ih)/2:color=black', 
-                inputs: '[scaled_v]', 
-                outputs: '[padded_v]' 
-            });
-            filters.push({ 
-                filter: 'setsar', 
-                options: '1', 
-                inputs: '[padded_v]', 
-                outputs: '[sar_v]' 
-            });
-            filters.push({ 
-                filter: 'format', 
-                options: 'yuv420p', 
-                inputs: '[sar_v]', 
-                outputs: '[normalized_v]' 
-            });
-            lastOutput = '[normalized_v]';
+            // 4a. Probe video to get real dimensions (handling rotation)
+            const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(currentVideoUrl, (err, meta) => res(meta)));
+            const videoStream = metadata?.streams.find((s: any) => s.codec_type === 'video');
+            const rotation = videoStream?.side_data_list?.find((sd: any) => sd.side_data_type === 'Display Matrix')?.rotation || 0;
+            
+            let originalW = parseInt(videoStream?.width || '1080');
+            let originalH = parseInt(videoStream?.height || '1920');
+            
+            // If rotated 90 or 270, width and height are swapped for display
+            const isRotated = Math.abs(rotation) === 90 || Math.abs(rotation) === 270;
+            const effectiveW = isRotated ? originalH : originalW;
+            const effectiveH = isRotated ? originalW : originalH;
 
-            // 4b. Plaque
+            console.log(`[Processor] Video dimensions: ${originalW}x${originalH}, rotation: ${rotation}, effective: ${effectiveW}x${effectiveH}`);
+
+            // 4b. Normalize ONLY if needed
+            if (effectiveW !== 1080 || effectiveH !== 1920) {
+                console.log(`[Processor] Normalizing video to 1080x1920...`);
+                filters.push({ 
+                    filter: 'scale', 
+                    options: 'w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
+                    inputs: '[0:v]', 
+                    outputs: '[scaled_v]' 
+                });
+                filters.push({ 
+                    filter: 'pad', 
+                    options: '1080:1920:(1080-iw)/2:(1920-ih)/2:color=black', 
+                    inputs: '[scaled_v]', 
+                    outputs: '[normalized_v]' 
+                });
+                lastOutput = '[normalized_v]';
+            }
+
+            // Ensure consistent pixel format
+            filters.push({
+                filter: 'format',
+                options: 'yuv420p',
+                inputs: [lastOutput],
+                outputs: '[formatted_v]'
+            });
+            lastOutput = '[formatted_v]';
+
+            // 4c. Plaque
             if (finalPlaqueUrl) {
-                command = command.input(tempPlaqueFile.replace(/\\/g, '/')).inputOptions('-loop 1');
-                const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(currentVideoUrl, (err, meta) => res(meta)));
-
-                const plaqueWidth = Math.floor(1080 * (plaqueConfig?.size || 40) / 100);
+                command.input(tempPlaqueFile.replace(/\\/g, '/')).inputOptions('-loop 1');
+                
+                // Scale plaque relative to the final video width (1080 after normalization or already 1080)
+                const targetBaseW = 1080; 
+                const plaqueWidth = Math.floor(targetBaseW * (plaqueConfig?.size || 40) / 100);
+                
                 filters.push({ 
                     filter: 'scale', 
                     options: `w=${plaqueWidth}:h=-1`, 
