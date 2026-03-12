@@ -214,12 +214,17 @@ export const processClip = async (
                 // Scale plaque relative to the normalized video width
                 filters.push({ filter: 'scale2ref', options: `w=ref_w*${(plaqueConfig?.size || 40) / 100}:h=-1`, inputs: ['[plaque_in]', lastOutput], outputs: ['[plaque]', '[bg_ref]'] });
                 
-                let y = plaqueConfig?.position === 'top' ? '30' : plaqueConfig?.position === 'center' ? '(H-h)/2' : 'H-h-50';
+                let y = plaqueConfig?.position === 'top' ? 'H*0.1' : plaqueConfig?.position === 'center' ? '(H-h)/2' : 'H-h-H*0.1';
                 let enable = '';
                 if (plaqueConfig?.timerange && metadata?.format?.duration) {
                     enable = `:enable='gte(t,${Math.random() * metadata.format.duration * (plaqueConfig.timerange / 100)})'`;
                 }
-                filters.push({ filter: 'overlay', options: `(W-w)/2:${y}${enable}:shortest=1`, inputs: ['[bg_ref]', '[plaque]'], outputs: '[with_plaque]' });
+                filters.push({ 
+                    filter: 'overlay', 
+                    options: `x=(W-w)/2:y=${y}:shortest=1${enable}`, 
+                    inputs: ['[bg_ref]', '[plaque]'], 
+                    outputs: '[with_plaque]' 
+                });
                 lastOutput = '[with_plaque]';
             }
 
