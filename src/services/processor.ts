@@ -202,25 +202,25 @@ export const processClip = async (
             // 4a. Normalize Background Video to 1080x1920 (Vertical)
             filters.push({ 
                 filter: 'scale', 
-                options: '1080:1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
+                options: 'w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
                 inputs: '[0:v]', 
                 outputs: '[scaled_v]' 
             });
             filters.push({ 
                 filter: 'pad', 
-                options: '1080:1920:(ow-iw)/2:(oh-ih)/2:color=black', 
+                options: 'w=1080:h=1920:x=(ow-iw)/2:y=(oh-ih)/2:color=black', 
                 inputs: '[scaled_v]', 
                 outputs: '[padded_v]' 
             });
             filters.push({ 
                 filter: 'format', 
-                options: 'yuv420p', 
+                options: 'pix_fmts=yuv420p', 
                 inputs: '[padded_v]', 
                 outputs: '[formatted_v]' 
             });
             filters.push({ 
                 filter: 'setsar', 
-                options: '1', 
+                options: 'sar=1/1', 
                 inputs: '[formatted_v]', 
                 outputs: '[normalized_v]' 
             });
@@ -295,14 +295,24 @@ export const processClip = async (
                     .on('progress', p => console.log(`Processing ${clipId}: ${p.percent}%`))
                     .on('end', async () => {
                         console.log('FFmpeg finished.');
-                        if (skipS3Upload) {
-                            await query("UPDATE clips SET status = 'processed' WHERE id = $1", [clipId]);
-                            resolve(outputPath);
-                        } else {
-                            const res = await uploadToS3(fs.readFileSync(outputPath), `processed/${outputFileName}`, 'video/mp4');
-                            await query("UPDATE clips SET status = 'processed', url = $1 WHERE id = $2", [res.Location, clipId]);
+                        try {
+                            if (!fs.existsSync(outputPath)) {
+                                throw new Error(`Output file not found at: ${outputPath}`);
+                            }
+                            if (skipS3Upload) {
+                                await query("UPDATE clips SET status = 'processed' WHERE id = $1", [clipId]);
+                                resolve(outputPath);
+                            } else {
+                                const fileBuffer = fs.readFileSync(outputPath);
+                                const res = await uploadToS3(fileBuffer, `processed/${outputFileName}`, 'video/mp4');
+                                await query("UPDATE clips SET status = 'processed', url = $1 WHERE id = $2", [res.Location, clipId]);
+                                cleanupFiles();
+                                resolve(res.Location || "");
+                            }
+                        } catch (err) {
+                            console.error('Post-processing error:', err);
                             cleanupFiles();
-                            resolve(res.Location || "");
+                            reject(err);
                         }
                     })
                     .on('error', (err) => { console.error('FFmpeg error:', err); cleanupFiles(); reject(err); })
