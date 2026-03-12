@@ -260,16 +260,30 @@ export const processClip = async (
                     command = command.input(escapedPlaquePath).inputOptions('-loop 1');
 
                     // Use plaqueConfig for size (percentage of video width) and position
-                    const pSize = plaqueConfig?.size || 80;
+                    const pSize = plaqueConfig?.size || 40;
                     const pPosition = plaqueConfig?.position || 'top';
                     const pTimerange = plaqueConfig?.timerange || 0;
 
-                    // Scale plaque relative to the main video width (rw) and preserve aspect ratio
+                    // Split the background video: [ref_bg] for scaling calculation, [actual_bg] for the real overlay
+                    filters.push({
+                        filter: 'split',
+                        inputs: lastOutput,
+                        outputs: ['[actual_bg]', '[ref_bg]']
+                    });
+
+                    // Scale plaque relative to the [ref_bg] width (rw).
+                    // We discard the [unused_ref] because we use [actual_bg] for the final overlay to avoid stretching the main video.
                     filters.push({
                         filter: 'scale2ref',
                         options: `w=rw*${pSize/100}:h=-1:force_original_aspect_ratio=decrease`,
-                        inputs: ['[1:v]', lastOutput],
-                        outputs: ['[plaque_raw]', '[ref]']
+                        inputs: ['[1:v]', '[ref_bg]'],
+                        outputs: ['[plaque_raw]', '[unused_ref]']
+                    });
+
+                    // Consume the unused reference output from scale2ref
+                    filters.push({
+                        filter: 'nullsink',
+                        inputs: '[unused_ref]'
                     });
 
                     // Normalize SAR for the plaque to prevent stretching on non-square SAR videos
@@ -279,6 +293,8 @@ export const processClip = async (
                         inputs: '[plaque_raw]',
                         outputs: '[plaque]'
                     });
+
+                    lastOutput = '[actual_bg]';
 
                     // Position: center horizontally, vertical depends on setting
                     // x = (W-w)/2   centers the plaque
@@ -312,7 +328,7 @@ export const processClip = async (
                     filters.push({
                         filter: 'overlay',
                         options: `(W-w)/2:${overlayY}${enableFilter}:shortest=1`,
-                        inputs: ['[ref]', '[plaque]'],
+                        inputs: [lastOutput, '[plaque]'],
                         outputs: '[with_plaque]'
                     });
                     lastOutput = '[with_plaque]';
