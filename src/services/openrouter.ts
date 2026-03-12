@@ -111,27 +111,33 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
   }
 
   const prompt = `
-    You are a world-class social media copywriter specializing in high-retention Instagram carousels.
-    Base your writing on this topic: "${topic}" and this transcript: "${transcript}".
+    You are a world-class Chief Content Officer and Strategic Storyteller for high-net-worth business audiences. 
+    Your goal is to transform raw content into a high-stakes, logically cohesive narrative for an Instagram carousel.
+    
+    Topic: "${topic}"
+    Transcript Content: "${transcript}"
     
     IMPORTANT: You must write the entire script in this language: ${lang === 'ru' ? 'Russian' : 'English'}.
     
-    RULES:
-    1. STYLE: ${styleInstruction}
-    2. WORD LIMITS (STRICT): 
-       - Title: Max 6 words (Punchy, bold).
-       - Body: Max 15 words (Clear, high-value insight).
-    3. NARRATIVE ARC:
-       - Slide 1 (The Hook): High-level value proposition.
-       - Slide 2 (The Context): The "Why" in business terms.
-       - Slide 3 (The Insight): Data-driven or logical core point.
-       - Slide 4 (The Strategy): Actionable corporate advice.
-       - Slide 5 (The Transformation): Business impact/ROI.
-       - Slide 6 (The CTA): Professional next step.
+    NARRATIVE FRAMEWORK (THE STRATEGIC PIVOT):
+    Your script MUST follow this exact 6-slide logical progression. Each slide must "bridge" into the next:
+    
+    1. THE DISRUPTION (The Hook): A high-stakes headline identifying a market shift or a fundamental problem. Stop the scroll with a "hard truth."
+    2. THE STATUS QUO TRAP: Explain why the current or traditional way of doing things is now a liability. Establish the "Cost of Inaction."
+    3. THE STRATEGIC PIVOT: Introduce the core insight from the transcript as the ONLY logical solution/shift required. This is the "Aha!" moment.
+    4. THE MECHANICS: Briefly explain the logic or data behind why this pivot works. How does it function in reality?
+    5. THE COMPETITIVE ADVANTAGE: State the ROI or strategic edge this gives the reader. What is the business impact?
+    6. THE VISIONARY CTA: A forward-looking closing statement followed by a specific, professional call to action. 
+    
+    STRICT CONSTRAINTS:
+    - STYLE: ${styleInstruction}
+    - CONTINUITY: Every slide must end with a thought or phrasing that pulls the reader into the next slide (The "Slippery Slope" effect).
+    - VALUE: No generic facts. Every statement must answer the question: "So what? Why does this matter for a business leader?"
+    - WORD LIMITS: Title: Max 6 words. Body: Max 18 words.
     
     OUTPUT FORMAT:
     Return ONLY a JSON array of 6 objects.
-    Example: [{"title": "Headline", "body": "Supporting text"}, ... ]
+    Example: [{"title": "Headline", "body": "Supporting text with strategic depth..."}, ... ]
   `;
 
   const response = await axios.post(
