@@ -270,18 +270,10 @@ export const processClip = async (
                         return null;
                     });
 
+                    const videoStream = metadata?.streams.find(s => s.codec_type === 'video');
                     const duration = metadata?.format?.duration || 0;
 
-                    // 1. Probe Plaque to get its true aspect ratio
-                    const plaqueMetadata = await new Promise<any>((resolve) => {
-                        ffmpeg.ffprobe(tempPlaqueFile, (err, data) => resolve(data));
-                    });
-                    const pStream = plaqueMetadata?.streams.find((s: any) => s.codec_type === 'video');
-                    const pAR = pStream ? pStream.width / pStream.height : 1;
-
-                    // 2. Probe Background for dimensions and SAR
-                    const videoStream = metadata?.streams.find(s => s.codec_type === 'video');
-                    const bw = videoStream?.width || 1080;
+                    // Get Sample Aspect Ratio (SAR) for distortion compensation
                     const sarStr = videoStream?.sample_aspect_ratio || '1:1';
                     let sarValue = 1;
                     if (sarStr && sarStr !== '0:1') {
@@ -289,17 +281,13 @@ export const processClip = async (
                         if (sW && sH) sarValue = sW / sH;
                     }
 
-                    // 3. Configure Plaque (Size Approved at 40%)
+                    // 2. Configure Plaque
                     const pSize = plaqueConfig?.size || 40;
                     const pPosition = plaqueConfig?.position || 'top';
                     const pTimerange = plaqueConfig?.timerange || 0;
 
-                    // 4. Calculate exact pixel dimensions for the overlay
-                    // We "pre-squeeze" the plaque so that after player stretch it looks identical to original PNG
-                    const targetW = Math.round(bw * (pSize / 100) / sarValue); 
-                    const targetH = Math.round((bw * (pSize / 100)) / pAR);
-
-                    // 5. Process Plaque using simple scale
+                    // 3. Process Plaque using scale2ref (proportional to background)
+                    // We need to setsar=1 on plaque first
                     filters.push({
                         filter: 'setsar',
                         options: '1',
@@ -307,14 +295,18 @@ export const processClip = async (
                         outputs: '[plaque_in]'
                     });
 
+                    // Compensate for background SAR to keep plaque square on screen
+                    // If background is stretched by X, we pre-compress plaque pixels by X
                     filters.push({
-                        filter: 'scale',
-                        options: `w=${targetW}:h=${targetH}`,
-                        inputs: '[plaque_in]',
-                        outputs: '[plaque]'
+                        filter: 'scale2ref',
+                        options: `w=iw*${pSize / 100 / sarValue}:h=-1`,
+                        inputs: ['[plaque_in]', lastOutput],
+                        outputs: ['[plaque]', '[bg_ref]']
                     });
+                    
+                    lastOutput = '[bg_ref]';
 
-                    // 6. Timing Logic
+                    // Position logic remains the same
                     let overlayY = 'H-h-50';
                     if (pPosition === 'top') {
                         overlayY = '30';
