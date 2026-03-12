@@ -188,6 +188,22 @@ bot.on('text', authMiddleware, async (ctx) => {
     }
 });
 
+export const sendCarouselToTelegram = async (telegramId: string, slicePaths: string[]) => {
+    try {
+        const media = slicePaths.map((path, index) => ({
+            type: 'photo' as const,
+            media: { source: path },
+            caption: index === 0 ? '🎡 Ваша новая карусель готова!' : undefined
+        }));
+        
+        await bot.telegram.sendMediaGroup(telegramId, media);
+        console.log(`Carousel sent to Telegram user ${telegramId}`);
+    } catch (err: any) {
+        console.error('Failed to send carousel to Telegram:', err.message);
+        throw err;
+    }
+};
+
 export const startBot = () => {
     bot.launch()
         .then(() => console.log('Telegram Bot started'))

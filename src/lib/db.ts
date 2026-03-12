@@ -104,6 +104,29 @@ export const initDb = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS carousel_styles (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT REFERENCES users(telegram_id),
+        name TEXT,
+        image_url TEXT,
+        analysis JSONB,
+        is_default BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS carousels (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        clip_id TEXT REFERENCES clips(id),
+        user_id TEXT REFERENCES users(telegram_id),
+        script JSONB, -- Array of 6 slides {title, body}
+        image_url TEXT, -- URL of the full 2x3 grid
+        slides TEXT[], -- Array of URLs for indexed slides
+        status TEXT DEFAULT 'pending', -- pending, generating, ready, error
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       -- Robust migration handling for telegram_id / user_id type changes
       ALTER TABLE clips DROP CONSTRAINT IF EXISTS clips_downloaded_by_fkey;
       ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_user_id_fkey;

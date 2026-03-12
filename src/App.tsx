@@ -32,12 +32,14 @@ import {
   Users,
   LogOut,
   Zap,
-  Layout
+  Layout,
+  ScrollText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import Markdown from 'react-markdown';
 import { cn } from './lib/utils';
+import CarouselWizard from './CarouselWizard';
 
 interface Channel {
   id: string;
@@ -275,6 +277,7 @@ export default function App() {
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [activeCarouselClip, setActiveCarouselClip] = useState<Clip | null>(null);
 
   useEffect(() => {
     if (authToken) {
@@ -844,23 +847,7 @@ export default function App() {
                           alert("Ошибка сети при отправке видео");
                         }
                       }}
-                      onSendCarousel={async (clipId) => {
-                        try {
-                          const head = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
-                          const r = await fetch(`/api/clips/${clipId}/carousel`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...head }
-                          });
-                          if (!r.ok) {
-                            const e = await r.json();
-                            alert(e.error || "Ошибка при генерации карусели");
-                          } else {
-                            alert("Карусель скриншотов успешно отправлена вам в Telegram!");
-                          }
-                        } catch (e) {
-                          alert("Ошибка сети при отправке карусели");
-                        }
-                      }}
+                      onSendCarousel={() => setActiveCarouselClip(clip)}
                     />
                   ))}
                   {visibleClips.length === 0 && (
@@ -2090,10 +2077,18 @@ function SettingsTab({ currentUser, authToken, onUpdate, plaques, onAddPlaque, o
                 </div>
                 <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">Ready for Reels / TikTok</p>
               </div>
-            </div>
           </div>
         </div>
       </div>
+      <AnimatePresence>
+        {activeCarouselClip && authToken && (
+          <CarouselWizard 
+            clip={activeCarouselClip} 
+            authToken={authToken} 
+            onClose={() => setActiveCarouselClip(null)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

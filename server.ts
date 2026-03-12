@@ -26,14 +26,18 @@ import { v4 as uuidv4 } from "uuid";
 import { query, initDb } from "./src/lib/db.js";
 import { s3Client, uploadToS3 } from "./src/lib/s3.js";
 import { getTranscript, getChannelInfo, getLatestVideos } from "./src/services/apify.js";
-import { evaluateContent, translateText, detectLanguage } from "./src/services/openrouter.js";
+import { evaluateContent, translateText, detectLanguage } from "./src/services/gemini.js";
 import { sendToVizard, getVizardProjectStatus } from "./src/services/vizard.js";
 import { downloadYouTubeVideo } from "./src/services/video-downloader.js";
-import { startBot } from "./src/services/telegram.js";
+import { startBot, sendCarouselToTelegram } from "./src/services/telegram.js";
 import { processClip, extractScreenshots } from "./src/services/processor.js";
 import cron from "node-cron";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+
+// Carousel Services
+import { generateCarouselScript, generateGridImage } from "./src/services/gemini.js";
+import { sliceCarouselGrid } from "./src/services/slicer.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key-change-me";
 
@@ -1349,6 +1353,89 @@ async function startServer() {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
+  // --- Carousel Styles ---
+  app.get("/api/carousel/styles", authenticateToken, async (req: any, res) => {
+    try {
+      const result = await query("SELECT * FROM carousel_styles WHERE user_id = $1 OR user_id IS NULL ORDER BY created_at DESC", [String(req.user.id)]);
+      res.json(result.rows);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch styles" });
+    }
+  });
+
+  app.post("/api/carousel/styles", authenticateToken, async (req: any, res) => {
+    const { name, image_url, analysis } = req.body;
+    try {
+      const result = await query(
+        "INSERT INTO carousel_styles (user_id, name, image_url, analysis) VALUES ($1, $2, $3, $4) RETURNING *",
+        [String(req.user.id), name, image_url, analysis]
+      );
+      res.json(result.rows[0]);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to save style" });
+    }
+  });
+
+  // --- Carousel Generation ---
+  app.post("/api/carousel/generate", authenticateToken, async (req: any, res) => {
+    const { clipId, styleId, topic } = req.body;
+    
+    try {
+      const clipRes = await query("SELECT transcript, title FROM clips WHERE id = $1", [clipId]);
+      if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
+      const { transcript, title } = clipRes.rows[0];
+
+      const styleRes = await query("SELECT analysis FROM carousel_styles WHERE id = $1", [styleId]);
+      if (styleRes.rows.length === 0) return res.status(404).json({ error: "Style not found" });
+      const { analysis } = styleRes.rows[0];
+
+      const carouselRes = await query(
+        "INSERT INTO carousels (clip_id, user_id, status) VALUES ($1, $2, 'generating') RETURNING id",
+        [clipId, String(req.user.id)]
+      );
+      const carouselId = carouselRes.rows[0].id;
+
+      // Background pipeline
+      (async () => {
+        try {
+          const script = await generateCarouselScript(transcript, topic || title);
+          const gridUrl = await generateGridImage(script, analysis);
+          
+          const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
+          const slices = await sliceCarouselGrid(gridUrl, uploadsDir);
+          
+          await query(
+            "UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4",
+            [JSON.stringify(script), gridUrl, slices, carouselId]
+          );
+
+          // Notify user via Telegram
+          const absoluteSlices = slices.map(s => path.join(process.cwd(), 'public', s));
+          await sendCarouselToTelegram(String(req.user.id), absoluteSlices);
+        } catch (err: any) {
+          console.error(`Carousel ${carouselId} failed:`, err);
+          await query("UPDATE carousels SET status = 'error', error_message = $1 WHERE id = $2", [err.message, carouselId]);
+        }
+      })();
+
+      res.json({ carouselId, status: 'generating' });
+    } catch (err) {
+      console.error("Carousel generation start failed:", err);
+      res.status(500).json({ error: "Failed to start generation" });
+    }
+  });
+
+  app.get("/api/carousel/:id", authenticateToken, async (req: any, res) => {
+    const { id } = req.params;
+    try {
+      const result = await query("SELECT * FROM carousels WHERE id = $1", [id]);
+      if (result.rows.length === 0) return res.status(404).json({ error: "Carousel not found" });
+      res.json(result.rows[0]);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch carousel" });
     }
   });
 
