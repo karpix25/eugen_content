@@ -1359,8 +1359,30 @@ async function startServer() {
   // --- Carousel Styles ---
   app.get("/api/carousel/styles", authenticateToken, async (req: any, res) => {
     try {
+      // Hardcoded templates from instacarousel-ai
+      const templates = [
+        {
+          id: 'ios-notes',
+          name: 'iOS Notes',
+          image_url: 'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=400', // Paper/Note aesthetic
+          analysis: { prompt: "Aesthetic: iOS Notes app. Background: Light cream/off-white paper texture. Typography: Clean system sans-serif (Inter). Accents: Subtle yellow highlights. Layout: Minimalist, organized." }
+        },
+        {
+          id: 'dark-luxury',
+          name: 'Dark Luxury',
+          image_url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=400', // Dark/Luxury aesthetic
+          analysis: { prompt: "Aesthetic: Premium Dark Minimalist. Background: Pure black (#000000). Typography: High-contrast white. Mix of bold sans-serif and elegant italic serifs. Layout: Spacious, high-end feel." }
+        },
+        {
+          id: 'cyber-brutalist',
+          name: 'Cyber Brutalist',
+          image_url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400', // Cyber/Tech aesthetic
+          analysis: { prompt: "Aesthetic: Modern Cyber Brutalist. Background: Dark charcoal. Typography: Bold sans-serif and Monospace. Accents: Neon green or electric blue. Layout: Thick borders, edgy." }
+        }
+      ];
+
       const result = await query("SELECT * FROM carousel_styles WHERE user_id = $1 OR user_id IS NULL ORDER BY created_at DESC", [String(req.user.id)]);
-      res.json(result.rows);
+      res.json([...templates, ...result.rows]);
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch styles" });
     }
@@ -1388,9 +1410,19 @@ async function startServer() {
       if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
       const { transcript, title } = clipRes.rows[0];
 
-      const styleRes = await query("SELECT analysis FROM carousel_styles WHERE id = $1", [styleId]);
-      if (styleRes.rows.length === 0) return res.status(404).json({ error: "Style not found" });
-      const { analysis } = styleRes.rows[0];
+      let analysis: any;
+      if (['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(styleId)) {
+        const templates: any = {
+          'ios-notes': { prompt: "Aesthetic: iOS Notes app. Background: Light cream/off-white paper texture. Typography: Clean system sans-serif (Inter). Accents: Subtle yellow highlights. Layout: Minimalist, organized." },
+          'dark-luxury': { prompt: "Aesthetic: Premium Dark Minimalist. Background: Pure black (#000000). Typography: High-contrast white. Mix of bold sans-serif and elegant italic serifs. Layout: Spacious, high-end feel." },
+          'cyber-brutalist': { prompt: "Aesthetic: Modern Cyber Brutalist. Background: Dark charcoal. Typography: Bold sans-serif and Monospace. Accents: Neon green or electric blue. Layout: Thick borders, edgy." }
+        };
+        analysis = templates[styleId];
+      } else {
+        const styleRes = await query("SELECT analysis FROM carousel_styles WHERE id = $1", [styleId]);
+        if (styleRes.rows.length === 0) return res.status(404).json({ error: "Style not found" });
+        analysis = styleRes.rows[0].analysis;
+      }
 
       const carouselRes = await query(
         "INSERT INTO carousels (clip_id, user_id, status) VALUES ($1, $2, 'generating') RETURNING id",
@@ -1401,7 +1433,7 @@ async function startServer() {
       // Background pipeline
       (async () => {
         try {
-          const script = await generateCarouselScript(transcript, topic || title);
+          const script = await generateCarouselScript(transcript, topic || title, styleId);
           const gridUrl = await generateGridImage(script, analysis);
           
           const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');

@@ -18,7 +18,7 @@ interface CarouselWizardProps {
 }
 
 export default function CarouselWizard({ clip, authToken, onClose }: CarouselWizardProps) {
-  const [step, setStep] = useState<'topic' | 'style' | 'progress' | 'success'>('topic');
+  const [step, setStep] = useState<'style' | 'progress' | 'success'>('style');
   const [topic, setTopic] = useState(clip.title);
   const [styles, setStyles] = useState<CarouselStyle[]>([]);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
@@ -28,10 +28,8 @@ export default function CarouselWizard({ clip, authToken, onClose }: CarouselWiz
   const [pollInterval, setPollInterval] = useState<number | null>(null);
 
   useEffect(() => {
-    if (step === 'style') {
-      fetchStyles();
-    }
-  }, [step]);
+    fetchStyles();
+  }, []);
 
   const fetchStyles = async () => {
     setLoadingStyles(true);
@@ -117,35 +115,6 @@ export default function CarouselWizard({ clip, authToken, onClose }: CarouselWiz
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait">
-            {step === 'topic' && (
-              <motion.div 
-                key="topic"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div className="space-y-4">
-                  <label className="text-xs font-black uppercase tracking-widest text-emerald-500 flex items-center gap-2">
-                    <Sparkles className="w-3 h-3" /> Тема карусели
-                  </label>
-                  <p className="text-sm text-white/60">ИИ адаптирует транскрипцию под этот заголовок. Можете оставить как есть.</p>
-                  <textarea 
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl p-6 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all h-32 text-lg font-medium"
-                    placeholder="О чем будет карусель?"
-                  />
-                </div>
-                <button 
-                  onClick={() => setStep('style')}
-                  className="w-full h-16 bg-white text-black rounded-2xl font-bold text-lg hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 group"
-                >
-                  Далее к стилю <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-              </motion.div>
-            )}
-
             {step === 'style' && (
               <motion.div 
                 key="style"
@@ -192,10 +161,10 @@ export default function CarouselWizard({ clip, authToken, onClose }: CarouselWiz
                 </div>
                 <div className="flex gap-4">
                   <button 
-                    onClick={() => setStep('topic')}
+                    onClick={onClose}
                     className="flex-1 h-16 bg-white/5 text-white rounded-2xl font-bold hover:bg-white/10 transition-all border border-white/5"
                   >
-                    Назад
+                    Отмена
                   </button>
                   <button 
                     onClick={startGeneration}

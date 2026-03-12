@@ -98,15 +98,24 @@ export const detectLanguage = async (text: string): Promise<string | null> => {
   }
 };
 
-export const generateCarouselScript = async (transcript: string, topic: string): Promise<CarouselSlide[]> => {
+export const generateCarouselScript = async (transcript: string, topic: string, styleId?: string): Promise<CarouselSlide[]> => {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
+
+  let styleInstruction = "Corporate professional, minimalist, and authoritative. Avoid fluff.";
+  if (styleId === 'ios-notes') {
+    styleInstruction = "Casual, friendly, yet highly informative. Use bullet points and occasionally relevant emojis. Like a digital sticky note.";
+  } else if (styleId === 'dark-luxury') {
+    styleInstruction = "High-end, sophisticated, extremely minimalist. Punchy headers and high-value insights. Very professional.";
+  } else if (styleId === 'cyber-brutalist') {
+    styleInstruction = "Direct, edgy, tech-focused. Use technical jargon where appropriate. Bold and uncompromising.";
+  }
 
   const prompt = `
     You are a world-class social media copywriter specializing in high-retention Instagram carousels.
     Base your writing on this topic: "${topic}" and this transcript: "${transcript}".
     
     RULES:
-    1. STYLE: Corporate professional, minimalist, and authoritative. Avoid fluff.
+    1. STYLE: ${styleInstruction}
     2. WORD LIMITS (STRICT): 
        - Title: Max 6 words (Punchy, bold).
        - Body: Max 15 words (Clear, high-value insight).
@@ -139,8 +148,6 @@ export const generateCarouselScript = async (transcript: string, topic: string):
   );
 
   const content = response.data.choices[0].message.content;
-  // Handle various potential JSON wrappers if needed, 
-  // though Claude 3.5 Sonnet is usually precise with JSON mode.
   const parsed = JSON.parse(content);
   return Array.isArray(parsed) ? parsed : parsed.slides || [];
 };
