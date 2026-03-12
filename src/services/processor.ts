@@ -259,46 +259,56 @@ export const processClip = async (
                     const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
                     command = command.input(escapedPlaquePath).inputOptions('-loop 1');
 
-                    // Use plaqueConfig for size (percentage of video width) and position
+                    // 1. Get Video Metadata for precise scaling
+                    const metadata = await new Promise<any>((res, rej) => {
+                        ffmpeg.ffprobe(currentVideoUrl, (err, meta) => {
+                            if (err) rej(err);
+                            else res(meta);
+                        });
+                    }).catch(e => {
+                        console.error('Failed to probe video dimensions', e);
+                        return null;
+                    });
+
+                    const videoStream = metadata?.streams.find(s => s.codec_type === 'video');
+                    const videoWidth = videoStream?.width || 720; // fallback
+                    
+                    let sarNum = 1;
+                    const sarStr = videoStream?.sample_aspect_ratio;
+                    if (sarStr && sarStr !== '0:1' && sarStr !== 'N/A') {
+                        try {
+                            const [num, den] = sarStr.split(':').map(Number);
+                            if (num > 0 && den > 0) sarNum = num / den;
+                        } catch (e) {
+                            console.warn(`Failed to parse SAR: ${sarStr}`, e);
+                        }
+                    }
+                    const displayWidth = videoWidth * sarNum;
+
+                    // 2. Configure Plaque
                     const pSize = plaqueConfig?.size || 40;
                     const pPosition = plaqueConfig?.position || 'top';
                     const pTimerange = plaqueConfig?.timerange || 0;
 
-                    // Split the background video: [ref_bg] for scaling calculation, [actual_bg] for the real overlay
-                    filters.push({
-                        filter: 'split',
-                        inputs: lastOutput,
-                        outputs: ['[actual_bg]', '[ref_bg]']
-                    });
+                    // Calculate target plaque width (pSize% of display width)
+                    const targetPlaqueWidth = Math.round(displayWidth * (pSize / 100));
 
-                    // Scale plaque relative to the [ref_bg] width (rw).
-                    // We discard the [unused_ref] because we use [actual_bg] for the final overlay to avoid stretching the main video.
-                    filters.push({
-                        filter: 'scale2ref',
-                        options: `w=rw*${pSize/100}:h=-1:force_original_aspect_ratio=decrease`,
-                        inputs: ['[1:v]', '[ref_bg]'],
-                        outputs: ['[plaque_raw]', '[unused_ref]']
-                    });
-
-                    // Consume the unused reference output from scale2ref
-                    filters.push({
-                        filter: 'nullsink',
-                        inputs: '[unused_ref]'
-                    });
-
-                    // Normalize SAR for the plaque to prevent stretching on non-square SAR videos
+                    // 3. Process Plaque: Force square SAR and scale to target width
                     filters.push({
                         filter: 'setsar',
                         options: '1',
-                        inputs: '[plaque_raw]',
+                        inputs: '[1:v]',
+                        outputs: '[plaque_v]'
+                    });
+
+                    filters.push({
+                        filter: 'scale',
+                        options: `w=${targetPlaqueWidth}:h=-1`,
+                        inputs: '[plaque_v]',
                         outputs: '[plaque]'
                     });
 
-                    lastOutput = '[actual_bg]';
-
-                    // Position: center horizontally, vertical depends on setting
-                    // x = (W-w)/2   centers the plaque
-                    // y: top = 30px from top, center = (H-h)/2, bottom = H-h-50
+                    // Position logic remains the same
                     let overlayY = 'H-h-50';
                     if (pPosition === 'top') {
                         overlayY = '30';
@@ -308,12 +318,7 @@ export const processClip = async (
                     let enableFilter = '';
                     if (pTimerange > 0) {
                         try {
-                            const duration = await new Promise<number>((res, rej) => {
-                                ffmpeg.ffprobe(currentVideoUrl, (err, metadata) => {
-                                    if (err) rej(err);
-                                    else res(metadata.format.duration || 0);
-                                });
-                            });
+                            const duration = metadata?.format?.duration || 0;
                             if (duration > 0) {
                                 const maxStartTime = duration * (pTimerange / 100);
                                 const startTime = Math.random() * maxStartTime;
@@ -321,7 +326,7 @@ export const processClip = async (
                                 console.log(`Plaque will appear at ${startTime.toFixed(2)}s (max ${maxStartTime.toFixed(2)}s, total duration ${duration}s)`);
                             }
                         } catch (e) {
-                            console.error('Failed to get video duration for plaque timerange', e);
+                            console.error('Failed to parse video duration for plaque timerange', e);
                         }
                     }
 
