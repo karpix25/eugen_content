@@ -270,16 +270,7 @@ export const processClip = async (
                         return null;
                     });
 
-                    const videoStream = metadata?.streams.find(s => s.codec_type === 'video');
                     const duration = metadata?.format?.duration || 0;
-
-                    // Get Sample Aspect Ratio (SAR) for distortion compensation
-                    const sarStr = videoStream?.sample_aspect_ratio || '1:1';
-                    let sarValue = 1;
-                    if (sarStr && sarStr !== '0:1') {
-                        const [sW, sH] = sarStr.split(':').map(Number);
-                        if (sW && sH) sarValue = sW / sH;
-                    }
 
                     // 2. Configure Plaque
                     const pSize = plaqueConfig?.size || 40;
@@ -287,7 +278,7 @@ export const processClip = async (
                     const pTimerange = plaqueConfig?.timerange || 0;
 
                     // 3. Process Plaque using scale2ref (proportional to background)
-                    // We need to setsar=1 on plaque first
+                    // We need to setsar=1 on plaque first to avoid distortion
                     filters.push({
                         filter: 'setsar',
                         options: '1',
@@ -295,11 +286,14 @@ export const processClip = async (
                         outputs: '[plaque_in]'
                     });
 
-                    // Compensate for background SAR to keep plaque square on screen
-                    // If background is stretched by X, we pre-compress plaque pixels by X
+                    // Advanced SAR Compensation:
+                    // w=main_w*percent/main_sar: 
+                    // 1. main_w*percent sets the target display width.
+                    // 2. Dividing by main_sar "compresses" the pixels if the background is stretched.
+                    // Result: Plaque looks square on any SAR.
                     filters.push({
                         filter: 'scale2ref',
-                        options: `w=iw*${pSize / 100 / sarValue}:h=-1`,
+                        options: `w=main_w*${pSize / 100}/main_sar:h=-1`,
                         inputs: ['[plaque_in]', lastOutput],
                         outputs: ['[plaque]', '[bg_ref]']
                     });
