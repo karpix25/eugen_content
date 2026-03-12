@@ -232,11 +232,18 @@ export const processClip = async (
                 lastOutput = '[normalized_v]';
             }
 
-            // Ensure consistent pixel format
+            // Ensure consistent pixel format and square pixels (SAR 1:1)
+            // This is critical for Telegram to display the correct aspect ratio.
+            filters.push({
+                filter: 'setsar',
+                options: '1',
+                inputs: [lastOutput],
+                outputs: '[sar_reset_v]'
+            });
             filters.push({
                 filter: 'format',
                 options: 'yuv420p',
-                inputs: [lastOutput],
+                inputs: ['[sar_reset_v]'],
                 outputs: '[formatted_v]'
             });
             lastOutput = '[formatted_v]';
@@ -307,7 +314,7 @@ export const processClip = async (
 
             return new Promise((resolve, reject) => {
                 command.complexFilter(filters, lastOutput)
-                    .videoCodec('libx264').audioCodec('aac').outputOptions(['-map', '0:a?', '-crf', '18', '-preset', 'fast', '-aspect', '9:16'])
+                    .videoCodec('libx264').audioCodec('aac').outputOptions(['-map', '0:a?', '-crf', '18', '-preset', 'fast', '-aspect', '9:16', '-movflags', '+faststart'])
                     .on('start', cmd => console.log('FFmpeg command:', cmd))
                     .on('progress', p => console.log(`Processing ${clipId}: ${p.percent}%`))
                     .on('end', async () => {
