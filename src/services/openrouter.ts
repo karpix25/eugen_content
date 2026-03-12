@@ -128,6 +128,12 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     4. NO CHEAP NAVIGATION: Never write "Next slide", "Swipe", or use ➡️ emojis for movement. Use narrative logic to pull the reader through.
     5. VALUE-LED CONCLUSION: Slide 6 is NOT a sales pitch. It is a visionary closing thought, a strategic summary, or a mental model that leaves the reader with a new perspective.
     
+    PHASE 0: HUMANIZATION SWEEP (Mental Models)
+    - Apply "Seven Sweeps" (Clarity, Voice, So What, Prove It, Specificity, Emotion, Zero Risk).
+    - Eliminate AI Tics: Avoid "Unlock", "Tapestry", "Delve", "Harness", "Revolutionize", "In today's fast-paced world", "Look no further".
+    - Use Strong Verbs: Replace nominalizations ("making a decision" -> "deciding").
+    - Write for "Jobs to be Done": Focus on the internal struggle and desired transformation of the ${ta}.
+    
     PHASE 1: CONTENT MINING (Internal Monologue)
     - Identify the single "Cold Hard Truth" or "Hidden Efficiency" in the transcript.
     
@@ -143,6 +149,7 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     PHASE 4: FINAL SCRIPTING
     Apply constraints (MANDATORY):
     - STYLE: ${styleInstruction}
+    - HUMAN-CENTRIC: Write as if you are explaining this to a colleague over coffee. Short, punchy sentences. No fluff.
     - LANGUAGE: Everything (except for JSON keys) must be in ${lang === 'ru' ? 'Russian' : 'English'}.
     - WORD LIMITS: Title: Max 6 words. Body: Max 25 words (aim for density and precision).
     
