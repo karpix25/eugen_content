@@ -255,40 +255,6 @@ export const processClip = async (
                 const filters: any[] = [];
                 let lastOutput = '[0:v]';
 
-                // 1. Force background to 1080x1920 (9:16) with letterboxing/padding
-                // First normalize pixels to square (iw*sar:ih)
-                filters.push({
-                    filter: 'scale',
-                    options: 'w=iw*sar:h=ih',
-                    inputs: lastOutput,
-                    outputs: '[bg_sq]'
-                });
-                filters.push({
-                    filter: 'setsar',
-                    options: '1',
-                    inputs: '[bg_sq]',
-                    outputs: '[bg_norm]'
-                });
-                filters.push({
-                    filter: 'scale',
-                    options: 'w=1080:h=1920:force_original_aspect_ratio=decrease',
-                    inputs: '[bg_norm]',
-                    outputs: '[bg_scaled]'
-                });
-                filters.push({
-                    filter: 'pad',
-                    options: '1080:1920:(ow-iw)/2:(oh-ih)/2',
-                    inputs: '[bg_scaled]',
-                    outputs: '[bg_padded]'
-                });
-                filters.push({
-                    filter: 'setsar',
-                    options: '1',
-                    inputs: '[bg_padded]',
-                    outputs: '[bg_final]'
-                });
-                lastOutput = '[bg_final]';
-
                 if (finalPlaqueUrl) {
                     const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
                     command = command.input(escapedPlaquePath).inputOptions('-loop 1');
@@ -304,31 +270,30 @@ export const processClip = async (
                         return null;
                     });
 
-                    const videoStream = metadata?.streams.find(s => s.codec_type === 'video');
                     const duration = metadata?.format?.duration || 0;
 
-                    // 2. Configure Plaque (Fixed for 1080x1920 output)
+                    // 2. Configure Plaque
                     const pSize = plaqueConfig?.size || 40;
                     const pPosition = plaqueConfig?.position || 'top';
                     const pTimerange = plaqueConfig?.timerange || 0;
 
-                    // Calculate target plaque width (pSize% of 1080px width)
-                    const targetPlaqueWidth = Math.round(1080 * (pSize / 100));
-
-                    // 3. Process Plaque: Force square SAR and scale to target width
+                    // 3. Process Plaque using scale2ref (proportional to background)
+                    // We need to setsar=1 on plaque first to avoid distortion
                     filters.push({
                         filter: 'setsar',
                         options: '1',
                         inputs: '[1:v]',
-                        outputs: '[plaque_v]'
+                        outputs: '[plaque_in]'
                     });
 
                     filters.push({
-                        filter: 'scale',
-                        options: `w=${targetPlaqueWidth}:h=-1`,
-                        inputs: '[plaque_v]',
-                        outputs: '[plaque]'
+                        filter: 'scale2ref',
+                        options: `w=iw*${pSize/100}:h=-1`,
+                        inputs: ['[plaque_in]', lastOutput],
+                        outputs: ['[plaque]', '[bg_ref]']
                     });
+                    
+                    lastOutput = '[bg_ref]';
 
                     // Position logic remains the same
                     let overlayY = 'H-h-50';
