@@ -199,29 +199,32 @@ export const processClip = async (
             let lastOutput = '[0:v]';
             let command = ffmpeg(currentVideoUrl);
 
-            // 4a. Normalize Background Video to 1080x1920 (Vertical)
+            // 4a. Normalize Background Video to 1080x1920 (Full HD Vertical)
+            // We apply setsar=1 FIRST to clear any weird aspect ratio metadata
+            // Then scale to fit within 1080x1920 while preserving proportions
+            // Then pad to create the exact 1080x1920 canvas
+            filters.push({ 
+                filter: 'setsar', 
+                options: '1', 
+                inputs: '[0:v]', 
+                outputs: '[sar_v]' 
+            });
             filters.push({ 
                 filter: 'scale', 
                 options: 'w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
-                inputs: '[0:v]', 
+                inputs: '[sar_v]', 
                 outputs: '[scaled_v]' 
             });
             filters.push({ 
                 filter: 'pad', 
-                options: 'w=1080:h=1920:x=(ow-iw)/2:y=(oh-ih)/2:color=black', 
+                options: '1080:1920:(1080-iw)/2:(1920-ih)/2:color=black', 
                 inputs: '[scaled_v]', 
                 outputs: '[padded_v]' 
             });
             filters.push({ 
                 filter: 'format', 
-                options: 'pix_fmts=yuv420p', 
+                options: 'yuv420p', 
                 inputs: '[padded_v]', 
-                outputs: '[formatted_v]' 
-            });
-            filters.push({ 
-                filter: 'setsar', 
-                options: 'sar=1/1', 
-                inputs: '[formatted_v]', 
                 outputs: '[normalized_v]' 
             });
             lastOutput = '[normalized_v]';
