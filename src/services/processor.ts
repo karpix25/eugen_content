@@ -255,6 +255,27 @@ export const processClip = async (
                 const filters: any[] = [];
                 let lastOutput = '[0:v]';
 
+                // 1. Force background to 1080x1920 (9:16) with letterboxing/padding
+                filters.push({
+                    filter: 'scale',
+                    options: 'w=1080:h=1920:force_original_aspect_ratio=decrease',
+                    inputs: lastOutput,
+                    outputs: '[bg_scaled]'
+                });
+                filters.push({
+                    filter: 'pad',
+                    options: '1080:1920:(ow-iw)/2:(oh-ih)/2',
+                    inputs: '[bg_scaled]',
+                    outputs: '[bg_padded]'
+                });
+                filters.push({
+                    filter: 'setsar',
+                    options: '1',
+                    inputs: '[bg_padded]',
+                    outputs: '[bg_final]'
+                });
+                lastOutput = '[bg_final]';
+
                 if (finalPlaqueUrl) {
                     const escapedPlaquePath = tempPlaqueFile.replace(/\\/g, '/');
                     command = command.input(escapedPlaquePath).inputOptions('-loop 1');
@@ -271,27 +292,15 @@ export const processClip = async (
                     });
 
                     const videoStream = metadata?.streams.find(s => s.codec_type === 'video');
-                    const videoWidth = videoStream?.width || 720; // fallback
-                    
-                    let sarNum = 1;
-                    const sarStr = videoStream?.sample_aspect_ratio;
-                    if (sarStr && sarStr !== '0:1' && sarStr !== 'N/A') {
-                        try {
-                            const [num, den] = sarStr.split(':').map(Number);
-                            if (num > 0 && den > 0) sarNum = num / den;
-                        } catch (e) {
-                            console.warn(`Failed to parse SAR: ${sarStr}`, e);
-                        }
-                    }
-                    const displayWidth = videoWidth * sarNum;
+                    const duration = metadata?.format?.duration || 0;
 
-                    // 2. Configure Plaque
+                    // 2. Configure Plaque (Fixed for 1080x1920 output)
                     const pSize = plaqueConfig?.size || 40;
                     const pPosition = plaqueConfig?.position || 'top';
                     const pTimerange = plaqueConfig?.timerange || 0;
 
-                    // Calculate target plaque width (pSize% of display width)
-                    const targetPlaqueWidth = Math.round(displayWidth * (pSize / 100));
+                    // Calculate target plaque width (pSize% of 1080px width)
+                    const targetPlaqueWidth = Math.round(1080 * (pSize / 100));
 
                     // 3. Process Plaque: Force square SAR and scale to target width
                     filters.push({
@@ -318,7 +327,6 @@ export const processClip = async (
                     let enableFilter = '';
                     if (pTimerange > 0) {
                         try {
-                            const duration = metadata?.format?.duration || 0;
                             if (duration > 0) {
                                 const maxStartTime = duration * (pTimerange / 100);
                                 const startTime = Math.random() * maxStartTime;
