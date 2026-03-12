@@ -213,9 +213,11 @@ const autoPublish = async () => {
         // Let's pick a 'processed' clip (already transcribed/dubbed) that hasn't been sent to this user.
         
         const clipRes = await query(`
-          SELECT * FROM clips 
-          WHERE status IN ('raw', 'processed') 
-          AND id NOT IN (
+          SELECT c.* FROM clips c
+          JOIN videos v ON c.video_id = v.id
+          WHERE c.status IN ('raw', 'processed') 
+          AND v.status IN ('completed', 'approved')
+          AND c.id NOT IN (
             SELECT clip_id FROM publications WHERE user_id = $1
           )
           ORDER BY random() 
@@ -284,6 +286,16 @@ const autoPublish = async () => {
             parse_mode: 'Markdown'
           });
 
+          // Cleanup local file if it's not a URL
+          if (!processedUrl.startsWith('http')) {
+            try {
+              fs.unlinkSync(processedUrl);
+              console.log(`[Auto] Cleaned up local file: ${processedUrl}`);
+            } catch (cleanupErr) {
+              console.warn(`[Auto] Failed to cleanup ${processedUrl}:`, cleanupErr);
+            }
+          }
+
           // Record publication
           await query(`
             INSERT INTO publications (clip_id, user_id, plaque_id, status)
@@ -305,8 +317,8 @@ const autoPublish = async () => {
   }
 };
 
-// Run auto-publish check every hour at 30 minutes past the hour (so it offsets from monitorChannels)
-cron.schedule('30 * * * *', autoPublish);
+// Run auto-publish check every 5 minutes для более точного соблюдения лимитов
+cron.schedule('*/5 * * * *', autoPublish);
 
 async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
