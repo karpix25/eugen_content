@@ -50,7 +50,6 @@ const toAssColor = (hex: string) => {
 
 const getSubtitleStyle = (config: any, assColor: string, highlightColor: string, outlineColor: string, alignment: number, marginV: number) => {
     const { font_family: fontFamily = 'Anton', font_size: fontSize = 48, style: styleName = 'karaoke' } = config;
-    const isAss = true; // Defaulting to true for our specific ASS flow
 
     if (styleName === 'beast') {
         return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=6,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
@@ -69,15 +68,15 @@ const getSubtitleStyle = (config: any, assColor: string, highlightColor: string,
     } else if (styleName === 'jordan') {
         return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H00000000&,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
     } else if (styleName === 'luke') {
-        return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H00FFFF00&,BorderStyle=1,Outline=2,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+        return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H0000FFFF&,BorderStyle=1,Outline=2,Shadow=4,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
     } else if (styleName === 'maya') {
         return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00000000&,BackColour=&H0000A5FF&,BorderStyle=1,Outline=2,Shadow=5,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
     } else if (styleName === 'sage') {
         return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=&H00FFFFFF&,OutlineColour=&H00FFFFFF&,BackColour=&H00FFFFFF&,BorderStyle=1,Outline=2,Shadow=3,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
-    } else if (isAss) {
-        return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H00F0F0F0&,BackColour=&H00F0F0F0&,BorderStyle=3,Outline=10,Shadow=0,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
     }
-    return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=&H80000000&,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV}`;
+    
+    // Default Style (Clean Outline, No Box)
+    return `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${assColor},OutlineColour=${outlineColor},BackColour=&H00000000&,BorderStyle=1,Outline=3,Shadow=2,Bold=-1,Alignment=${alignment},MarginV=${marginV},MarginL=10,MarginR=10`;
 };
 
 // --- Main Processor ---
@@ -231,7 +230,7 @@ export const processClip = async (
                 else if (subtitleConfig?.position === 'Center') pos = 50;
                 else if (subtitleConfig?.position === 'Top') pos = 15;
 
-                const style = getSubtitleStyle(subtitleConfig, toAssColor(subtitleConfig?.font_color || '#FFF'), toAssColor(subtitleConfig?.highlight_color || '#FF0'), toAssColor(subtitleConfig?.outline_color || '#000'), 8, Math.floor((pos / 100) * 1280));
+                const style = getSubtitleStyle(subtitleConfig, toAssColor(subtitleConfig?.font_color || '#FFF'), toAssColor(subtitleConfig?.highlight_color || '#FF0'), toAssColor(subtitleConfig?.outline_color || '#000'), 2, Math.floor((1 - pos / 100) * 1280));
 
                 filters.push({
                     filter: 'subtitles',
