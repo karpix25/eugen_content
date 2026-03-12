@@ -256,10 +256,23 @@ export const processClip = async (
                 let lastOutput = '[0:v]';
 
                 // 1. Force background to 1080x1920 (9:16) with letterboxing/padding
+                // First normalize pixels to square (iw*sar:ih)
+                filters.push({
+                    filter: 'scale',
+                    options: 'w=iw*sar:h=ih',
+                    inputs: lastOutput,
+                    outputs: '[bg_sq]'
+                });
+                filters.push({
+                    filter: 'setsar',
+                    options: '1',
+                    inputs: '[bg_sq]',
+                    outputs: '[bg_norm]'
+                });
                 filters.push({
                     filter: 'scale',
                     options: 'w=1080:h=1920:force_original_aspect_ratio=decrease',
-                    inputs: lastOutput,
+                    inputs: '[bg_norm]',
                     outputs: '[bg_scaled]'
                 });
                 filters.push({
