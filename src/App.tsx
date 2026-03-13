@@ -79,6 +79,7 @@ interface Clip {
   transcript: string;
   language: string | null;
   published_by_me?: boolean;
+  hook?: string;
 }
 
 interface Publication {

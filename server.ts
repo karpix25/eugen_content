@@ -452,12 +452,13 @@ async function startServer() {
             const originalClipId = Math.random().toString(36).substr(2, 9);
             const originalTitle = c.title || "Vizard Clip";
             const originalTranscript = c.transcript || '';
+            const originalHook = c.hook || c.headline || "";
             const originalLanguage = video?.detected_language || null;
 
             console.log(`Inserting original clip for project ${v.vizard_project_id}: ${originalTitle}`);
             await query(
-              "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7)",
-              [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, c.thumbnail_url || '', originalTranscript, originalLanguage]
+              "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
+              [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, originalHook, c.thumbnail_url || '', originalTranscript, originalLanguage]
             );
 
             // No automatic plaques anymore. Raw means ready for user customization.
@@ -468,20 +469,23 @@ async function startServer() {
               const dubbedClipId = Math.random().toString(36).substr(2, 9);
               let translatedTitle = originalTitle;
               let translatedTranscript = originalTranscript;
+              let translatedHook = originalHook;
 
               console.log(`Translating clip metadata to ${finalLanguage}...`);
-              const [tTitle, tTranscript] = await Promise.all([
+              const [tTitle, tTranscript, tHook] = await Promise.all([
                 translateText(originalTitle, finalLanguage),
-                translateText(originalTranscript, finalLanguage)
+                translateText(originalTranscript, finalLanguage),
+                translateText(originalHook, finalLanguage)
               ]);
 
               if (tTitle) translatedTitle = tTitle;
               if (tTranscript) translatedTranscript = tTranscript;
+              if (tHook) translatedHook = tHook;
 
               console.log(`Inserting dubbed clip for project ${v.vizard_project_id}: ${translatedTitle}`);
               await query(
-                "INSERT INTO clips (id, video_id, url, title, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, 'raw', $7)",
-                [dubbedClipId, v.id, c.videoUrl || c.url || c.video_url, translatedTitle, c.thumbnail_url || '', translatedTranscript, finalLanguage]
+                "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
+                [dubbedClipId, v.id, c.videoUrl || c.url || c.video_url, translatedTitle, translatedHook, c.thumbnail_url || '', translatedTranscript, finalLanguage]
               );
 
               // Process dubbed without plaque
@@ -828,16 +832,16 @@ async function startServer() {
           const clipId = Math.random().toString(36).substr(2, 9); // Or use the id from vizard if available
           // Note: Adjust payload.title, payload.url based on the actual Vizard payload structure
           await query(
-            "INSERT INTO clips (id, video_id, url, title, thumbnail, status) VALUES ($1, $2, $3, $4, $5, 'raw')",
-            [clipId, videoId, c.url || c.video_url, c.title, c.thumbnail_url || '']
+            "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, status) VALUES ($1, $2, $3, $4, $5, $6, 'raw')",
+            [clipId, videoId, c.videoUrl || c.url || c.video_url, c.title || "Vizard Clip", c.hook || c.headline || "", c.thumbnail_url || c.thumbnail || '']
           );
         }
       } else if (payload.status === "done" && payload.video_url) {
         // fallback if it sends just one video/clip in the root object
         const clipId = Math.random().toString(36).substr(2, 9);
         await query(
-          "INSERT INTO clips (id, video_id, url, title, thumbnail, status) VALUES ($1, $2, $3, $4, $5, 'raw')",
-          [clipId, videoId, payload.video_url, payload.title || "Vizard Clip", payload.thumbnail_url || '']
+          "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, status) VALUES ($1, $2, $3, $4, $5, $6, 'raw')",
+          [clipId, videoId, payload.video_url, payload.title || "Vizard Clip", payload.hook || payload.headline || "", payload.thumbnail_url || '']
         );
       }
 
@@ -1286,7 +1290,7 @@ async function startServer() {
     if (!isAdmin(req.user.id)) return res.sendStatus(403);
     try {
       const result = await query(`
-        SELECT p.*, u.username, u.first_name, c.title as clip_title, c.thumbnail as clip_thumbnail
+        SELECT p.*, u.username, u.first_name, c.title as clip_title, c.thumbnail as clip_thumbnail, c.hook as clip_hook
         FROM publications p
         JOIN users u ON p.user_id = u.telegram_id
         JOIN clips c ON p.clip_id = c.id

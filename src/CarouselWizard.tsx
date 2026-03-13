@@ -12,7 +12,7 @@ interface CarouselStyle {
 }
 
 interface CarouselWizardProps {
-  clip: { id: string; title: string, transcript: string };
+  clip: { id: string; title: string, transcript: string, hook?: string };
   authToken: string;
   targetAudience: string;
   onClose: () => void;
@@ -20,7 +20,7 @@ interface CarouselWizardProps {
 
 export default function CarouselWizard({ clip, authToken, targetAudience, onClose }: CarouselWizardProps) {
   const [step, setStep] = useState<'style' | 'progress' | 'success'>('style');
-  const [topic, setTopic] = useState(clip.title);
+  const [topic, setTopic] = useState(clip.hook || clip.title);
   const [styles, setStyles] = useState<CarouselStyle[]>([]);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
   const [loadingStyles, setLoadingStyles] = useState(false);

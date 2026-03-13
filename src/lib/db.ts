@@ -65,6 +65,7 @@ export const initDb = async () => {
         url TEXT,
         thumbnail TEXT,
         title TEXT,
+        hook TEXT,
         status TEXT DEFAULT 'raw',
         is_available BOOLEAN DEFAULT TRUE,
         downloaded_by TEXT,
@@ -150,6 +151,7 @@ export const initDb = async () => {
       ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language TEXT;
       ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT;
       ALTER TABLE clips ADD COLUMN IF NOT EXISTS language TEXT;
+      ALTER TABLE clips ADD COLUMN IF NOT EXISTS hook TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_text TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_opacity NUMERIC DEFAULT 0.08;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_position TEXT DEFAULT 'center';
