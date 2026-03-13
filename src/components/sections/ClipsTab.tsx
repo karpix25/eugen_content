@@ -11,6 +11,7 @@ interface ClipsTabProps {
   authToken: string | null;
   onUpdate: () => void;
   isAdmin: boolean;
+  onOpenCarouselWizard: (clip: Clip) => void;
 }
 
 export function ClipsTab({ 
@@ -18,7 +19,8 @@ export function ClipsTab({
   plaques, 
   authToken, 
   onUpdate, 
-  isAdmin 
+  isAdmin,
+  onOpenCarouselWizard
 }: ClipsTabProps) {
   const [showAvailableOnly, setShowAvailableOnly] = useState(true);
   const [languageFilter, setLanguageFilter] = useState<'all' | 'ru' | 'en'>('all');
@@ -65,22 +67,7 @@ export function ClipsTab({
                 alert(e.error || "Ошибка при генерации");
               }
             }}
-            onSendCarousel={async (clipId) => {
-              const res = await fetch(`/api/clips/${clipId}/carousel`, {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${authToken}` 
-                },
-                body: JSON.stringify({ clipId })
-              });
-              if (res.ok) {
-                alert("Карусель успешно отправлена вам в Telegram!");
-                onUpdate();
-              } else {
-                alert("Ошибка при создании карусели");
-              }
-            }}
+            onSendCarousel={() => onOpenCarouselWizard(clip)}
           />
         ))}
         {visibleClips.length === 0 && (

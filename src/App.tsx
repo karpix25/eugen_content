@@ -1,4 +1,5 @@
 import React from 'react';
+import { AnimatePresence } from 'motion/react';
 import { Auth } from './components/Auth';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -41,8 +42,11 @@ function App() {
     handleLogout,
     updateData,
     addPlaque,
-    deletePlaque
+    deletePlaque,
+    targetAudience
   } = useAppStore();
+
+  const [selectedCarouselClip, setSelectedCarouselClip] = React.useState<any>(null);
 
   if (!authToken) {
     return <Auth onLogin={setAuthToken} />;
@@ -101,6 +105,7 @@ function App() {
               onUpdate={updateData} 
               authToken={authToken} 
               isAdmin={currentUser.is_admin} 
+              onOpenCarouselWizard={setSelectedCarouselClip}
             />
           )}
 
@@ -131,6 +136,17 @@ function App() {
             />
           )}
         </div>
+
+        <AnimatePresence>
+          {selectedCarouselClip && (
+            <CarouselWizard 
+              clip={selectedCarouselClip} 
+              authToken={authToken} 
+              targetAudience={targetAudience} 
+              onClose={() => setSelectedCarouselClip(null)} 
+            />
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

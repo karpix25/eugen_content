@@ -5,6 +5,9 @@ import path from "path";
 import { query } from "../lib/db.js";
 import { authenticateToken, isAdmin, requireAdmin, JWT_SECRET } from "../middleware/auth.js";
 import { processClip, extractScreenshots } from "../services/processor.js";
+import { analyzeStyle, generateCarouselScript, generateGridImage, detectLanguage } from "../services/gemini.js";
+import { sliceCarouselGrid } from "../services/slicer.js";
+import { sendCarouselToTelegram } from "../services/telegram.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 
 const router = Router();
@@ -111,33 +114,48 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
   }
 });
 
-router.post("/:id/carousel", async (req: any, res) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: "No token" });
-  
-  let decoded: any;
-  try { decoded = jwt.verify(token, JWT_SECRET); } catch { return res.status(403).json({ error: "Invalid token" }); }
-
+router.post("/:id/carousel", authenticateToken, async (req: any, res) => {
   const { id } = req.params;
-  const telegramId = decoded.telegram_id || decoded.id;
+  const telegramId = req.user.telegram_id || req.user.id;
+  const { styleId = 'ios-notes', topic, targetAudience } = req.body;
 
   try {
-    const clipRes = await query("SELECT * FROM clips WHERE id = $1", [id]);
-    const clip = clipRes.rows[0];
-    const screenshotPaths = await extractScreenshots(clip.url, id, 5);
-    const { bot } = await import("../services/telegram.js");
+    const clipRes = await query("SELECT transcript, title FROM clips WHERE id = $1", [id]);
+    if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
+    const { transcript, title } = clipRes.rows[0];
 
-    const mediaGroup = screenshotPaths.map((p, idx) => ({
-      type: 'photo' as const,
-      media: { source: fs.createReadStream(p) },
-      caption: idx === 0 ? `🖼️ Карусель: ${clip.title}` : undefined
-    }));
+    // Get style analysis
+    let analysis: any;
+    if (['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(styleId)) {
+      // Default analysis for templates (can be enriched if needed)
+      analysis = { styleDescription: styleId };
+    } else {
+      const styleRes = await query("SELECT analysis FROM carousel_styles WHERE id = $1", [styleId]);
+      analysis = styleRes.rows[0]?.analysis || { styleDescription: 'Minimalist' };
+    }
 
-    await bot.telegram.sendMediaGroup(telegramId, mediaGroup);
-    screenshotPaths.forEach(p => fs.unlinkSync(p));
-    res.json({ success: true });
+    const carouselRes = await query("INSERT INTO carousels (clip_id, user_id, status) VALUES ($1, $2, 'generating') RETURNING id", [id, String(req.user.id)]);
+    const carouselId = carouselRes.rows[0].id;
+
+    // Run generation in background
+    (async () => {
+      try {
+        const detectedLang = await detectLanguage(transcript) || 'ru';
+        const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
+        const gridUrl = await generateGridImage(script, analysis);
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
+        const slices = await sliceCarouselGrid(gridUrl, uploadsDir);
+        await query("UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4", [JSON.stringify(script), gridUrl, slices, carouselId]);
+        await sendCarouselToTelegram(String(telegramId), slices.map(s => path.join(process.cwd(), 'public', s)));
+      } catch (err: any) {
+        console.error("Background carousel generation error:", err);
+        await query("UPDATE carousels SET status = 'error', error_message = $1 WHERE id = $2", [err.message, carouselId]);
+      }
+    })();
+
+    res.json({ success: true, carouselId, status: 'generating' });
   } catch (err) {
+    console.error("Carousel generation error:", err);
     res.status(500).json({ error: "Failed carousel generation" });
   }
 });
