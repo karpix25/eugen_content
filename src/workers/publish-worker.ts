@@ -79,7 +79,7 @@ export const autoPublish = async (bot: Telegraf) => {
             caption: `🤖 [Auto] ${clip.title}`
           });
 
-          // Ensure user exists before inserting publication (Redundancy check)
+          // Ensure user exists before inserting publication
           await query(
             `INSERT INTO users (telegram_id, username, first_name) 
              VALUES ($1, $2, $3) 

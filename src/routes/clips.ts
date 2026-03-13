@@ -89,7 +89,17 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
 
     if (telegramId !== 'dev') {
       const message = await bot.telegram.sendVideo(telegramId, { source: fs.createReadStream(localFilePath) }, { caption: `🎥 ${clip.title}` });
-      await query("INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status) VALUES ($1, $2, $3, $4, 'sent')", [id, telegramId, plaque_id || null, message.message_id]);
+      
+      // Ensure user exists before inserting publication
+      await query(
+        "INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", 
+        [String(telegramId), user.username || '', user.first_name || 'Worker']
+      );
+
+      await query(
+        "INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status) VALUES ($1, $2, $3, $4, 'sent')", 
+        [id, String(telegramId), plaque_id || null, message.message_id]
+      );
       fs.unlinkSync(localFilePath);
     }
     res.json({ success: true });
