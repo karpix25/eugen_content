@@ -86,16 +86,31 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
     return null;
 };
 
-export const getLatestVideos = async (channelUrl: string, limit: number = 20, scrapeDays: number = 7): Promise<any[]> => {
+export const getLatestVideos = async (channelUrl: string, limit: number = 20, scrapeDays: number | string = 7): Promise<any[]> => {
     if (!APIFY_TOKEN) return [];
     try {
-        console.log(`Fetching latest videos and transcripts via Apify for: ${channelUrl} (last ${scrapeDays} days)`);
+        console.log(`Fetching latest videos and transcripts via Apify for: ${channelUrl} (filter: ${scrapeDays})`);
+
+        let oldestPostDate: string;
+        let dateFilter: string = 'week';
+
+        if (typeof scrapeDays === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(scrapeDays)) {
+            // It's a date string (YYYY-MM-DD)
+            oldestPostDate = scrapeDays;
+            // Approximate dateFilter based on how far back the date is (default to year if we can't tell easily)
+            dateFilter = 'year'; 
+        } else {
+            // It's a number of days
+            const days = typeof scrapeDays === 'number' ? scrapeDays : parseInt(scrapeDays) || 7;
+            oldestPostDate = `${days} days`;
+            dateFilter = days <= 1 ? 'today' : (days <= 7 ? 'week' : (days <= 31 ? 'month' : 'year'));
+        }
 
         const payload: any = {
             startUrls: [{ url: channelUrl }],
             maxResults: limit,
-            dateFilter: scrapeDays <= 1 ? 'today' : (scrapeDays <= 7 ? 'week' : (scrapeDays <= 31 ? 'month' : 'year')),
-            oldestPostDate: `${scrapeDays} days`,
+            dateFilter,
+            oldestPostDate,
             sortVideosBy: "NEWEST",
             sortingOrder: "relevance",
             downloadSubtitles: true,
