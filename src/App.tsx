@@ -2,8 +2,10 @@ import React from 'react';
 import { Auth } from './components/Auth';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { MonitoringTab } from './components/sections/MonitoringTab';
 import { ClipsTab } from './components/sections/ClipsTab';
 import { UsersTab } from './components/sections/UsersTab';
+import { WorkersTab } from './components/sections/WorkersTab';
 import { PublicationsTab } from './components/sections/PublicationsTab';
 import { SettingsTab } from './components/sections/SettingsTab';
 import CarouselWizard from './components/CarouselWizard';
@@ -19,6 +21,17 @@ function App() {
     setActiveTab,
     isSidebarOpen,
     setSidebarOpen,
+    channels,
+    videos,
+    loading,
+    processingId,
+    manualYoutubeUrl,
+    setManualYoutubeUrl,
+    handleEvaluateVideo,
+    handleApproveVideo,
+    handleCompleteVideo,
+    handleDeleteVideo,
+    handleAddManualVideo,
     clips,
     users,
     publications,
@@ -54,7 +67,27 @@ function App() {
 
       <main className="flex-1 min-w-0 h-screen overflow-y-auto custom-scrollbar relative">
         <div className="max-w-[1200px] mx-auto p-4 md:p-8">
-          <Header currentUser={currentUser} onMenuToggle={() => setSidebarOpen(!isSidebarOpen)} />
+          <Header 
+            currentUser={currentUser} 
+            onMenuToggle={() => setSidebarOpen(!isSidebarOpen)} 
+            isSidebarOpen={isSidebarOpen}
+          />
+
+          {activeTab === 'monitor' && (
+            <MonitoringTab 
+              videos={videos} 
+              loadingVideos={loading}
+              onEvaluate={handleEvaluateVideo}
+              onApprove={handleApproveVideo}
+              onComplete={handleCompleteVideo}
+              onDelete={handleDeleteVideo}
+              onRefresh={updateData}
+              onAddManual={handleAddManualVideo}
+              manualYoutubeUrl={manualYoutubeUrl}
+              setManualYoutubeUrl={setManualYoutubeUrl}
+              processingId={processingId}
+            />
+          )}
 
           {activeTab === 'clips' && (
             <ClipsTab 

@@ -16,6 +16,7 @@ import videoRoutes from "./src/routes/videos.js";
 import clipRoutes from "./src/routes/clips.js";
 import assetsRoutes from "./src/routes/plaques.js"; // Plaques and Fonts
 import carouselRoutes from "./src/routes/carousels.js";
+import adminRoutes from "./src/routes/admin.js";
 
 // Workers
 import { initMonitoringWorker } from "./src/workers/monitoring-worker.js";
@@ -41,6 +42,7 @@ async function startServer() {
   app.use("/api/clips", clipRoutes);
   app.use("/api", assetsRoutes); // Plaques and Fonts are under /api directly
   app.use("/api/carousel", carouselRoutes);
+  app.use("/api/admin", adminRoutes);
 
   app.get("/api/config", (req, res) => {
     res.json({

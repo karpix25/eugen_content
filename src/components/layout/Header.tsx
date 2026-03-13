@@ -10,13 +10,14 @@ import { User } from '../../types';
 interface HeaderProps {
   currentUser: User;
   onMenuToggle?: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export function Header({ currentUser, onMenuToggle }: HeaderProps) {
+export function Header({ currentUser, onMenuToggle, isSidebarOpen }: HeaderProps) {
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
       <div className="flex items-center gap-4">
-        {onMenuToggle && (
+        {onMenuToggle && !isSidebarOpen && (
           <button 
             onClick={onMenuToggle}
             className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"

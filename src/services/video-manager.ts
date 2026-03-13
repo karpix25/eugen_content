@@ -98,4 +98,31 @@ export class VideoManager {
   static async markCompleted(id: string) {
     await query("UPDATE videos SET status = 'completed' WHERE id = $1", [id]);
   }
+
+  static async addManualVideo(url: string) {
+    let videoId = '';
+    if (url.includes('v=')) {
+      videoId = url.split('v=')[1].split('&')[0];
+    } else if (url.includes('shorts/')) {
+      videoId = url.split('shorts/')[1].split('?')[0];
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1].split('?')[0];
+    }
+
+    if (!videoId) throw new Error("Invalid YouTube URL");
+
+    const existing = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
+    if (existing.rows.length > 0) return { id: videoId, status: 'exists' };
+
+    // Initial insert with minimal data
+    await query(`
+      INSERT INTO videos (id, title, status, published_at)
+      VALUES ($1, $2, $3, $4)
+    `, [videoId, 'Manual Upload', 'pending', new Date().toISOString()]);
+
+    // Process in background to get title and transcript
+    this.processVideoBackground(videoId, { id: videoId, title: 'Manual Upload' });
+
+    return { id: videoId, status: 'added' };
+  }
 }

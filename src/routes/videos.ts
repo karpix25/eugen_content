@@ -23,6 +23,17 @@ router.post("/monitor", authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+router.post("/manual", authenticateToken, async (req, res) => {
+  try {
+    const { url } = req.body;
+    const result = await VideoManager.addManualVideo(url);
+    res.json(result);
+  } catch (error) {
+    console.error("Manual add error:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 router.post("/:id/evaluate", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
