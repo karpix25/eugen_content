@@ -6,7 +6,7 @@ dotenv.config();
 
 import { createServer as createViteServer } from "vite";
 import { query, initDb } from "./src/lib/db.js";
-import { bot } from "./src/services/telegram.js";
+import { bot, startBot } from "./src/services/telegram.js";
 
 // Routes
 import authRoutes from "./src/routes/auth.js";
@@ -53,8 +53,11 @@ async function startServer() {
   initVizardWorker();
   initPublishWorker(bot);
 
+  // Start Telegram Bot
+  startBot();
+
   // Bot initialization log
-  console.log(`Telegram Bot initialized with token: ${process.env.TELEGRAM_BOT_TOKEN?.substring(0, 5)}...`);
+  console.log(`🚀 Telegram Bot initialized with token: ${process.env.TELEGRAM_BOT_TOKEN?.substring(0, 5)}...`);
 
   // Vite/Static middleware
   if (process.env.NODE_ENV !== "production") {

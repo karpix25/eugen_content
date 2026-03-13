@@ -31,7 +31,9 @@ const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
 
 bot.start(async (ctx) => {
     const from = ctx.from;
-    const startPayload = (ctx as any).startPayload;
+    const startPayload = ctx.payload;
+    
+    console.log(`Bot /start matched from ${from.username} (ID: ${from.id}) with payload: ${startPayload}`);
 
     // Handle deep-link login
     if (startPayload && startPayload.startsWith('login_')) {
@@ -209,9 +211,15 @@ export const sendCarouselToTelegram = async (telegramId: string, slicePaths: str
 };
 
 export const startBot = () => {
+    console.log('Attempting to start Telegram Bot...');
     bot.launch()
-        .then(() => console.log('Telegram Bot started'))
-        .catch(err => console.error('Telegram Bot failed to start:', err.message));
+        .then(() => console.log('✅ Telegram Bot started and listening'))
+        .catch(err => {
+            console.error('❌ Telegram Bot failed to start:', err.message);
+            if (err.message.includes('401: Unauthorized')) {
+                console.error('CRITICAL: Invalid TELEGRAM_BOT_TOKEN');
+            }
+        });
 };
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
