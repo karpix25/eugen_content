@@ -191,6 +191,12 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     STYLE SPECIFICATIONS & DESIGN RULES:
     ${JSON.stringify(styleAnalysis, null, 2)}
     
+    THEMATIC ADAPTATION:
+    If the style uses collages, illustrations, or background imagery, you MUST adapt the subject matter of that imagery to the specific TITLE and BODY of each slide. 
+    - For example, if Slide 1 is an intro, use broad thematic imagery.
+    - If Slide 4 contains a technical list, include subtle technical/data-themed elements in that specific grid segment.
+    - The background must still feel like one continuous artwork, but the thematic "nodes" should shift according to the text content per-slide.
+
     TYPOGRAPHY & LAYOUT GUIDELINES:
     1. MINIMALISM: Use ample white space. Do NOT crowd the slides.
     2. VISUAL HIERARCHY: Titles must be significantly LARGER and BOLDER than the body text.
@@ -228,9 +234,12 @@ export const analyzeStyle = async (imageBase64: string): Promise<any> => {
     - colors: { primary: string[], secondary: string[], background: string }
     - layout: { gridType: string, elementPositions: string, alignment: string, layering: string }
     - elements: { textures: string[], decorativeElements: string[], collageStyle: string, specificContentDetails: string }
+    - thematicLogic: string (How does the imagery relate to the text? Does it use background collages? Is it abstract or representational?)
+    - reuseInstructions: string (Instructions for another AI on how to recreate this exact style but with DIFFERENT thematic content. For example: "Use black and white grainy photos of [TOPIC] behind neon lines")
     - styleDescription: string (detailed stylistic summary)
     
-    Be very specific with font names and hex color codes. Pay close attention to how text is emphasized (bolding, sizing, different fonts for specific words).`;
+    Be very specific with font names and hex color codes. Pay close attention to how text is emphasized (bolding, sizing, different fonts for specific words).
+    If there are images or collages, describe their 'logic' (e.g. "top-right placement, overlapping text, 40% opacity, noir photography").`;
 
   try {
     const response = await axios.post(

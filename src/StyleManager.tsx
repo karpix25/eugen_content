@@ -195,6 +195,18 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                         ))}
                       </div>
                     </div>
+                    {analysisResult.thematicLogic && (
+                      <div>
+                        <h4 className="text-xs font-black uppercase text-emerald-500 mb-2">Imagery Logic</h4>
+                        <p className="text-sm text-white/80 italic">"{analysisResult.thematicLogic}"</p>
+                      </div>
+                    )}
+                    {analysisResult.reuseInstructions && (
+                      <div>
+                        <h4 className="text-xs font-black uppercase text-emerald-500 mb-2">AI Implementation Rules</h4>
+                        <p className="text-xs text-white/40 leading-relaxed">{analysisResult.reuseInstructions}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
