@@ -15,7 +15,7 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
   const fetchData = useCallback(async () => {
     if (!authToken) return;
     try {
-      const [chData, vidData, clipData, adData, userData, pubData] = await Promise.all([
+      const results = await Promise.allSettled([
         api.channels.list(),
         api.videos.list(),
         api.clips.list(),
@@ -24,20 +24,45 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
         currentUser?.is_admin ? api.admin.getPublications() : Promise.resolve([])
       ]);
 
-      const allData = [chData, vidData, clipData, adData, userData, pubData];
-      if (allData.some(d => d && (d.error === 'Unauthorized' || d === 401))) {
-        onUnauthorized();
-        return;
+      const [chRes, vidRes, clipRes, adRes, userRes, pubRes] = results;
+
+      if (chRes.status === 'fulfilled') {
+        const data = chRes.value;
+        console.log('[fetchData] channels:', data);
+        if (data && (data as any).error === 'Unauthorized') {
+          onUnauthorized();
+          return;
+        }
+        setChannels(Array.isArray(data) ? data : []);
       }
 
-      setChannels(Array.isArray(chData) ? chData : []);
-      setVideos(Array.isArray(vidData) ? vidData : []);
-      setClips(Array.isArray(clipData) ? clipData : []);
-      setPlaques(Array.isArray(adData) ? adData : []);
-      setUsers(Array.isArray(userData) ? userData : []);
-      setPublications(Array.isArray(pubData) ? pubData : []);
+      if (vidRes.status === 'fulfilled') {
+        const data = vidRes.value;
+        setVideos(Array.isArray(data) ? data : []);
+      }
+
+      if (clipRes.status === 'fulfilled') {
+        const data = clipRes.value;
+        setClips(Array.isArray(data) ? data : []);
+      }
+
+      if (adRes.status === 'fulfilled') {
+        const data = adRes.value;
+        setPlaques(Array.isArray(data) ? data : []);
+      }
+
+      if (userRes.status === 'fulfilled') {
+        const data = userRes.value;
+        setUsers(Array.isArray(data) ? data : []);
+      }
+
+      if (pubRes.status === 'fulfilled') {
+        const data = pubRes.value;
+        setPublications(Array.isArray(data) ? data : []);
+      }
+
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error in fetchData:', error);
     }
   }, [authToken, currentUser, onUnauthorized]);
 

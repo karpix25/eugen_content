@@ -10,7 +10,7 @@ import { authenticateToken, isAdmin, requireAdmin, JWT_SECRET } from "../middlew
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.get("/plaques", authenticateToken, async (req, res) => {
+router.get("/ad-plaques", authenticateToken, async (req, res) => {
   const userId = req.query.user_id ? String(req.query.user_id) : null;
   let result;
   if (userId) {
@@ -21,7 +21,7 @@ router.get("/plaques", authenticateToken, async (req, res) => {
   res.json(result.rows);
 });
 
-router.post("/plaques", authenticateToken, upload.single("file"), async (req, res) => {
+router.post("/ad-plaques", authenticateToken, upload.single("file"), async (req, res) => {
   const { name, text, user_id } = req.body;
   const file = req.file;
   if (!file) return res.status(400).json({ error: "No file uploaded" });
@@ -43,7 +43,7 @@ router.post("/plaques", authenticateToken, upload.single("file"), async (req, re
   }
 });
 
-router.delete("/plaques/:id", authenticateToken, requireAdmin, async (req, res) => {
+router.delete("/ad-plaques/:id", authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     await query("UPDATE publications SET plaque_id = NULL WHERE plaque_id = $1", [id]);

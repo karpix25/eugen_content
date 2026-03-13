@@ -8,31 +8,49 @@ const getHeaders = () => {
   };
 };
 
+async function handleResponse(res: Response) {
+  if (!res.ok) {
+    const text = await res.text();
+    console.error(`[API Error] ${res.url} returned ${res.status}: ${text}`);
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: text || res.statusText, status: res.status };
+    }
+  }
+  try {
+    return await res.json();
+  } catch (err) {
+    console.error(`[API Error] Failed to parse JSON from ${res.url}`, err);
+    return { error: 'Invalid JSON response' };
+  }
+}
+
 export const api = {
   async getConfig() {
     const res = await fetch('/api/config');
-    return res.json();
+    return handleResponse(res);
   },
 
   auth: {
     async init() {
       const res = await fetch('/api/auth/init');
-      return res.json();
+      return handleResponse(res);
     },
     async check(sessionId: string) {
       const res = await fetch(`/api/auth/check/${sessionId}`);
-      return res.json();
+      return handleResponse(res);
     },
     async verify() {
       const res = await fetch('/api/auth/check', { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     }
   },
 
   channels: {
     async list(): Promise<Channel[]> {
       const res = await fetch('/api/channels', { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     },
     async create(url: string, interval: string, scrapeDays: number): Promise<Channel> {
       const res = await fetch('/api/channels', {
@@ -40,17 +58,18 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify({ url, interval, scrapeDays })
       });
-      return res.json();
+      return handleResponse(res);
     },
     async delete(id: string) {
-      await fetch(`/api/channels/${id}`, { method: 'DELETE', headers: getHeaders() });
+      const res = await fetch(`/api/channels/${id}`, { method: 'DELETE', headers: getHeaders() });
+      return handleResponse(res);
     }
   },
 
   videos: {
     async list(): Promise<VideoData[]> {
       const res = await fetch('/api/videos', { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     },
     async evaluate(id: string, targetAudience: string) {
       const res = await fetch(`/api/videos/${id}/evaluate`, {
@@ -58,7 +77,7 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify({ targetAudience })
       });
-      return res.json();
+      return handleResponse(res);
     },
     async approve(id: string, targetAudience: string) {
       const res = await fetch(`/api/videos/${id}/approve`, {
@@ -66,20 +85,22 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify({ targetAudience })
       });
-      return res.json();
+      return handleResponse(res);
     },
     async complete(id: string) {
-      await fetch(`/api/videos/${id}/complete`, { method: 'POST', headers: getHeaders() });
+      const res = await fetch(`/api/videos/${id}/complete`, { method: 'POST', headers: getHeaders() });
+      return handleResponse(res);
     },
     async triggerMonitor() {
-      await fetch('/api/monitor', { method: 'POST', headers: getHeaders() });
+      const res = await fetch('/api/monitor', { method: 'POST', headers: getHeaders() });
+      return handleResponse(res);
     }
   },
 
   clips: {
     async list(): Promise<Clip[]> {
       const res = await fetch('/api/clips', { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     },
     async applyPlaque(clipId: string, plaqueId: string | null) {
       const res = await fetch(`/api/clips/${clipId}/apply-plaque`, {
@@ -87,21 +108,22 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify({ ad_plaque_id: plaqueId })
       });
-      return res.json();
+      return handleResponse(res);
     }
   },
 
   users: {
     async list(): Promise<User[]> {
       const res = await fetch('/api/users', { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     },
     async authorize(id: string, isAuthorized: boolean) {
-      await fetch(`/api/users/${id}/authorize`, {
+      const res = await fetch(`/api/users/${id}/authorize`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ isAuthorized })
       });
+      return handleResponse(res);
     },
     async saveSettings(settings: any) {
       const res = await fetch('/api/users/settings', {
@@ -109,7 +131,7 @@ export const api = {
         headers: getHeaders(),
         body: JSON.stringify(settings)
       });
-      return res.json();
+      return handleResponse(res);
     }
   },
 
@@ -117,10 +139,11 @@ export const api = {
     async list(userId?: string): Promise<AdPlaque[]> {
       const url = `/api/ad-plaques${userId ? `?user_id=${userId}` : ''}`;
       const res = await fetch(url, { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     },
     async delete(id: string) {
-      await fetch(`/api/ad-plaques/${id}`, { method: 'DELETE', headers: getHeaders() });
+      const res = await fetch(`/api/ad-plaques/${id}`, { method: 'DELETE', headers: getHeaders() });
+      return handleResponse(res);
     },
     async create(formData: FormData) {
       const token = localStorage.getItem('auth_token');
@@ -131,18 +154,18 @@ export const api = {
         },
         body: formData
       });
-      return res.json();
+      return handleResponse(res);
     }
   },
 
   admin: {
     async getPublications(): Promise<Publication[]> {
       const res = await fetch('/api/admin/publications', { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     },
     async getStats() {
       const res = await fetch('/api/admin/stats', { headers: getHeaders() });
-      return res.json();
+      return handleResponse(res);
     }
   }
 };
