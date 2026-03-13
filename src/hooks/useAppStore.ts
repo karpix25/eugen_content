@@ -17,7 +17,7 @@ export function useAppStore() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     try {
-      const res = await fetch('/api/plaques', {
+      const res = await fetch('/api/ad-plaques', {
         method: 'POST',
         headers: { Authorization: `Bearer ${authToken}` },
         body: formData
@@ -34,7 +34,7 @@ export function useAppStore() {
   const deletePlaque = async (id: string) => {
     if (!confirm('Удалить эту плашку?')) return;
     try {
-      const res = await fetch(`/api/plaques/${id}`, {
+      const res = await fetch(`/api/ad-plaques/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` }
       });
@@ -132,6 +132,41 @@ export function useAppStore() {
     }
   };
 
+  const handleAddChannel = async (url: string, interval: string, scrapeDays: number) => {
+    try {
+      const res = await fetch('/api/channels', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ 
+          id: url,
+          monitoring_interval: interval,
+          scrape_days: scrapeDays
+        })
+      });
+      if (res.ok) {
+        data.fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteChannel = async (id: string) => {
+    if (!confirm('Удалить этот канал?')) return;
+    try {
+      const res = await fetch(`/api/channels/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      if (res.ok) data.fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return {
     authToken,
     setAuthToken: handleLogin,
@@ -151,6 +186,8 @@ export function useAppStore() {
     handleCompleteVideo,
     handleDeleteVideo,
     handleAddManualVideo,
+    handleAddChannel,
+    handleDeleteChannel,
     manualYoutubeUrl,
     setManualYoutubeUrl,
     processingId

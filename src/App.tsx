@@ -32,6 +32,8 @@ function App() {
     handleCompleteVideo,
     handleDeleteVideo,
     handleAddManualVideo,
+    handleAddChannel,
+    handleDeleteChannel,
     clips,
     users,
     publications,
@@ -75,14 +77,17 @@ function App() {
 
           {activeTab === 'monitor' && (
             <MonitoringTab 
-              videos={videos} 
+              videos={videos}
+              channels={channels}
               loadingVideos={loading}
               onEvaluate={handleEvaluateVideo}
               onApprove={handleApproveVideo}
               onComplete={handleCompleteVideo}
               onDelete={handleDeleteVideo}
+              onDeleteChannel={handleDeleteChannel}
               onRefresh={updateData}
               onAddManual={handleAddManualVideo}
+              onAddChannel={handleAddChannel}
               manualYoutubeUrl={manualYoutubeUrl}
               setManualYoutubeUrl={setManualYoutubeUrl}
               processingId={processingId}

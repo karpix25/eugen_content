@@ -4,6 +4,7 @@ export interface Channel {
   thumbnail: string;
   subscribers?: number;
   monitoring_interval?: string;
+  scrape_days?: number;
   next_check?: string;
 }
 
