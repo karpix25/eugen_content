@@ -2,27 +2,39 @@ import React from 'react';
 import { 
   Bell, 
   Search, 
-  ShieldCheck 
+  ShieldCheck,
+  Menu
 } from 'lucide-react';
 import { User } from '../../types';
 
 interface HeaderProps {
   currentUser: User;
+  onMenuToggle?: () => void;
 }
 
-export function Header({ currentUser }: HeaderProps) {
+export function Header({ currentUser, onMenuToggle }: HeaderProps) {
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-      <div className="space-y-1">
-        <h2 className="text-3xl md:text-5xl font-black tracking-tighter">
-          Привет, <span className="text-emerald-500">{currentUser.first_name}</span>!
-        </h2>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Система активна</span>
+      <div className="flex items-center gap-4">
+        {onMenuToggle && (
+          <button 
+            onClick={onMenuToggle}
+            className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+          >
+            <Menu className="w-6 h-6 text-white/40 group-hover:text-emerald-500 transition-colors" />
+          </button>
+        )}
+        <div className="space-y-1">
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter">
+            Привет, <span className="text-emerald-500">{currentUser.first_name}</span>!
+          </h2>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Система активна</span>
+            </div>
+            <span className="text-white/20 text-xs font-medium">@{currentUser.username}</span>
           </div>
-          <span className="text-white/20 text-xs font-medium">@{currentUser.username}</span>
         </div>
       </div>
 

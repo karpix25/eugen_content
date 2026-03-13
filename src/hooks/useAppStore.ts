@@ -6,6 +6,9 @@ export function useAppStore() {
   const { authToken, currentUser, handleLogin, handleLogout } = useAuth();
   const data = useAppData(authToken, currentUser, handleLogout);
   const [activeTab, setActiveTab] = useState('clips');
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
 
   // Add plaque management to the store
   const addPlaque = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -45,6 +48,9 @@ export function useAppStore() {
     currentUser,
     activeTab,
     setActiveTab,
+    isSidebarOpen,
+    setSidebarOpen,
+    toggleSidebar,
     ...data,
     updateData: data.fetchData,
     handleLogout,

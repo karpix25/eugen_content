@@ -17,6 +17,8 @@ function App() {
     currentUser,
     activeTab,
     setActiveTab,
+    isSidebarOpen,
+    setSidebarOpen,
     clips,
     users,
     publications,
@@ -40,19 +42,19 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex font-sans selection:bg-emerald-500/30 selection:text-emerald-400">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex overflow-hidden font-sans selection:bg-emerald-500/30 selection:text-emerald-400">
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         onLogout={handleLogout} 
         currentUser={currentUser}
-        isOpen={false}
-        setIsOpen={() => {}}
+        isOpen={isSidebarOpen}
+        setIsOpen={setSidebarOpen}
       />
 
       <main className="flex-1 min-w-0 h-screen overflow-y-auto custom-scrollbar relative">
         <div className="max-w-[1200px] mx-auto p-4 md:p-8">
-          <Header currentUser={currentUser} />
+          <Header currentUser={currentUser} onMenuToggle={() => setSidebarOpen(!isSidebarOpen)} />
 
           {activeTab === 'clips' && (
             <ClipsTab 

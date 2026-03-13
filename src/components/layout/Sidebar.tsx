@@ -35,8 +35,13 @@ export function Sidebar({
   return (
     <>
       <aside className={cn(
-        "fixed left-0 top-0 bottom-0 w-72 bg-black border-r border-white/5 z-40 transition-transform lg:translate-x-0 overflow-y-auto custom-scrollbar",
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        "bg-black border-r border-white/5 z-40 transition-all duration-300 overflow-y-auto custom-scrollbar flex flex-col shrink-0",
+        // Desktop: non-fixed, adaptive width
+        "hidden lg:flex",
+        isOpen ? "w-72" : "w-0 opacity-0 border-none overflow-hidden",
+        // Mobile: fixed overlay
+        "fixed inset-y-0 left-0 w-72 lg:static",
+        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="p-8 space-y-8">
           <div className="flex items-center gap-4 group">
