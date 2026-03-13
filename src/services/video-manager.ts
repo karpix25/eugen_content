@@ -1,7 +1,7 @@
-import { query } from '../lib/db.js';
-import { getTranscript, getLatestVideos } from './apify.js';
-import { evaluateContent } from './gemini.js';
-import { sendToVizard } from './vizard.js';
+import { query } from '../lib/db';
+import { getTranscript, getLatestVideos } from './apify';
+import { evaluateContent } from './gemini';
+import { sendToVizard } from './vizard';
 
 export class VideoManager {
   static async getAllVideos() {

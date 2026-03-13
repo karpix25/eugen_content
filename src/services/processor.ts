@@ -2,8 +2,8 @@ import ffmpeg from 'fluent-ffmpeg';
 import path from 'path';
 import fs from 'fs';
 import axios from 'axios';
-import { query } from '../lib/db.js';
-import { uploadToS3 } from '../lib/s3.js';
+import { query } from '../lib/db';
+import { uploadToS3 } from '../lib/s3';
 import { startDubbing, checkDubbingStatus, getDubbedFile } from './elevenlabs.js';
 import { generateAndCacheSRT } from './deepgram.js';
 

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Layout, ImageIcon, Sparkles, Loader2, Trash2, Plus, CheckCircle, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
-import { cn } from './lib/utils';
+import { cn } from '../lib/utils';
 
 interface CarouselStyle {
   id: string;

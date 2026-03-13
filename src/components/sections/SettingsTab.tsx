@@ -9,10 +9,10 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { User, AdPlaque } from '../../types';
-import { SubtitleSettings } from './SubtitleSettings';
-import { PlaqueSettings } from './PlaqueSettings';
-import { WatermarkSettings } from './WatermarkSettings';
-import { AutoModeSettings } from './AutoModeSettings';
+import { SubtitleSettings } from '../settings/SubtitleSettings';
+import { PlaqueSettings } from '../settings/PlaqueSettings';
+import { WatermarkSettings } from '../settings/WatermarkSettings';
+import { AutoModeSettings } from '../settings/AutoModeSettings';
 
 interface SettingsTabProps {
   currentUser: User;
