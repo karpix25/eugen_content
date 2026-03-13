@@ -7,7 +7,8 @@ import {
   ScrollText, 
   LogOut, 
   RefreshCw,
-  X 
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { User } from '../../types';
@@ -18,7 +19,7 @@ interface SidebarProps {
   setActiveTab: (tab: any) => void;
   currentUser: User | null;
   onLogout: () => void;
-  isOpen: boolean;
+  isOpen: boolean; // Using isOpen as "isExpanded"
   setIsOpen: (open: boolean) => void;
 }
 
@@ -33,115 +34,146 @@ export function Sidebar({
   const isAdmin = currentUser?.is_admin;
 
   return (
-    <>
-      <aside className={cn(
-        "bg-[#0A0A0A] border-r border-white/5 z-50 transition-all duration-500 ease-in-out flex flex-col shrink-0 h-screen",
-        // Mobile
-        "fixed inset-y-0 left-0 w-72 lg:relative lg:translate-x-0",
-        isOpen ? "translate-x-0 shadow-[20px_0_50px_rgba(0,0,0,0.5)] lg:shadow-none" : "-translate-x-full lg:w-0 lg:opacity-0 lg:pointer-events-none lg:border-none lg:-translate-x-full"
+    <aside className={cn(
+      "bg-[#0A0A0A] border-r border-white/5 z-50 transition-all duration-500 ease-in-out flex flex-col shrink-0 h-screen sticky top-0",
+      isOpen ? "w-72" : "w-20"
+    )}>
+      <div className={cn(
+        "p-4 md:p-6 space-y-8 h-full flex flex-col transition-all duration-500",
+        !isOpen && "items-center px-0"
       )}>
-        <div className="p-6 md:p-8 space-y-8 h-full flex flex-col min-w-[18rem]">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] group-hover:rotate-12 transition-transform duration-500">
-                <RefreshCw className="w-5 h-5 md:w-6 md:h-6 text-black animate-spin-slow" />
-              </div>
-              <div className="transition-opacity duration-300">
-                <h1 className="text-xl font-black tracking-tighter text-white">CONTENT<span className="text-emerald-500">MACHINE</span></h1>
-                <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.2em]">Video Automation</p>
-              </div>
+        <div className={cn(
+          "flex items-center gap-4 transition-all duration-500",
+          isOpen ? "justify-between px-2" : "justify-center"
+        )}>
+          <div className="flex items-center gap-4 group">
+            <div className="w-10 h-10 md:w-11 md:h-11 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] group-hover:rotate-12 transition-transform duration-500 shrink-0">
+              <RefreshCw className="w-5 h-5 md:w-6 md:h-6 text-black animate-spin-slow" />
             </div>
-
-            {/* Close Toggle */}
-            <button 
-              onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-white/5 rounded-xl transition-colors text-white/40 hover:text-white"
-              title="Закрыть меню"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {isOpen && (
+              <div className="transition-opacity duration-300 whitespace-nowrap overflow-hidden">
+                <h1 className="text-lg font-black tracking-tighter text-white">CONTENT<span className="text-emerald-500">MACHINE</span></h1>
+                <p className="text-[9px] text-white/40 font-bold uppercase tracking-[0.2em]">Video Automation</p>
+              </div>
+            )}
           </div>
 
-          <nav className="space-y-1.5 pt-4 flex-1 overflow-y-auto custom-scrollbar -mx-2 px-2">
-            {isAdmin && (
-              <>
-                <div className="px-4 py-2 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Управление</div>
-                <NavButton 
-                  active={activeTab === 'monitor'} 
-                  onClick={() => { setActiveTab('monitor'); if (window.innerWidth < 1024) setIsOpen(false); }} 
-                  icon={<Bot className="w-5 h-5" />} 
-                  label="Мониторинг" 
-                />
-              </>
-            )}
-            
-            <div className="px-4 py-2 mt-4 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Контент</div>
-            <NavButton 
-              active={activeTab === 'clips'} 
-              onClick={() => { setActiveTab('clips'); if (window.innerWidth < 1024) setIsOpen(false); }} 
-              icon={<Video className="w-5 h-5" />} 
-              label="Видео-нарезки" 
-            />
-            {isAdmin && (
-              <NavButton 
-                active={activeTab === 'workers'} 
-                onClick={() => { setActiveTab('workers'); if (window.innerWidth < 1024) setIsOpen(false); }} 
-                icon={<Users className="w-5 h-5" />} 
-                label="Работники" 
-              />
-            )}
-            {isAdmin && (
-              <NavButton 
-                active={activeTab === 'publications'} 
-                onClick={() => { setActiveTab('publications'); if (window.innerWidth < 1024) setIsOpen(false); }} 
-                icon={<ClipboardList className="w-5 h-5" />} 
-                label="Публикации" 
-              />
-            )}
-            
-            <div className="px-4 py-2 mt-4 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Настройки</div>
-            <NavButton 
-              active={activeTab === 'settings'} 
-              onClick={() => { setActiveTab('settings'); if (window.innerWidth < 1024) setIsOpen(false); }} 
-              icon={<Settings className="w-5 h-5" />} 
-              label="Профиль" 
-            />
-            {isAdmin && (
-              <NavButton 
-                active={activeTab === 'styles'} 
-                onClick={() => { setActiveTab('styles'); if (window.innerWidth < 1024) setIsOpen(false); }} 
-                icon={<ScrollText className="w-5 h-5" />} 
-                label="Стили" 
-              />
-            )}
-          </nav>
+          {/* Toggle Button Inside */}
+          {isOpen && (
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white shrink-0"
+              title="Свернуть"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+        </div>
 
-          <div className="pt-8 border-t border-white/5 space-y-4">
-            <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-500 border border-emerald-500/20 shadow-inner">
-                {currentUser?.first_name?.[0] || 'U'}
-              </div>
-              <div className="min-w-0">
+        {!isOpen && (
+          <button 
+            onClick={() => setIsOpen(true)}
+            className="p-2 hover:bg-white/5 rounded-xl transition-colors text-white/40 hover:text-white"
+            title="Развернуть"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+
+        <nav className={cn(
+          "space-y-1.5 pt-4 flex-1 overflow-y-auto custom-scrollbar transition-all duration-500",
+          isOpen ? "-mx-2 px-2" : "w-full flex flex-col items-center gap-1"
+        )}>
+          {isAdmin && (
+            <>
+              {isOpen && <div className="px-4 py-2 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Управление</div>}
+              <NavButton 
+                active={activeTab === 'monitor'} 
+                onClick={() => setActiveTab('monitor')} 
+                icon={<Bot className="w-5 h-5" />} 
+                label="Мониторинг"
+                collapsed={!isOpen}
+              />
+            </>
+          )}
+          
+          {isOpen && <div className="px-4 py-2 mt-4 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Контент</div>}
+          <NavButton 
+            active={activeTab === 'clips'} 
+            onClick={() => setActiveTab('clips')} 
+            icon={<Video className="w-5 h-5" />} 
+            label="Видео-нарезки"
+            collapsed={!isOpen}
+          />
+          {isAdmin && (
+            <NavButton 
+              active={activeTab === 'workers'} 
+              onClick={() => setActiveTab('workers')} 
+              icon={<Users className="w-5 h-5" />} 
+              label="Работники"
+              collapsed={!isOpen}
+            />
+          )}
+          {isAdmin && (
+            <NavButton 
+              active={activeTab === 'publications'} 
+              onClick={() => setActiveTab('publications')} 
+              icon={<ClipboardList className="w-5 h-5" />} 
+              label="Публикации"
+              collapsed={!isOpen}
+            />
+          )}
+          
+          {isOpen && <div className="px-4 py-2 mt-4 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Настройки</div>}
+          <NavButton 
+            active={activeTab === 'settings'} 
+            onClick={() => setActiveTab('settings')} 
+            icon={<Settings className="w-5 h-5" />} 
+            label="Профиль"
+            collapsed={!isOpen}
+          />
+          {isAdmin && (
+            <NavButton 
+              active={activeTab === 'styles'} 
+              onClick={() => setActiveTab('styles')} 
+              icon={<ScrollText className="w-5 h-5" />} 
+              label="Стили"
+              collapsed={!isOpen}
+            />
+          )}
+        </nav>
+
+        <div className={cn(
+          "pt-6 border-t border-white/5 space-y-4",
+          !isOpen && "flex flex-col items-center"
+        )}>
+          <div className={cn(
+            "flex items-center gap-3 bg-white/5 rounded-2xl border border-white/5 transition-all duration-500",
+            isOpen ? "px-4 py-2 w-full" : "p-2"
+          )}>
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-500 border border-emerald-500/20 shadow-inner shrink-0">
+              {currentUser?.first_name?.[0] || 'U'}
+            </div>
+            {isOpen && (
+              <div className="min-w-0 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
                 <p className="text-sm font-bold text-white truncate">{currentUser?.first_name}</p>
                 <p className="text-[10px] text-white/40 truncate">@{currentUser?.username}</p>
               </div>
-            </div>
-            <button
-              onClick={onLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-bold group border border-transparent hover:border-red-500/20"
-            >
-              <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span className="text-sm">Выйти</span>
-            </button>
+            )}
           </div>
+          <button
+            onClick={onLogout}
+            className={cn(
+              "flex items-center rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-bold group border border-transparent hover:border-red-500/20",
+              isOpen ? "w-full gap-3 px-4 py-3" : "justify-center p-3"
+            )}
+            title={!isOpen ? "Выйти" : undefined}
+          >
+            <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform shrink-0" />
+            {isOpen && <span className="text-sm transition-opacity duration-300">Выйти</span>}
+          </button>
         </div>
-      </aside>
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[45] lg:hidden" 
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-    </>
+      </div>
+    </aside>
   );
 }

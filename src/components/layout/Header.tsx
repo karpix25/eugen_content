@@ -17,14 +17,12 @@ export function Header({ currentUser, onMenuToggle, isSidebarOpen }: HeaderProps
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
       <div className="flex items-center gap-4">
-        {onMenuToggle && !isSidebarOpen && (
           <button 
             onClick={onMenuToggle}
-            className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+            className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group lg:hidden"
           >
             <Menu className="w-6 h-6 text-white/40 group-hover:text-emerald-500 transition-colors" />
           </button>
-        )}
         <div className="space-y-1">
           <h2 className="text-3xl md:text-5xl font-black tracking-tighter">
             Привет, <span className="text-emerald-500">{currentUser.first_name}</span>!
