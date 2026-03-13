@@ -100,9 +100,14 @@ export const processClip = async (
         highlight_color?: string,
         highlight_enabled?: boolean,
         outline_color?: string
-    }
+    },
+    videoFolderName?: string
 ): Promise<string> => {
-    const outputDir = path.join(process.cwd(), 'temp', 'processed');
+    let outputDir = path.join(process.cwd(), 'temp', 'processed');
+    if (videoFolderName) {
+        outputDir = path.join(outputDir, videoFolderName);
+    }
+
     if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
     }
