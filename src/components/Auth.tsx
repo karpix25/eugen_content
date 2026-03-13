@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Shield, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Sparkles, AlertCircle, Loader2, Send } from 'lucide-react';
 
 interface AuthProps {
-  onLogin: (token: string) => void;
+  onLogin: (token: string, user: any) => void;
 }
 
 export function Auth({ onLogin }: AuthProps) {
@@ -10,6 +10,57 @@ export function Auth({ onLogin }: AuthProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [botUsername, setBotUsername] = useState<string>('');
+  const [isPolling, setIsPolling] = useState(false);
+  const [waitingConfirm, setWaitingConfirm] = useState(false);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+        setBotUsername(config.bot_username || "YOUR_BOT_USERNAME");
+
+        const sessionRes = await fetch('/api/auth/init');
+        const sessionData = await sessionRes.json();
+        setSessionId(sessionData.sessionId);
+        setIsPolling(true);
+      } catch (err) {
+        console.error("Failed to init auth:", err);
+      }
+    };
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!sessionId || !isPolling) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/auth/check/${sessionId}`);
+        const data = await res.json();
+
+        if (data.status === 'authorized') {
+          setIsPolling(false);
+          clearInterval(interval);
+          onLogin(data.token, data.user);
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [sessionId, isPolling, onLogin]);
+
+  const handleTelegramLogin = () => {
+    if (sessionId) {
+      setWaitingConfirm(true);
+      const url = `https://t.me/${botUsername}?start=login_${sessionId}`;
+      window.open(url, '_blank');
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +74,8 @@ export function Auth({ onLogin }: AuthProps) {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem('authToken', data.token);
-        onLogin(data.token);
+        localStorage.setItem('auth_token', data.token);
+        onLogin(data.token, data.user);
       } else {
         setError(data.error || 'Ошибка входа');
       }
@@ -103,6 +154,45 @@ export function Auth({ onLogin }: AuthProps) {
                 <span className="relative z-10">Войти в систему</span>
               )}
             </button>
+
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/5"></div>
+              </div>
+              <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
+                <span className="bg-[#111] px-4 text-white/20">или</span>
+              </div>
+            </div>
+
+            {!waitingConfirm ? (
+              <button
+                type="button"
+                onClick={handleTelegramLogin}
+                disabled={!sessionId}
+                className="w-full bg-[#229ED9] hover:bg-[#1E8EC2] text-white font-black uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-[#229ED9]/20 flex items-center justify-center gap-3 relative overflow-hidden group active:scale-[0.98] disabled:opacity-50"
+              >
+                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <Send className="w-5 h-5 relative z-10 rotate-[-45deg]" />
+                <span className="relative z-10">Войти через Telegram</span>
+              </button>
+            ) : (
+              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl text-center space-y-4">
+                <div className="flex justify-center">
+                  <div className="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-white font-black uppercase tracking-widest text-[10px]">Ждем подтверждения...</p>
+                  <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Откройте Telegram и нажмите Start</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWaitingConfirm(false)}
+                  className="text-emerald-500 text-[10px] font-black uppercase tracking-widest hover:text-emerald-400 transition-colors"
+                >
+                  Вернуться назад
+                </button>
+              </div>
+            )}
           </form>
 
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
