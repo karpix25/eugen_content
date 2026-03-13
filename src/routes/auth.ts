@@ -128,7 +128,7 @@ router.post("/telegram", async (req, res) => {
 
   const adminStatus = isAdmin(data.id);
   const userPayload = { ...data, is_admin: adminStatus };
-  const jwtToken = jwt.sign({ id: data.id, username: data.username, is_admin: adminStatus }, JWT_SECRET, { expiresIn: '7d' });
+  const jwtToken = jwt.sign({ id: String(data.id), username: data.username, is_admin: adminStatus }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token: jwtToken, user: userPayload });
 });
 

@@ -13,11 +13,11 @@ const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
     const from = ctx.from;
     if (!from) return;
 
-    const res = await query('SELECT is_authorized FROM users WHERE telegram_id = $1', [from.id]);
+    const res = await query('SELECT is_authorized FROM users WHERE telegram_id = $1', [String(from.id)]);
     if (res.rows.length === 0) {
         await query(
             'INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3)',
-            [from.id, from.username, from.first_name]
+            [String(from.id), from.username, from.first_name]
         );
         return ctx.reply('Вы зарегистрированы. Дождитесь подтверждения от администратора.');
     }
@@ -52,7 +52,7 @@ bot.start(async (ctx) => {
                                 from.id === 0; // fallback for dev
 
             const token = jwt.sign(
-                { id: from.id, username: from.username, first_name: from.first_name, is_admin: isAdminUser },
+                { id: String(from.id), username: from.username, first_name: from.first_name, is_admin: isAdminUser },
                 process.env.JWT_SECRET || 'fallback_secret',
                 { expiresIn: '30d' } // Extended to 30d for convenience
             );
@@ -84,12 +84,12 @@ bot.start(async (ctx) => {
         }
     }
 
-    const res = await query('SELECT is_authorized FROM users WHERE telegram_id = $1', [from.id]);
+    const res = await query('SELECT is_authorized FROM users WHERE telegram_id = $1', [String(from.id)]);
 
     if (res.rows.length === 0) {
         await query(
             'INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3)',
-            [from.id, from.username, from.first_name]
+            [String(from.id), from.username, from.first_name]
         );
         return ctx.reply('Добро пожаловать! Вы зарегистрированы. Дождитесь подтверждения от администратора.');
     }
@@ -137,7 +137,7 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
     // Mark as downloaded
     await query(
         'UPDATE clips SET is_available = FALSE, downloaded_by = $1, downloaded_at = NOW() WHERE id = $2',
-        [from.id, clipId]
+        [String(from.id), clipId]
     );
 
     await ctx.reply(`Вы скачали: ${clip.title}`);
