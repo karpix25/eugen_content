@@ -201,21 +201,19 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     THEMATIC ADAPTATION & ART STYLE:
     - MANDATORY ART STYLE: ${styleAnalysis?.elements?.artStyle || "Graphic Design"}. 
     - VISUAL CONNECTORS: ${styleAnalysis?.layout?.visualConnectors || "None"}.
-    - THEMATIC LOGIC: ${styleAnalysis?.thematicLogic || "General"}.
+    - COMPOSITION: ${styleAnalysis?.layout?.compositionRules || "Centered hierarchy"}.
+    - EFFECTS: ${JSON.stringify(styleAnalysis?.effects || {})}.
+    - TYPOGRAPHY: ${JSON.stringify(styleAnalysis?.fonts?.nuances || {})}.
     
     If the style uses collages, illustrations, or background imagery, you MUST adapt the subject matter of that imagery to the specific TITLE and BODY of each slide. 
-    - For example, if Slide 1 is an intro, use broad thematic imagery.
-    - If Slide 4 contains a technical list, include subtle technical/data-themed elements in that specific grid segment.
     - The background must still feel like one continuous artwork. 
-    - CRITICAL: Use the requested Visual Connectors (like ribbons, paths, or geometric lines) to physically link the content across the 2x3 grid.
+    - CRITICAL: Render the Visual Connectors (ribbons, lines, or geometric paths) with the exact color and thickness described in the STYLE RULES. They must physically bridge the slides.
+    - FIDELITY: Maintain the ${styleAnalysis?.elements?.artStyle} aesthetic throughout. If grain or textures are mentioned, apply them consistently across the entire 2x3 grid.
 
     TYPOGRAPHY & LAYOUT GUIDELINES:
-    1. MINIMALISM: Use ample white space. Do NOT crowd the slides.
-    2. VISUAL HIERARCHY: Titles must be significantly LARGER and BOLDER than the body text.
-    3. ALIGNMENT: Strict grid alignment. Place exactly one title+body pair on each of the 6 slides.
-    4. NO BORDERS: Absolutely no grid lines, borders, or dividers between slides.
-    5. SEAMLESS FLOW: The background design must flow fluidly and continuously across the entire 2x3 canvas. 
-    6. TEXT PLACEMENT: Ensure text is vertically and horizontally centered within each slide's zone. Do NOT split text between slides.
+    1. VISUAL HIERARCHY: Titles must use the requested casing (${styleAnalysis?.fonts?.nuances?.casing}) and be significantly larger.
+    2. ALIGNMENT: Strict grid alignment within the 2x3 frame. 
+    3. SEAMLESS FLOW: The artwork must be one single, continuous image. NO borders or gaps between the 6 segments.
     
     Return ONLY the Midjourney-style prompt string in English.
   `;
@@ -242,17 +240,19 @@ export const analyzeStyle = async (imageBase64: string): Promise<any> => {
 
   const prompt = `Analyze this design reference image in extreme detail. 
     Extract the following design variables and return them in a structured JSON format:
-    - fonts: { primary: string, secondary: string, styles: string[], typographyRules: string }
-    - colors: { primary: string[], secondary: string[], background: string }
-    - layout: { gridType: string, elementPositions: string, alignment: string, layering: string, visualConnectors: string }
-    - elements: { textures: string[], decorativeElements: string[], artStyle: "Flat Illustration" | "3D Render" | "Realistic Photo" | "Minimalist Graphic", specificContentDetails: string }
-    - thematicLogic: string (How does the imagery relate to the text? Does it use background collages? Is it abstract or representational? Does it use "ribbons", "waves", or "geometric paths" to connect slides?)
-    - reuseInstructions: string (Instructions for another AI on how to recreate this exact style but with DIFFERENT thematic content. For example: "Use flat minimalist illustrations of [TOPIC] and blue wavy ribbons connecting the slides on a light blue background")
+    - fonts: { primary: string, secondary: string, styles: string[], typographyRules: string, nuances: { kerning: string, lineHeight: string, casing: "uppercase" | "lowercase" | "mixed" } }
+    - colors: { primary: string[], secondary: string[], background: string, paletteLogic: "Monochromatic" | "Complementary" | "Analogous" | "High Contrast" }
+    - layout: { gridType: string, elementPositions: string, alignment: string, layering: string, visualConnectors: string, compositionRules: string }
+    - effects: { shadows: string, glows: string, blurs: string, opacityLogic: string }
+    - elements: { textures: string[], decorativeElements: string[], artStyle: "Flat Illustration" | "3D Render" | "Realistic Photo" | "Minimalist Graphic" | "Sketch" | "Retro/Vintage", specificContentDetails: string }
+    - thematicLogic: string (Visual metaphor used. Does it use background collages? Does it use "ribbons", "waves", or "geometric paths" to connect slides? How are images masked/clipped?)
+    - reuseInstructions: string (Instructions for another AI on how to recreate this exact style. E.g., "Minimalist 2D vector art with grainy paper texture, 12px drop shadows, all-caps bold headers in Montserrat Font")
     - styleDescription: string (detailed stylistic summary)
     
-    Be very specific with font names and hex color codes. Pay close attention to how text is emphasized (bolding, sizing, different fonts for specific words).
-    If there are images or collages, describe their 'logic' (e.g. "top-right placement, overlapping text, 40% opacity, noir photography").
-    CRITICAL: Identify if there is a 'visual path' (like a wavy line or ribbon) that flows across multiple slides.
+    Be extremely specific. For fonts, estimate weight (e.g., Bold 700). For colors, provide hex codes. 
+    Analyze the "Visual Path": How does the eye travel? 
+    Analyze the "Fidelity": Is it clean/vector or gritty/textured?
+    CRITICAL: If there is a 'visual connector' (wavy line, ribbon, arrow) flowing across 2 or more slides, describe its color, thickness, and curve style in detail.
 `;
 
   try {
