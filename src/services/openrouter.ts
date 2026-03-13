@@ -133,26 +133,25 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     - [Technology/AI]: The Hidden Advantage or The Legacy Debt.
     - [Business/Strategy]: The Industry Lie or The Scalability Trap.
     
-    PHASE 4: NARRATIVE MAPPING (The Strategic Pivot)
+    PHASE 4: NARRATIVE MAPPING (The Human Connection)
     Plan the bridge between each slide, adapting to the domain:
     1. THE DISRUPTION: Use the trigger. Deeply relative to the transcript.
-    2. THE HIDDEN COST: Why ignoring this specific insight is dangerous (Social, Mental, or Financial cost).
-    3. THE STRATEGIC PIVOT: The "Diamond Insight". The moment of clarity.
-    4. THE MECHANICS: 2-3 specific steps to implement (Mental shifts for psychology, technical steps for tech, tactical for business).
-    5. THE SYSTEMIC IMPACT: Long-term benefit (Fulfillment, Efficiency, or Profit).
-    6. THE VISIONARY CTA: Closing authoritative statement + professional nudge.
+    2. THE CONSEQUENCE: Why this matters (Emotional, Personal, or Practical impact). Avoid "Price of Inaction" on sensitive topics.
+    3. THE INSIGHT: The core "Diamond Insight". The turning point.
+    4. THE PATH FORWARD: 2-3 specific, actionable steps or shifts.
+    5. THE EVOLUTION: The positive transformation or long-term growth.
+    6. THE CONCLUSION: A sophisticated final thought or invitation.
     
-    PHASE 5: HUMANIZER SWEEP (Strictest Constraints)
-    Mandatory Rules (Mental check before final script):
-    - NO INLINE-HEADERS: Do NOT use "Word: Explanation". No colons inside list items.
-    - BURSTINESS: Varied sentence lengths (Short. Semi-long. Short).
-    - NO AI VOCABULARY: Block "delve, tapestry, landscape, showcase, embark, robust, meticulous, nestled, breathtaking".
-    - REDUCE EMOJIS: Max 1 emoji per every 2 slides. Professional only.
+    PHASE 5: CLEAN DESIGN ENFORCEMENT
+    Mandatory Rules:
+    - NO DISTORTION: Avoid complex 3D objects, realistic hands, or busy backgrounds.
+    - FLAT DESIGN: If the style is Graphic/Illustration, strictly forbid realistic shadows, gradients, or 3D renders.
+    - SEAMLESS CONNECTORS: Priority #1 is the "Visual Path" (ribbons/lines) flowing between segments.
+    - WHITE SPACE: Ensure text never touches or overlaps with decorative elements.
     
     STRICT SUBJECT FIDELITY:
-    - If the topic is "Relationships" (психология/отношения), speak about the psychology of people, NOT the ROI of a company.
-    - If the topic is "AI", focus on the architecture and application, NOT just business profit.
-    - Keep the "Strategic Officer" high-quality TONE, but respect the transcript SUBJECT.
+    - NO BUSINESS LINGO: If topic is Psychology, never use "ROI", "Conversion", "Efficiency", or "Market". Use "Trust", "Growth", "Connection", "Clarity".
+    - Tone: Sophisticated but deeply human.
     
     CRITICAL RULES:
     - EXPERT TONE: Use sophisticated vocabulary for ${ta}. No fluff.
@@ -195,25 +194,24 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     CONTENT TO RENDER (STRICT HIERARCHY):
     ${script.map((s, i) => `Slide ${i + 1}: TITLE: "${s.title}" | BODY: "${s.body}"`).join('\n')}
     
-    STYLE SPECIFICATIONS & DESIGN RULES:
-    ${JSON.stringify(styleAnalysis, null, 2)}
+    STYLE DESCRIPTION & DESIGN RULES:
+    - ${styleAnalysis?.styleDescription || "Minimalist Professional Design"}
+    - ART STYLE: ${styleAnalysis?.elements?.artStyle || "Flat Graphic"}.
+    - COLORS: ${styleAnalysis?.colors?.primary?.join(", ") || "Corporate Blues"}.
+    - LAYOUT RULES: ${styleAnalysis?.layout?.compositionRules || "Clean grid placement"}.
     
-    THEMATIC ADAPTATION & ART STYLE:
-    - MANDATORY ART STYLE: ${styleAnalysis?.elements?.artStyle || "Graphic Design"}. 
-    - VISUAL CONNECTORS: ${styleAnalysis?.layout?.visualConnectors || "None"}.
-    - COMPOSITION: ${styleAnalysis?.layout?.compositionRules || "Centered hierarchy"}.
-    - EFFECTS: ${JSON.stringify(styleAnalysis?.effects || {})}.
-    - TYPOGRAPHY: ${JSON.stringify(styleAnalysis?.fonts?.nuances || {})}.
-    
-    If the style uses collages, illustrations, or background imagery, you MUST adapt the subject matter of that imagery to the specific TITLE and BODY of each slide. 
-    - The background must still feel like one continuous artwork. 
-    - CRITICAL: Render the Visual Connectors (ribbons, lines, or geometric paths) with the exact color and thickness described in the STYLE RULES. They must physically bridge the slides.
-    - FIDELITY: Maintain the ${styleAnalysis?.elements?.artStyle} aesthetic throughout. If grain or textures are mentioned, apply them consistently across the entire 2x3 grid.
+    CONTENT INSTRUCTIONS:
+    If the style uses illustrations or background imagery, you MUST adapt the subject matter to the TITLE and BODY of each slide. 
+    - MANDATORY: Keep the artwork strictly FLAT. No 3D, no realistic hands, no glossy textures unless explicitly requested.
+    - VISUAL FLOW: Render the "${styleAnalysis?.layout?.visualConnectors || "wavy lines"}" so they physically bridge the slides across the 2x3 grid.
+    - SEAMLESSNESS: The background must be one continuous, high-resolution piece. NO borders between slides.
 
-    TYPOGRAPHY & LAYOUT GUIDELINES:
-    1. VISUAL HIERARCHY: Titles must use the requested casing (${styleAnalysis?.fonts?.nuances?.casing}) and be significantly larger.
-    2. ALIGNMENT: Strict grid alignment within the 2x3 frame. 
-    3. SEAMLESS FLOW: The artwork must be one single, continuous image. NO borders or gaps between the 6 segments.
+    TYPOGRAPHY GUIDELINES:
+    1. HIERARCHY: Titles must be Bold and significantly larger than the body text.
+    2. PLACEMENT: Place exactly one title+body pair within each of the 6 slide zones of the 2x3 grid.
+    3. ALIGNMENT: Strict vertical and horizontal centering within each slide's zone.
+    
+    Return ONLY the Midjourney-style prompt string in English.
     
     Return ONLY the Midjourney-style prompt string in English.
   `;
@@ -240,19 +238,17 @@ export const analyzeStyle = async (imageBase64: string): Promise<any> => {
 
   const prompt = `Analyze this design reference image in extreme detail. 
     Extract the following design variables and return them in a structured JSON format:
-    - fonts: { primary: string, secondary: string, styles: string[], typographyRules: string, nuances: { kerning: string, lineHeight: string, casing: "uppercase" | "lowercase" | "mixed" } }
-    - colors: { primary: string[], secondary: string[], background: string, paletteLogic: "Monochromatic" | "Complementary" | "Analogous" | "High Contrast" }
-    - layout: { gridType: string, elementPositions: string, alignment: string, layering: string, visualConnectors: string, compositionRules: string }
-    - effects: { shadows: string, glows: string, blurs: string, opacityLogic: string }
-    - elements: { textures: string[], decorativeElements: string[], artStyle: "Flat Illustration" | "3D Render" | "Realistic Photo" | "Minimalist Graphic" | "Sketch" | "Retro/Vintage", specificContentDetails: string }
-    - thematicLogic: string (Visual metaphor used. Does it use background collages? Does it use "ribbons", "waves", or "geometric paths" to connect slides? How are images masked/clipped?)
-    - reuseInstructions: string (Instructions for another AI on how to recreate this exact style. E.g., "Minimalist 2D vector art with grainy paper texture, 12px drop shadows, all-caps bold headers in Montserrat Font")
+    - fonts: { primary: string, secondary: string, styles: string[], typographyRules: string }
+    - colors: { primary: string[], secondary: string[], background: string }
+    - layout: { gridType: string, elementPositions: string, alignment: string, layering: string, visualConnectors: string }
+    - elements: { textures: string[], decorativeElements: string[], artStyle: "Flat Graphic" | "Minimalist Illustration" | "Realistic Photo", specificContentDetails: string }
+    - thematicLogic: string (How does the background flow across the 2x3 grid? Does it use "ribbons", "waves", or "geometric paths" to connect the slides?)
+    - reuseInstructions: string (Instructions for another AI on how to recreate this exact style. E.g., "Flat 2D vector style with blue wavy ribbons on a cream background")
     - styleDescription: string (detailed stylistic summary)
     
-    Be extremely specific. For fonts, estimate weight (e.g., Bold 700). For colors, provide hex codes. 
-    Analyze the "Visual Path": How does the eye travel? 
-    Analyze the "Fidelity": Is it clean/vector or gritty/textured?
-    CRITICAL: If there is a 'visual connector' (wavy line, ribbon, arrow) flowing across 2 or more slides, describe its color, thickness, and curve style in detail.
+    Be specific about hex codes and font families. 
+    CRITICAL: Identify the "Visual Connector" (e.g. "blue wavy ribbon") that flows across multiple slides. This is the most important element for consistency.
+    ENFORCE FLATNESS: If the reference is graphic, explicitly state "No 3D, No Shadows, No Gloss".
 `;
 
   try {
