@@ -32,27 +32,6 @@ export function ClipsTab({
     return true;
   });
 
-  const handleSendToTelegram = async (clipId: string, plaqueId: string | null) => {
-    try {
-      const head = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
-      const payload: any = { plaque_id: plaqueId };
-      const r = await fetch(`/api/clips/${clipId}/apply-plaque`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...head },
-        body: JSON.stringify(payload)
-      });
-      if (!r.ok) {
-        const e = await r.json();
-        alert(e.error || "Ошибка при генерации");
-      } else {
-        alert("Видео успешно отправлено вам в Telegram!");
-        onUpdate(); // Changed from fetchData() to onUpdate()
-      }
-    } catch (e) {
-      alert("Ошибка сети при отправке видео");
-    }
-  };
-
   return (
     <div className="space-y-6">
       <ClipFilters 
@@ -70,18 +49,24 @@ export function ClipsTab({
             clip={clip}
             plaques={plaques}
             onSendToTelegram={async (clipId, plaqueId) => {
-              const res = await fetch('/api/clips/send-to-telegram', {
+              const res = await fetch(`/api/clips/${clipId}/apply-plaque`, {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json',
                   Authorization: `Bearer ${authToken}` 
                 },
-                body: JSON.stringify({ clipId, plaqueId })
+                body: JSON.stringify({ plaque_id: plaqueId })
               });
-              if (res.ok) onUpdate();
+              if (res.ok) {
+                alert("Видео успешно отправлено вам в Telegram!");
+                onUpdate();
+              } else {
+                const e = await res.json();
+                alert(e.error || "Ошибка при генерации");
+              }
             }}
             onSendCarousel={async (clipId) => {
-              const res = await fetch('/api/clips/send-carousel', {
+              const res = await fetch(`/api/clips/${clipId}/carousel`, {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json',
@@ -89,7 +74,12 @@ export function ClipsTab({
                 },
                 body: JSON.stringify({ clipId })
               });
-              if (res.ok) onUpdate();
+              if (res.ok) {
+                alert("Карусель успешно отправлена вам в Telegram!");
+                onUpdate();
+              } else {
+                alert("Ошибка при создании карусели");
+              }
             }}
           />
         ))}

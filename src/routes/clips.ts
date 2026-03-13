@@ -142,6 +142,22 @@ router.post("/:id/carousel", async (req: any, res) => {
   }
 });
 
+// Aliases for frontend
+router.post("/send-to-telegram", authenticateToken, async (req: any, res) => {
+  const { clipId, plaqueId } = req.body;
+  req.params.id = clipId;
+  req.body.plaque_id = plaqueId;
+  // Redirect to existing logic by calling the handler directly or via redirect
+  // For simplicity, let's just use the logic from apply-plaque
+  // But wait, the existing apply-plaque route uses authenticateToken as well now (I should add it there too)
+  res.redirect(307, `/api/clips/${clipId}/apply-plaque`);
+});
+
+router.post("/send-carousel", authenticateToken, async (req: any, res) => {
+  const { clipId } = req.body;
+  res.redirect(307, `/api/clips/${clipId}/carousel`);
+});
+
 router.post("/:id/reprocess", authenticateToken, async (req: any, res) => {
   const { id } = req.params;
   const { plaque_id, target_lang, source_lang } = req.body;

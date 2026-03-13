@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
-export const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.warn("WARNING: JWT_SECRET is not defined in environment variables. Authentication will fail.");
+const token = process.env.TELEGRAM_BOT_TOKEN || "";
+export const JWT_SECRET = process.env.JWT_SECRET || 
+  crypto.createHash("sha256").update(token).digest("hex");
+
+if (!token && !process.env.JWT_SECRET) {
+  console.warn("WARNING: Neither TELEGRAM_BOT_TOKEN nor JWT_SECRET is defined. Authentication will fail.");
 }
 
 export interface AuthUser {
