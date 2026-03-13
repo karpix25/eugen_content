@@ -133,15 +133,23 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     PHASE 3: NARRATIVE MAPPING (The Strategic Pivot)
     Plan the bridge between each slide:
     1. THE DISRUPTION: Use the selected trigger. Make it large and bold.
-    2. THE STATUS QUO TRAP: Why the old way is a "price of inaction".
+    2. THE STATUS QUO TRAP: Why the old way is dangerous.
     3. THE STRATEGIC PIVOT: The "Diamond Insight". The moment of clarity.
     4. THE MECHANICS: 2-3 technical/business steps to implement.
     5. THE COMPETITIVE ADVANTAGE: Specific ROI or systemic impact.
     6. THE VISIONARY CTA: A closing authoritative statement + professional nudge.
     
+    PHASE 4: HUMANIZER SWEEP (Strictest Constraints)
+    Mandatory Rules (Mental check before final script):
+    - NO INLINE-HEADERS: Do NOT use the "Word: Explanation" or "Topic: Description" structure (Pattern 15). No colons inside list items.
+    - BURSTINESS: Varied sentence lengths (Short. Semi-long. Short). No metronomic rhythm.
+    - NO AI VOCABULARY: Block "delve, tapestry, landscape, showcase, embark, robust, meticulous, nestled, breathtaking".
+    - NO COPULA AVOIDANCE: Use "is" and "has", not "boasts", "serves as", or "features".
+    - REDUCE EMOJIS: Max 1 emoji per every 2 slides. Use only professional ones.
+    
     CRITICAL RULES:
     - EXPERT TONE: Use sophisticated vocabulary for ${ta}. No fluff.
-    - FORMAT: Use short, punchy bullet points (-) for the body.
+    - FORMAT: Use short, punchy paragraphs or simple bullet points (-).
     - NO CHEAP NAVIGATION: Never write "Next slide", "Swipe", or use ➡️ symbols.
     - LANGUAGE: Everything (except for JSON keys) must be in ${lang === 'ru' ? 'Russian' : 'English'}.
     - WORD LIMITS: Title: Max 6 words. Body: Max 25 words (aim for high density).
