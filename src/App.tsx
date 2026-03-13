@@ -40,6 +40,7 @@ import { format } from 'date-fns';
 import Markdown from 'react-markdown';
 import { cn } from './lib/utils';
 import CarouselWizard from './CarouselWizard';
+import StyleManager from './StyleManager';
 
 interface Channel {
   id: string;
@@ -255,7 +256,7 @@ function AuthPage({ onLogin }: { onLogin: (token: string, user: any) => void }) 
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'monitor' | 'clips' | 'workers' | 'publications' | 'settings'>('clips');
+  const [activeTab, setActiveTab] = useState<'monitor' | 'clips' | 'workers' | 'publications' | 'settings' | 'styles'>('clips');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [newChannelId, setNewChannelId] = useState('');
@@ -585,6 +586,12 @@ export default function App() {
                 icon={<ExternalLink className="w-5 h-5" />}
                 label="Публикации"
               />
+              <NavButton
+                active={activeTab === 'styles'}
+                onClick={() => setActiveTab('styles')}
+                icon={<ImageIcon className="w-5 h-5" />}
+                label="Стили"
+              />
             </>
           )}
 
@@ -623,6 +630,7 @@ export default function App() {
             <h1 className="text-lg md:text-2xl font-semibold truncate">
               {activeTab === 'monitor' && 'Мониторинг YouTube'}
               {activeTab === 'clips' && 'Готовые нарезки'}
+              {activeTab === 'styles' && 'Управление стилями'}
               {activeTab === 'workers' && 'Работники'}
               {activeTab === 'publications' && 'Публикации'}
               {activeTab === 'settings' && 'Настройки'}
@@ -756,6 +764,10 @@ export default function App() {
                 </div>
               </div>
             </div>
+          )}
+
+          {activeTab === 'styles' && (
+            <StyleManager authToken={authToken} isAdmin={currentUser?.is_admin || false} />
           )}
 
           {activeTab === 'clips' && (() => {

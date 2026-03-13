@@ -218,3 +218,51 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
 
   return response.data.choices[0].message.content.trim();
 };
+
+export const analyzeStyle = async (imageBase64: string): Promise<any> => {
+  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
+
+  const prompt = `Analyze this design reference image in extreme detail. 
+    Extract the following design variables and return them in a structured JSON format:
+    - fonts: { primary: string, secondary: string, styles: string[], typographyRules: string }
+    - colors: { primary: string[], secondary: string[], background: string }
+    - layout: { gridType: string, elementPositions: string, alignment: string, layering: string }
+    - elements: { textures: string[], decorativeElements: string[], collageStyle: string, specificContentDetails: string }
+    - styleDescription: string (detailed stylistic summary)
+    
+    Be very specific with font names and hex color codes. Pay close attention to how text is emphasized (bolding, sizing, different fonts for specific words).`;
+
+  try {
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: MODEL,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`
+                }
+              }
+            ]
+          }
+        ],
+        response_format: { type: "json_object" }
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return JSON.parse(response.data.choices[0].message.content);
+  } catch (error) {
+    console.error("OpenRouter Style Analysis Error:", error);
+    return null;
+  }
+};

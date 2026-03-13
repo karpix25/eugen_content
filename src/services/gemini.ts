@@ -6,6 +6,7 @@ export const translateText = OpenRouter.translateText;
 export const detectLanguage = OpenRouter.detectLanguage;
 export const generateCarouselScript = OpenRouter.generateCarouselScript;
 export const generateImagePrompt = OpenRouter.generateImagePrompt;
+export const analyzeStyle = OpenRouter.analyzeStyle;
 
 /**
  * High-level orchestration for grid image generation.

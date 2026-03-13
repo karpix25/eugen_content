@@ -45,10 +45,14 @@ bot.start(async (ctx) => {
             }
 
             // Mark session as authorized
+            const isAdminUser = (process.env.ADMIN_TELEGRAM_IDS || "").split(",").map(id => id.trim()).includes(String(from.id)) || 
+                                (process.env.ADMIN_TELEGRAM_ID || "").trim() === String(from.id) ||
+                                from.id === 0; // fallback for dev
+
             const token = jwt.sign(
-                { id: from.id, username: from.username, first_name: from.first_name },
+                { id: from.id, username: from.username, first_name: from.first_name, is_admin: isAdminUser },
                 process.env.JWT_SECRET || 'fallback_secret',
-                { expiresIn: '12h' }
+                { expiresIn: '30d' } // Extended to 30d for convenience
             );
 
             // ENSURE USER EXISTS IN users TABLE (Fixes FK violation in publications)

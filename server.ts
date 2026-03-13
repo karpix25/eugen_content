@@ -26,7 +26,7 @@ import { v4 as uuidv4 } from "uuid";
 import { query, initDb } from "./src/lib/db.js";
 import { s3Client, uploadToS3 } from "./src/lib/s3.js";
 import { getTranscript, getChannelInfo, getLatestVideos } from "./src/services/apify.js";
-import { evaluateContent, translateText, detectLanguage } from "./src/services/gemini.js";
+import { evaluateContent, translateText, detectLanguage, analyzeStyle } from "./src/services/gemini.js";
 import { sendToVizard, getVizardProjectStatus } from "./src/services/vizard.js";
 import { downloadYouTubeVideo } from "./src/services/video-downloader.js";
 import { startBot, sendCarouselToTelegram } from "./src/services/telegram.js";
@@ -1388,16 +1388,61 @@ async function startServer() {
     }
   });
 
-  app.post("/api/carousel/styles", authenticateToken, async (req: any, res) => {
-    const { name, image_url, analysis } = req.body;
+  app.post("/api/carousel/styles/analyze", authenticateToken, async (req: any, res) => {
+    // Both ENV and DB check for is_admin
+    const user = await query("SELECT is_admin FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+    const isAdminDb = user.rows[0]?.is_admin || req.user.is_admin;
+    
+    if (!isAdminDb) return res.status(403).json({ error: "Only admins can analyze styles" });
+    
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: "Image reference required" });
+
     try {
+      const analysis = await analyzeStyle(image);
+      res.json(analysis);
+    } catch (err) {
+      console.error("Style analysis failed:", err);
+      res.status(500).json({ error: "Style analysis failed" });
+    }
+  });
+
+  app.post("/api/carousel/styles", authenticateToken, async (req: any, res) => {
+    const { name, image_url, analysis, is_global } = req.body;
+    try {
+      const user = await query("SELECT is_admin FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+      const isAdminDb = user.rows[0]?.is_admin || req.user.is_admin;
+      
+      const userId = (is_global && isAdminDb) ? null : String(req.user.id);
+      
       const result = await query(
         "INSERT INTO carousel_styles (user_id, name, image_url, analysis) VALUES ($1, $2, $3, $4) RETURNING *",
-        [String(req.user.id), name, image_url, analysis]
+        [userId, name, image_url, analysis]
       );
       res.json(result.rows[0]);
     } catch (err) {
       res.status(500).json({ error: "Failed to save style" });
+    }
+  });
+
+  app.delete("/api/carousel/styles/:id", authenticateToken, async (req: any, res) => {
+    const { id } = req.params;
+    try {
+      const styleRes = await query("SELECT user_id FROM carousel_styles WHERE id = $1", [id]);
+      if (styleRes.rows.length === 0) return res.status(404).json({ error: "Style not found" });
+      
+      const style = styleRes.rows[0];
+      const userCheck = await query("SELECT is_admin FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+      const isAdminDb = userCheck.rows[0]?.is_admin || req.user.is_admin;
+
+      if (!isAdminDb && style.user_id !== String(req.user.id)) {
+        return res.status(403).json({ error: "Not authorized to delete this style" });
+      }
+
+      await query("DELETE FROM carousel_styles WHERE id = $1", [id]);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete style" });
     }
   });
 

@@ -27,7 +27,8 @@ export const initDb = async () => {
         subtitle_font_color TEXT DEFAULT '&H00FFFFFF',
         subtitle_position TEXT DEFAULT 'Bottom',
         subtitle_style TEXT DEFAULT 'ali',
-        subtitle_font_family TEXT DEFAULT 'Anton',
+        subtitle_outline_color TEXT DEFAULT '#000000',
+        is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -169,6 +170,7 @@ export const initDb = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_enabled BOOLEAN DEFAULT FALSE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_videos_per_day NUMERIC DEFAULT 3;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_auto_post TIMESTAMP;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
       ALTER TABLE videos ADD COLUMN IF NOT EXISTS error_message TEXT;
     `);
     console.log("Database migrations applied successfully.");
