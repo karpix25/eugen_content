@@ -98,7 +98,7 @@ export const initDb = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         clip_id TEXT REFERENCES clips(id),
         user_id TEXT,
-        plaque_id TEXT REFERENCES ad_plaques(id),
+        plaque_id TEXT REFERENCES ad_plaques(id) ON DELETE SET NULL,
         message_id BIGINT,
         social_links TEXT[] DEFAULT '{}',
         status TEXT DEFAULT 'sent',
@@ -130,17 +130,26 @@ export const initDb = async () => {
       );
 
       -- Robust migration handling for telegram_id / user_id type changes
+      -- First drop all possible constraints that might block the change
       ALTER TABLE clips DROP CONSTRAINT IF EXISTS clips_downloaded_by_fkey;
       ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_user_id_fkey;
+      ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_plaque_id_fkey;
+      ALTER TABLE carousel_styles DROP CONSTRAINT IF EXISTS carousel_styles_user_id_fkey;
+      ALTER TABLE carousels DROP CONSTRAINT IF EXISTS carousels_user_id_fkey;
 
+      -- Apply type changes
       ALTER TABLE users ALTER COLUMN telegram_id TYPE TEXT USING telegram_id::TEXT;
       ALTER TABLE auth_sessions ALTER COLUMN telegram_id TYPE TEXT USING telegram_id::TEXT;
       ALTER TABLE publications ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
       ALTER TABLE clips ALTER COLUMN downloaded_by TYPE TEXT USING downloaded_by::TEXT;
       ALTER TABLE ad_plaques ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
 
+      -- Re-apply constraints
       ALTER TABLE clips ADD CONSTRAINT clips_downloaded_by_fkey FOREIGN KEY (downloaded_by) REFERENCES users(telegram_id);
       ALTER TABLE publications ADD CONSTRAINT publications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id);
+      ALTER TABLE publications ADD CONSTRAINT publications_plaque_id_fkey FOREIGN KEY (plaque_id) REFERENCES ad_plaques(id) ON DELETE SET NULL;
+      ALTER TABLE carousel_styles ADD CONSTRAINT carousel_styles_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id);
+      ALTER TABLE carousels ADD CONSTRAINT carousels_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id);
     `);
 
     // Other Migrations

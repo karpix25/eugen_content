@@ -5,7 +5,7 @@ import { processClip } from "../services/processor.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 import fs from "fs";
 
-export const autoPublish = async (bot: Bot<any>) => {
+export const autoPublish = async (bot: Telegraf) => {
   console.log("Checking for videos for auto-publication...");
   try {
     const users = await query("SELECT * FROM users WHERE auto_mode_enabled = true");
@@ -79,10 +79,18 @@ export const autoPublish = async (bot: Bot<any>) => {
             caption: `🤖 [Auto] ${clip.title}`
           });
 
+          // Ensure user exists before inserting publication (Redundancy check)
+          await query(
+            `INSERT INTO users (telegram_id, username, first_name) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (telegram_id) DO NOTHING`,
+            [String(user.telegram_id), user.username || '', user.first_name || '']
+          );
+
           await query(`
             INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status)
             VALUES ($1, $2, $3, $4, 'sent')
-          `, [clip.id, user.telegram_id, user.default_plaque_id, message.message_id]);
+          `, [clip.id, String(user.telegram_id), user.default_plaque_id, message.message_id]);
 
           fs.unlinkSync(localFilePath);
         }
@@ -93,7 +101,7 @@ export const autoPublish = async (bot: Bot<any>) => {
   }
 };
 
-export function initPublishWorker(bot: Bot<any>) {
+export function initPublishWorker(bot: Telegraf) {
   // Check every hour
   cron.schedule('30 * * * *', () => autoPublish(bot));
 }
