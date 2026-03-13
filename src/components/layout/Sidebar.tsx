@@ -34,10 +34,21 @@ export function Sidebar({
   const isAdmin = currentUser?.is_admin;
 
   return (
-    <aside className={cn(
-      "bg-[#0A0A0A] border-r border-white/5 z-50 transition-all duration-500 ease-in-out flex flex-col shrink-0 h-screen sticky top-0",
-      isOpen ? "w-72" : "w-20"
-    )}>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside className={cn(
+        "fixed inset-y-0 left-0 lg:sticky lg:top-0 bg-[#0A0A0A] border-r border-white/5 z-50 transition-all duration-500 ease-in-out flex flex-col shrink-0 h-screen overflow-hidden",
+        isOpen 
+          ? "w-72 translate-x-0" 
+          : "-translate-x-full lg:translate-x-0 lg:w-20"
+      )}>
       <div className={cn(
         "p-4 md:p-6 space-y-8 h-full flex flex-col transition-all duration-500",
         !isOpen && "items-center px-0"
@@ -175,5 +186,6 @@ export function Sidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }

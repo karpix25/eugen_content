@@ -1,5 +1,5 @@
 import { query } from '../lib/db';
-import { getTranscript, getLatestVideos } from './apify';
+import { getTranscript, getLatestVideos, getChannelInfo } from './apify';
 import { evaluateContent } from './gemini';
 import { sendToVizard } from './vizard';
 
@@ -100,15 +100,22 @@ export class VideoManager {
   }
 
   static async addManualVideo(url: string) {
+    // Detect if it's a channel URL (contains @, /channel/, /c/, or /user/)
+    const isChannel = url.includes('/@') || url.includes('/channel/') || url.includes('/c/') || url.includes('/user/');
+    
+    if (isChannel) {
+      return await this.addManualChannel(url);
+    }
+
     const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/;
     const match = url.match(regex);
     const videoId = match ? match[1] : null;
 
-    if (!videoId) throw new Error("Invalid YouTube URL");
+    if (!videoId) throw new Error("Invalid YouTube URL. Please provide a video or channel link.");
 
     const existing = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
     if (existing.rows.length > 0) return { id: videoId, status: 'exists' };
-
+    
     // Initial insert with minimal data
     await query(`
       INSERT INTO videos (id, title, status, published_at)
@@ -119,5 +126,24 @@ export class VideoManager {
     this.processVideoBackground(videoId, { id: videoId, title: 'Manual Upload' });
 
     return { id: videoId, status: 'added' };
+  }
+
+  static async addManualChannel(url: string) {
+    console.log(`Adding manual channel from URL: ${url}`);
+    const info = await getChannelInfo(url);
+    if (!info) throw new Error("Could not find YouTube channel. Check the URL.");
+
+    await query(`
+      INSERT INTO channels (id, name, handle)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (id) DO UPDATE SET 
+        name = EXCLUDED.name,
+        handle = EXCLUDED.handle
+    `, [info.id, info.name, info.handle || null]);
+
+    // Fast-track monitoring for this channel
+    this.monitorChannels().catch(console.error);
+
+    return { id: info.id, name: info.name, status: 'channel_added' };
   }
 }
