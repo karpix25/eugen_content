@@ -25,7 +25,8 @@ export function ClipsTab({
   const [searchQuery, setSearchQuery] = useState('');
 
   const visibleClips = clips.filter(c => {
-    if (showAvailableOnly && !c.is_available) return false;
+    // If showAvailableOnly is on, only hide if explicitly FALSE
+    if (showAvailableOnly && c.is_available === false) return false;
     if (languageFilter !== 'all' && c.language !== languageFilter) return false;
     if (searchQuery && !c.title.toLowerCase().includes(searchQuery.toLowerCase()) && !c.transcript?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
