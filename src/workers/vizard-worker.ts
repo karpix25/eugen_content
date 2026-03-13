@@ -134,14 +134,16 @@ export const pollVizardStatus = async () => {
             const originalTitle = c.title || "Vizard Clip";
             const originalTranscript = c.transcript || '';
             const originalHook = c.hook || c.headline || "";
-            const originalLanguage = video?.detected_language || null;
-
-            await query(
-              "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
-              [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, originalHook, c.thumbnail_url || '', originalTranscript, originalLanguage]
-            );
-
-            await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
+            const finalInsertLang = normalizeLang(video?.detected_language);
+            try {
+              await query(
+                "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
+                [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, originalHook, c.thumbnail_url || '', originalTranscript, finalInsertLang]
+              );
+              await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
+            } catch (insErr: any) {
+              console.error(`[Vizard] Failed to insert clip ${originalClipId}:`, insErr.message);
+            }
 
             if (needsTranslation && finalLanguage) {
               const dubbedClipId = Math.random().toString(36).substr(2, 9);
@@ -159,10 +161,14 @@ export const pollVizardStatus = async () => {
               if (tTranscript) translatedTranscript = tTranscript;
               if (tHook) translatedHook = tHook;
 
-              await query(
-                "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
-                [dubbedClipId, v.id, c.videoUrl || c.url || c.video_url, translatedTitle, translatedHook, c.thumbnail_url || '', translatedTranscript, finalLanguage]
-              );
+              try {
+                await query(
+                  "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
+                  [dubbedClipId, v.id, c.videoUrl || c.url || c.video_url, translatedTitle, translatedHook, c.thumbnail_url || '', translatedTranscript, finalLanguage]
+                );
+              } catch (insErr: any) {
+                console.error(`[Vizard] Failed to insert dubbed clip ${dubbedClipId}:`, insErr.message);
+              }
 
               try {
                 const folderName = sanitizeFolderName(v.title || "Unknown_Video");
@@ -171,7 +177,7 @@ export const pollVizardStatus = async () => {
                   c.videoUrl || c.url || c.video_url,
                   null,
                   finalLanguage,
-                  originalLanguage,
+                  finalInsertLang,
                   false,
                   undefined,
                   undefined,
