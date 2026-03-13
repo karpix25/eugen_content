@@ -120,39 +120,46 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
     Transcript Content: "${transcript}"
     Language: ${lang === 'ru' ? 'Russian' : 'English'}
     
-    PHASE 1: CONTENT MINING (Internal Monologue)
+    PHASE 1: DOMAIN DETECTION (Internal Monologue)
+    - Detect the primary domain of the transcript: [Psychology/Relationships], [Technology/AI], or [Business/Strategy].
+    - Map the content strategy to this domain. DO NOT force-apply ROI, Market Share, or Tech analogies to [Psychology/Relationships] content.
+    
+    PHASE 2: CONTENT MINING
     - Identify the single most provocative, counter-intuitive, or valuable "Diamond Insight" in the transcript for the ${ta}.
     
-    PHASE 2: STRATEGIC TRIGGER SELECTION
-    Select the most effective psychological trigger for Slide 1 based on the insight:
-    - [The Industry Lie]: Challenging a status quo belief common in ${ta}'s field.
-    - [The Expensive Mistake]: A common practice that is actually killing ROI.
-    - [The Secret Framework]: A unique methodology or "Hidden Efficiency".
-    - [The Impossible Result]: High achievement through a specific technical pivot.
+    PHASE 3: STRATEGIC TRIGGER SELECTION
+    Select the most effective psychological trigger for Slide 1 BASED ON THE DOMAIN:
+    - [Psychology/Relationships]: The Hidden Behavioral Pattern or The Emotional Blindspot.
+    - [Technology/AI]: The Hidden Advantage or The Legacy Debt.
+    - [Business/Strategy]: The Industry Lie or The Scalability Trap.
     
-    PHASE 3: NARRATIVE MAPPING (The Strategic Pivot)
-    Plan the bridge between each slide:
-    1. THE DISRUPTION: Use the selected trigger. Make it large and bold.
-    2. THE STATUS QUO TRAP: Why the old way is dangerous.
+    PHASE 4: NARRATIVE MAPPING (The Strategic Pivot)
+    Plan the bridge between each slide, adapting to the domain:
+    1. THE DISRUPTION: Use the trigger. Deeply relative to the transcript.
+    2. THE HIDDEN COST: Why ignoring this specific insight is dangerous (Social, Mental, or Financial cost).
     3. THE STRATEGIC PIVOT: The "Diamond Insight". The moment of clarity.
-    4. THE MECHANICS: 2-3 technical/business steps to implement.
-    5. THE COMPETITIVE ADVANTAGE: Specific ROI or systemic impact.
-    6. THE VISIONARY CTA: A closing authoritative statement + professional nudge.
+    4. THE MECHANICS: 2-3 specific steps to implement (Mental shifts for psychology, technical steps for tech, tactical for business).
+    5. THE SYSTEMIC IMPACT: Long-term benefit (Fulfillment, Efficiency, or Profit).
+    6. THE VISIONARY CTA: Closing authoritative statement + professional nudge.
     
-    PHASE 4: HUMANIZER SWEEP (Strictest Constraints)
+    PHASE 5: HUMANIZER SWEEP (Strictest Constraints)
     Mandatory Rules (Mental check before final script):
-    - NO INLINE-HEADERS: Do NOT use the "Word: Explanation" or "Topic: Description" structure (Pattern 15). No colons inside list items.
-    - BURSTINESS: Varied sentence lengths (Short. Semi-long. Short). No metronomic rhythm.
+    - NO INLINE-HEADERS: Do NOT use "Word: Explanation". No colons inside list items.
+    - BURSTINESS: Varied sentence lengths (Short. Semi-long. Short).
     - NO AI VOCABULARY: Block "delve, tapestry, landscape, showcase, embark, robust, meticulous, nestled, breathtaking".
-    - NO COPULA AVOIDANCE: Use "is" and "has", not "boasts", "serves as", or "features".
-    - REDUCE EMOJIS: Max 1 emoji per every 2 slides. Use only professional ones.
+    - REDUCE EMOJIS: Max 1 emoji per every 2 slides. Professional only.
+    
+    STRICT SUBJECT FIDELITY:
+    - If the topic is "Relationships" (психология/отношения), speak about the psychology of people, NOT the ROI of a company.
+    - If the topic is "AI", focus on the architecture and application, NOT just business profit.
+    - Keep the "Strategic Officer" high-quality TONE, but respect the transcript SUBJECT.
     
     CRITICAL RULES:
     - EXPERT TONE: Use sophisticated vocabulary for ${ta}. No fluff.
     - FORMAT: Use short, punchy paragraphs or simple bullet points (-).
     - NO CHEAP NAVIGATION: Never write "Next slide", "Swipe", or use ➡️ symbols.
     - LANGUAGE: Everything (except for JSON keys) must be in ${lang === 'ru' ? 'Russian' : 'English'}.
-    - WORD LIMITS: Title: Max 6 words. Body: Max 25 words (aim for high density).
+    - WORD LIMITS: Title: Max 6 words. Body: Max 25 words.
     
     OUTPUT FORMAT:
     Return ONLY a JSON object with "thinking" and "slides".
