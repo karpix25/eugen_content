@@ -12,14 +12,16 @@ const router = Router();
 
 router.get("/", authenticateToken, async (req: any, res) => {
   try {
+    const userId = String(req.user.id);
     const result = await query(`
       SELECT c.*, 
              EXISTS(SELECT 1 FROM publications WHERE clip_id = c.id AND user_id = $1) as published_by_me
       FROM clips c 
       ORDER BY created_at DESC
-    `, [req.user.id]);
+    `, [userId]);
     res.json(result.rows);
   } catch (err) {
+    console.error("Clips fetch error:", err);
     res.status(500).json({ error: "Failed to fetch clips" });
   }
 });

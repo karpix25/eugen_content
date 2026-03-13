@@ -49,25 +49,45 @@ router.get("/check/:sessionId", async (req, res) => {
 
 router.get("/check", authenticateToken, async (req: any, res) => {
   try {
-    let userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+    const userId = String(req.user.id);
+    console.log(`🔍 Auth check for user: ${userId} (${req.user.username})`);
+
+    let userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [userId]);
 
     if (userRes.rows.length === 0) {
-      await query(
-        "INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING",
-        [req.user.id, req.user.username, req.user.first_name]
-      );
-      userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+      console.log(`👤 User ${userId} not found in DB, attempting to create...`);
+      try {
+        await query(
+          "INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3) ON CONFLICT (telegram_id) DO UPDATE SET username = EXCLUDED.username, first_name = EXCLUDED.first_name",
+          [userId, req.user.username || '', req.user.first_name || 'Worker']
+        );
+        userRes = await query("SELECT * FROM users WHERE telegram_id = $1", [userId]);
+      } catch (insertErr) {
+        console.error(`❌ Failed to insert/update user ${userId}:`, insertErr);
+        // Fallback to minimal user object if DB is down or locked
+      }
     }
 
-    const dbUser = userRes.rows[0];
-    res.json({
-      user: {
-        ...req.user,
-        ...dbUser,
-        id: dbUser.telegram_id,
-        is_admin: isAdmin(req.user.id)
-      }
-    });
+    const dbUser = userRes?.rows[0];
+    if (dbUser) {
+      console.log(`✅ User ${userId} hydrated from DB`);
+      res.json({
+        user: {
+          ...req.user,
+          ...dbUser,
+          id: dbUser.telegram_id,
+          is_admin: isAdmin(req.user.id)
+        }
+      });
+    } else {
+      console.warn(`⚠️ Using fallback user for ${userId} (not in DB)`);
+      res.json({
+        user: {
+          ...req.user,
+          is_admin: isAdmin(req.user.id)
+        }
+      });
+    }
   } catch (err) {
     console.error("Hydration Error:", err);
     res.json({

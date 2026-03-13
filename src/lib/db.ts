@@ -5,8 +5,15 @@ dotenv.config();
 
 const { Pool } = pg;
 
+const dbUrl = process.env.DATABASE_URL;
+const dbHost = dbUrl ? new URL(dbUrl).hostname : 'unknown';
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl,
+});
+
+pool.on('connect', () => {
+  console.log(`✅ DB Pool connected to ${dbHost}`);
 });
 
 export const query = (text: string, params?: any[]) => pool.query(text, params);
