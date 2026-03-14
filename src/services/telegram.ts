@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '../lib/db.js';
 import fs from 'fs';
+import { PreviewGenerator } from './preview-generator';
 
 dotenv.config();
 
@@ -142,9 +143,19 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
     );
 
     await ctx.reply(`Вы скачали: ${clip.title}`);
+    
+    // Generate Font Hook Preview
+    let thumbBuffer: Buffer | undefined;
+    try {
+        thumbBuffer = await PreviewGenerator.generateFontHook(clip.title);
+    } catch (e) {
+        console.warn('Failed to generate thumb for clip:', e);
+    }
+
     const message = await ctx.replyWithVideo(clip.url, { 
         width: 1080, 
         height: 1920,
+        thumbnail: thumbBuffer ? { source: thumbBuffer } : undefined,
         caption: `⬜️ ${clip.title}`,
         reply_markup: {
             inline_keyboard: [
