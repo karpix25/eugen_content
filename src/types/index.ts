@@ -80,6 +80,8 @@ export interface User {
   plaque_timerange?: number;
   auto_mode_enabled?: boolean;
   auto_mode_videos_per_day?: number;
+  face_image_url?: string;
+  use_face_in_carousels?: boolean;
 }
 
 export interface AdPlaque {

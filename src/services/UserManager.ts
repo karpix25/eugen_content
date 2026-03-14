@@ -51,4 +51,8 @@ export class UserManager {
   static async updateWatermarkUrl(telegramId: string, imageUrl: string) {
     return query("UPDATE users SET watermark_text = $1 WHERE telegram_id = $2", [imageUrl, telegramId]);
   }
+
+  static async updateFaceImageUrl(telegramId: string, imageUrl: string) {
+    return query("UPDATE users SET face_image_url = $1 WHERE telegram_id = $2", [imageUrl, telegramId]);
+  }
 }

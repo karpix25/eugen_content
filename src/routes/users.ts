@@ -78,4 +78,29 @@ router.post("/:telegram_id/watermark", authenticateToken, upload.single('waterma
   }
 });
 
+router.post("/:telegram_id/face", authenticateToken, upload.single('face'), async (req: any, res) => {
+  const { telegram_id } = req.params;
+  const file = req.file;
+
+  if (!file) return res.status(400).json({ error: "No file uploaded" });
+
+  try {
+    const key = `faces/${telegram_id}_${file.originalname}`;
+    const uploadResult = await uploadToS3(file.buffer, key, file.mimetype);
+    let imageUrl = (uploadResult as any).Location;
+
+    if (!imageUrl) {
+      const endpoint = process.env.S3_ENDPOINT || '';
+      const bucket = process.env.S3_BUCKET_NAME || '';
+      imageUrl = endpoint ? `${endpoint.replace(/\/$/, '')}/${bucket}/${key}` : `https://${bucket}.s3.amazonaws.com/${key}`;
+    }
+
+    await UserManager.updateFaceImageUrl(telegram_id, imageUrl);
+    res.json({ success: true, url: imageUrl });
+  } catch (error) {
+    console.error("Face upload error:", error);
+    res.status(500).json({ error: "Failed to upload face" });
+  }
+});
+
 export default router;

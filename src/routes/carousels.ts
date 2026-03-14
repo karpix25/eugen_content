@@ -85,9 +85,13 @@ router.post("/generate", authenticateToken, async (req: any, res) => {
 
     (async () => {
       try {
+        const userRes = await query("SELECT face_image_url, use_face_in_carousels FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+        const user = userRes.rows[0];
+        const faceRef = user?.use_face_in_carousels ? user.face_image_url : undefined;
+
         const detectedLang = await detectLanguage(transcript) || 'ru';
         const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
-        const gridUrl = await generateGridImage(script, analysis);
+        const gridUrl = await generateGridImage(script, analysis, faceRef);
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
         const slices = await sliceCarouselGrid(gridUrl, uploadsDir);
         await query("UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4", [JSON.stringify(script), gridUrl, slices, carouselId]);

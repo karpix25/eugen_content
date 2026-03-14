@@ -19,6 +19,7 @@ export const UserSettingsSchema = z.object({
   plaque_timerange: z.number().min(0).optional(),
   auto_mode_enabled: z.boolean().optional(),
   auto_mode_videos_per_day: z.number().min(1).max(100).optional(),
+  use_face_in_carousels: z.boolean().optional(),
 });
 
 export const VideoStatusUpdateSchema = z.object({

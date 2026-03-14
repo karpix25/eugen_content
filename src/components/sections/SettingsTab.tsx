@@ -24,6 +24,7 @@ import { PlaqueSettings } from '../settings/PlaqueSettings';
 import { WatermarkSettings } from '../settings/WatermarkSettings';
 import { AutoModeSettings } from '../settings/AutoModeSettings';
 import { AIGeneratorSettings } from '../settings/AIGeneratorSettings';
+import { PersonalBrandingSettings } from '../settings/PersonalBrandingSettings';
 
 interface SettingsTabProps {
   currentUser: User;
@@ -42,7 +43,7 @@ export function SettingsTab({
   onAddPlaque, 
   onDeletePlaque 
 }: SettingsTabProps) {
-  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'ai_gen'>('subtitles');
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'ai_gen' | 'brand'>('subtitles');
   
   // Settings State
   const [watermarkText, setWatermarkText] = useState('');
@@ -63,6 +64,8 @@ export function SettingsTab({
   const [plaqueTimerange, setPlaqueTimerange] = useState(0);
   const [autoModeEnabled, setAutoModeEnabled] = useState(false);
   const [autoModeVideosPerDay, setAutoModeVideosPerDay] = useState(3);
+  const [useFaceInCarousels, setUseFaceInCarousels] = useState(false);
+  const [faceImageUrl, setFaceImageUrl] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -94,6 +97,8 @@ export function SettingsTab({
       setPlaqueTimerange(currentUser.plaque_timerange !== undefined && currentUser.plaque_timerange !== null ? Number(currentUser.plaque_timerange) : 0);
       setAutoModeEnabled(currentUser.auto_mode_enabled || false);
       setAutoModeVideosPerDay(currentUser.auto_mode_videos_per_day !== undefined && currentUser.auto_mode_videos_per_day !== null ? Number(currentUser.auto_mode_videos_per_day) : 3);
+      setUseFaceInCarousels(currentUser.use_face_in_carousels || false);
+      setFaceImageUrl(currentUser.face_image_url || null);
     }
   }, [currentUser]);
 
@@ -124,7 +129,8 @@ export function SettingsTab({
           plaque_size: plaqueSize,
           plaque_timerange: plaqueTimerange,
           auto_mode_enabled: autoModeEnabled,
-          auto_mode_videos_per_day: autoModeVideosPerDay
+          auto_mode_videos_per_day: autoModeVideosPerDay,
+          use_face_in_carousels: useFaceInCarousels
         })
       });
       if (res.ok) {
@@ -141,6 +147,7 @@ export function SettingsTab({
 
   const SETTINGS_TABS = [
     { id: 'subtitles' as const, label: 'Субтитры', icon: <Layers className="w-4 h-4" /> },
+    { id: 'brand' as const, label: 'Бренд', icon: <UserIcon className="w-4 h-4" /> },
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
@@ -280,6 +287,17 @@ export function SettingsTab({
                       onAddPlaque={onAddPlaque}
                       onDeletePlaque={onDeletePlaque}
                       isAdmin={currentUser.is_admin}
+                    />
+                  )}
+
+                  {settingsSection === 'brand' && (
+                    <PersonalBrandingSettings
+                      useFaceInCarousels={useFaceInCarousels}
+                      setUseFaceInCarousels={setUseFaceInCarousels}
+                      faceImageUrl={faceImageUrl}
+                      telegramId={currentUser.telegram_id}
+                      authToken={authToken}
+                      onUpdate={onUpdate}
                     />
                   )}
 

@@ -6,7 +6,7 @@ dotenv.config();
 
 const KIE_API_KEY = process.env.KIE_API_KEY;
 
-export const generateGridImage = async (prompt: string, aspectRatio: string = "2:3"): Promise<string> => {
+export const generateGridImage = async (prompt: string, aspectRatio: string = "2:3", referImageUrl?: string): Promise<string> => {
   try {
     if (!KIE_API_KEY) throw new Error("KIE_API_KEY is not set");
     // 1. Create Generation Task
@@ -17,8 +17,10 @@ export const generateGridImage = async (prompt: string, aspectRatio: string = "2
         input: {
           prompt: prompt,
           aspect_ratio: aspectRatio,
-          resolution: "2K", // High-fidelity 2K resolution
-          output_format: "png"
+          resolution: "2K",
+          output_format: "png",
+          refer_image_url: referImageUrl,
+          refer_image_type: referImageUrl ? "face" : undefined
         }
       },
       {

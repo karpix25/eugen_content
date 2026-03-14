@@ -217,7 +217,9 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_enabled BOOLEAN DEFAULT FALSE",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_mode_videos_per_day NUMERIC DEFAULT 3",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_auto_post TIMESTAMP",
-      "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE"
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS face_image_url TEXT",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS use_face_in_carousels BOOLEAN DEFAULT FALSE"
     ];
 
     for (const stmt of columnAdditions) {
