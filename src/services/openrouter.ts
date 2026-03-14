@@ -184,8 +184,13 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
   return Array.isArray(parsed) ? parsed : parsed.slides || [];
 };
 
-export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis: any): Promise<string> => {
+export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis: any, hasFaceRef: boolean = false): Promise<string> => {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
+
+  const faceInstruction = hasFaceRef ? `
+    - CHARACTER INTEGRATION: The main character/subject in the scenes MUST be a person matching the provided reference image (e.g., an expert, speaker, or entrepreneur).
+    - Consistency: Integrate this character naturally into the thematic logic of EACH slide's illustration.
+  ` : "";
 
   const prompt = `
     Create a professional Instagram carousel as a single, unified, continuous vertical artwork.
@@ -199,6 +204,7 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     - ART STYLE: ${styleAnalysis?.elements?.artStyle || "Flat Graphic"}.
     - COLORS: ${styleAnalysis?.colors?.primary?.join(", ") || "Corporate Blues"}.
     - LAYOUT RULES: ${styleAnalysis?.layout?.compositionRules || "Clean grid placement"}.
+    ${faceInstruction}
     
     CONTENT INSTRUCTIONS:
     If the style uses illustrations or background imagery, you MUST adapt the subject matter to the TITLE and BODY of each slide. 

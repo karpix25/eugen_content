@@ -16,7 +16,7 @@ export const analyzeStyle = OpenRouter.analyzeStyle;
  */
 export const generateGridImage = async (script: OpenRouter.CarouselSlide[], styleAnalysis: any, referImageUrl?: string): Promise<string> => {
   console.log("Generating visual prompt via OpenRouter...");
-  const prompt = await OpenRouter.generateImagePrompt(script, styleAnalysis);
+  const prompt = await OpenRouter.generateImagePrompt(script, styleAnalysis, !!referImageUrl);
   
   console.log("Generating grid image via Kie.ai (Nano Banana Pro)...");
   return Kie.generateGridImage(prompt, "2:3", referImageUrl);
