@@ -1,5 +1,6 @@
 import * as OpenRouter from './openrouter.js';
 import * as Kie from './kie.js';
+import { SettingsManager } from './SettingsManager.js';
 
 export const evaluateContent = OpenRouter.evaluateContent;
 export const translateText = OpenRouter.translateText;
@@ -15,8 +16,11 @@ export const analyzeStyle = OpenRouter.analyzeStyle;
  * and then calls kie.ai to generate the image.
  */
 export const generateGridImage = async (script: OpenRouter.CarouselSlide[], styleAnalysis: any, referImageUrl?: string): Promise<string> => {
+  console.log("Fetching global logo...");
+  const logoUrl = await SettingsManager.getCarouselLogo();
+  
   console.log("Generating visual prompt via OpenRouter...");
-  const prompt = await OpenRouter.generateImagePrompt(script, styleAnalysis, !!referImageUrl);
+  const prompt = await OpenRouter.generateImagePrompt(script, styleAnalysis, !!referImageUrl, logoUrl);
   
   console.log("Generating grid image via Kie.ai (Nano Banana Pro)...");
   return Kie.generateGridImage(prompt, "2:3", referImageUrl);

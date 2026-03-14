@@ -184,7 +184,12 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
   return Array.isArray(parsed) ? parsed : parsed.slides || [];
 };
 
-export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis: any, hasFaceRef: boolean = false): Promise<string> => {
+export const generateImagePrompt = async (
+  script: CarouselSlide[], 
+  styleAnalysis: any, 
+  hasFaceRef: boolean = false,
+  logoUrl?: string | null
+): Promise<string> => {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
 
   const faceInstruction = hasFaceRef ? `
@@ -235,7 +240,8 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
        [Slide 5] [Slide 6]
     2. HIERARCHY: Titles must be Bold and significantly larger than the body text.
     3. PLACEMENT: Place exactly one title+body pair within each of the 6 slide zones of the 2x3 grid.
-    4. ALIGNMENT: Strict vertical and horizontal centering within each slide's zone.
+    4. LOGO (MANDATORY): ${logoUrl ? `You MUST place the global logo (${logoUrl}) in the TOP-LEFT corner of EVERY one of the 6 slides.` : "No logo requested."}
+    5. ALIGNMENT: Strict vertical and horizontal centering within each slide's zone.
     
     NEGATIVE CONSTRAINTS (STRICT):
     - DO NOT generate a 3x3 grid (9 slides). 

@@ -153,6 +153,22 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       )
     `);
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS global_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Insert default values if not exists
+    await query(`
+      INSERT INTO global_settings (key, value)
+      VALUES ('carousel_logo_url', NULL)
+      ON CONFLICT (key) DO NOTHING
+    `);
+
+
     // 2. Robust Type Migrations (Run one by one)
     const migrationStatements = [
       "ALTER TABLE clips DROP CONSTRAINT IF EXISTS clips_downloaded_by_fkey",
