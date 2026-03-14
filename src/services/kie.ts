@@ -1,14 +1,14 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import * as AIHubMix from './aihubmix.js';
 
 dotenv.config();
 
 const KIE_API_KEY = process.env.KIE_API_KEY;
 
 export const generateGridImage = async (prompt: string, aspectRatio: string = "2:3"): Promise<string> => {
-  if (!KIE_API_KEY) throw new Error("KIE_API_KEY is not set");
-
   try {
+    if (!KIE_API_KEY) throw new Error("KIE_API_KEY is not set");
     // 1. Create Generation Task
     const createResponse = await axios.post(
       "https://api.kie.ai/api/v1/jobs/createTask",
@@ -77,6 +77,14 @@ export const generateGridImage = async (prompt: string, aspectRatio: string = "2
     throw new Error("Kie.ai generation timed out");
   } catch (error: any) {
     console.error("Kie.ai Error:", error.response?.data || error.message);
-    throw new Error(`Kie.ai generation failed: ${error.message}`);
+    
+    // Fallback to AIHubMix
+    console.warn("Kie.ai failed, trying AIHubMix fallback...");
+    try {
+      return await AIHubMix.generateImage(prompt, aspectRatio);
+    } catch (fallbackError: any) {
+      console.error("AIHubMix Fallback Error:", fallbackError.message);
+      throw new Error(`Both Kie.ai and AIHubMix failed. Primary error: ${error.message}. Fallback error: ${fallbackError.message}`);
+    }
   }
 };
