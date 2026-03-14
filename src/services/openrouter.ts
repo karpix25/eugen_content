@@ -211,6 +211,9 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     - ACCENT: ${styleAnalysis?.color_system?.accent_hex || "None"}.
     - LAYOUT RULES: ${styleAnalysis?.layout_logic?.grid_math || "Clean grid placement"}.
     - WHITE SPACE: ${styleAnalysis?.layout_logic?.whitespace_usage || "Balanced"}.
+    - PHOTO LAYOUT: ${styleAnalysis?.photographic_style?.layout_type || "Single focal point"}.
+    - PHOTO TREATMENT: ${styleAnalysis?.photographic_style?.photo_treatment || "Natural"}.
+    - MASKING/EDGES: ${styleAnalysis?.photographic_style?.masking_logic || "Clean cuts"}.
     ${faceInstruction}
     
     CONTENT INSTRUCTIONS:
@@ -290,11 +293,16 @@ export const analyzeStyle = async (images: string | string[]): Promise<any> => {
         corner_radii: string (e.g., "Strict 0px", "Extra rounded 32px"),
         stroke_weights: string,
         decorative_elements: string[],
-        textures: string[] (e.g., "Film grain", "Paper noise", "Glass reflection"),
-        art_style: "Flat Graphic" | "Minimalist Illustration" | "Realistic Photo" | "3D Glassmorphism"
+        textures: string[] (e.g., "Film grain", "Paper noise", "Glass reflection", "Topographic lines"),
+        art_style: "Flat Graphic" | "Minimalist Illustration" | "Realistic Photo" | "3D Glassmorphism" | "Scrapbook Collage"
+      },
+    - photographic_style: {
+        layout_type: "Single focal point" | "Grid collage" | "Scrapbook overlap",
+        photo_treatment: string (e.g., "B&W", "High grain", "White torn paper borders", "Polaroid style"),
+        masking_logic: string (How photos are cropped: e.g., "Organic shapes", "Strict rectangles")
       },
     - prompts: { 
-        midjourney_base: string (A highly distilled prompt for recreating this visual style)
+        midjourney_base: string (A highly distilled prompt for recreating this visual style, including collage/photographic rules)
       },
     - styleDescription: string (Executive summary of the design language),
     - thematicLogic: string (How the brand flow operates across the grid),
@@ -304,6 +312,7 @@ export const analyzeStyle = async (images: string | string[]): Promise<any> => {
     1. SYNTHESIS: If multiple images are provided, find the common denominator between them.
     2. TECHNICAL PRECISION: Be specific about "Stroke Weights" (e.g. 1px vs 4px) and "Corner Radii".
     3. FLATNESS/DEPTH: Clearly distinguish if the style is "Strictly Flat" or has "Depth and Layers".
+    4. COLLAGE LOGIC: If images show multiple photos with offsets or torn edges, explicitly define this as "Scrapbook Collage" and describe the border and shadow logic.
   `;
 
   try {
