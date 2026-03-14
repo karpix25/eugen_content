@@ -199,6 +199,10 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     CONTENT TO RENDER (STRICT HIERARCHY):
     ${script.map((s, i) => `Slide ${i + 1}: TITLE: "${s.title}" | BODY: "${s.body}"`).join('\n')}
     
+    LANGUAGE PRESERVATION RULE:
+    - MANDATORY: DO NOT translate the TITLE or BODY text into English. 
+    - Keep them EXACTLY in their original language (Russian or English) as provided above when describing what to render in the image.
+    
     STYLE DESCRIPTION & DESIGN RULES:
     - ${styleAnalysis?.styleDescription || "Minimalist Professional Design"}
     - ART STYLE: ${styleAnalysis?.elements?.artStyle || "Flat Graphic"}.
