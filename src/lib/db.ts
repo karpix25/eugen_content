@@ -95,7 +95,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
         user_id TEXT,
         name TEXT,
         image_url TEXT,
-        text TEXT
+        text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -189,6 +190,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS handle TEXT",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS scrape_days INTEGER DEFAULT 7",
+      "ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS error_message TEXT",
