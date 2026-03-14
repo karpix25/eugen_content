@@ -227,10 +227,20 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     - HIERARCHY: ${styleAnalysis?.typography?.hierarchy_rules || "Titles significantly larger than body"}.
     - LETTER SPACING: ${styleAnalysis?.typography?.letter_spacing || "Normal"}.
     
-    PLACEMENT GUIDELINES:
-    1. HIERARCHY: Titles must be Bold and significantly larger than the body text.
-    2. PLACEMENT: Place exactly one title+body pair within each of the 6 slide zones of the 2x3 grid.
-    3. ALIGNMENT: Strict vertical and horizontal centering within each slide's zone.
+    PLACEMENT GUIDELINES (MANDATORY):
+    1. STRUCTURE: You MUST generate a 2x3 GRID ONLY (2 columns wide, 3 rows tall). 
+       Layout Schema:
+       [Slide 1] [Slide 2]
+       [Slide 3] [Slide 4]
+       [Slide 5] [Slide 6]
+    2. HIERARCHY: Titles must be Bold and significantly larger than the body text.
+    3. PLACEMENT: Place exactly one title+body pair within each of the 6 slide zones of the 2x3 grid.
+    4. ALIGNMENT: Strict vertical and horizontal centering within each slide's zone.
+    
+    NEGATIVE CONSTRAINTS (STRICT):
+    - DO NOT generate a 3x3 grid (9 slides). 
+    - DO NOT generate a 1x6 or 6x1 vertical/horizontal strip.
+    - DO NOT deviate from the 2x3 structure.
     
     Return ONLY the Midjourney-style prompt string in English.
     

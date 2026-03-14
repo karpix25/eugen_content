@@ -27,7 +27,9 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1",
         role: "user",
         parts: [
           {
-            text: `Instruction: Generate an image based on the prompt below. ${referImageUrl ? "Use the provided image as a visual reference for character appearance and style." : ""} 
+            text: `Instruction: Generate a single unified image representing a 2x3 grid of 6 slides (2 columns, 3 rows). ${referImageUrl ? "Use the provided image as a visual reference for character appearance and style." : ""} 
+            
+MANDATORY: The output MUST contain exactly 6 distinct content zones arranged in 2 columns and 3 rows. DO NOT generate 9 slides.
             
 Prompt: ${cleanPrompt}`
           }
