@@ -179,19 +179,38 @@ router.post("/:id/carousel", authenticateToken, async (req: any, res) => {
     // Run generation in background
     (async () => {
       try {
+        console.log(`[Carousel] Starting background generation for clip ${id}, carousel ${carouselId}`);
         const userRes = await query("SELECT face_image_url, use_face_in_carousels FROM users WHERE telegram_id = $1", [String(req.user.id)]);
         const user = userRes.rows[0];
         const faceRef = user?.use_face_in_carousels ? user.face_image_url : undefined;
 
+        console.log(`[Carousel] Detecting language for transcript...`);
         const detectedLang = await detectLanguage(transcript) || 'ru';
+        
+        console.log(`[Carousel] Generating script (lang: ${detectedLang})...`);
         const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
+        
+        console.log(`[Carousel] Generating grid image (faceRef: ${faceRef ? 'yes' : 'no'})...`);
         const gridUrl = await generateGridImage(script, analysis, faceRef);
+        console.log(`[Carousel] Grid image generated: ${gridUrl}`);
+
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
+        console.log(`[Carousel] Slicing grid reached. UploadsDir: ${uploadsDir}`);
+        
         const slices = await sliceCarouselGrid(gridUrl, uploadsDir);
+        console.log(`[Carousel] Slices created: ${slices.length} items`);
+
+        console.log(`[Carousel] Updating database...`);
         await query("UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4", [JSON.stringify(script), gridUrl, slices, carouselId]);
-        await sendCarouselToTelegram(String(telegramId), slices.map(s => path.join(process.cwd(), 'public', s)), id);
+        
+        console.log(`[Carousel] Sending to Telegram id: ${telegramId}...`);
+        const absoluteSlicePaths = slices.map(s => path.join(process.cwd(), 'public', s));
+        console.log(`[Carousel] Absolute paths: ${JSON.stringify(absoluteSlicePaths)}`);
+        
+        await sendCarouselToTelegram(String(telegramId), absoluteSlicePaths, id);
+        console.log(`[Carousel] Successfully completed for clip ${id}`);
       } catch (err: any) {
-        console.error("Background carousel generation error:", err);
+        console.error("[Carousel] Background error:", err);
         await query("UPDATE carousels SET status = 'error', error_message = $1 WHERE id = $2", [err.message, carouselId]);
       }
     })();

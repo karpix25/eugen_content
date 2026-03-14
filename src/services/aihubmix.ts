@@ -16,7 +16,8 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1",
   }
 
   try {
-    console.log(`Generating image via AIHubMix fallback for prompt: ${prompt.substring(0, 50)}...`);
+    const cleanPrompt = prompt.replace(/^\/imagine\s+(prompt:)?\s*/i, "");
+    console.log(`Generating image via AIHubMix fallback for prompt: ${cleanPrompt.substring(0, 50)}...`);
 
     // Clean aspect ratio (e.g. "2:3" -> "2:3", "3/2" -> "3:2")
     const cleanedAspectRatio = aspectRatio.replace('/', ':');
@@ -28,7 +29,7 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1",
           {
             text: `Instruction: Generate an image based on the prompt below. ${referImageUrl ? "Use the provided image as a visual reference for character appearance and style." : ""} 
             
-Prompt: ${prompt}`
+Prompt: ${cleanPrompt}`
           }
         ]
       }

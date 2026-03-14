@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '../lib/db.js';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -245,9 +246,9 @@ bot.action(/^report_link_(.+)$/, async (ctx) => {
 
 export const sendCarouselToTelegram = async (telegramId: string, slicePaths: string[], clipId?: string) => {
     try {
-        const media = slicePaths.map((path, index) => ({
+        const media = slicePaths.map((filePath, index) => ({
             type: 'photo' as const,
-            media: { source: path },
+            media: { source: fs.createReadStream(filePath) },
             caption: index === 0 ? '🎡 Ваша новая карусель готова!' : undefined
         }));
         
