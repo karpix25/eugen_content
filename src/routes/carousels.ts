@@ -1,7 +1,7 @@
 import { Router } from "express";
 import path from "path";
 import { query } from "../lib/db.js";
-import { authenticateToken, isAdmin } from "../middleware/auth.js";
+import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 import { analyzeStyle, generateCarouselScript, generateGridImage, detectLanguage } from "../services/gemini.js";
 import { sliceCarouselGrid } from "../services/slicer.js";
 import { sendCarouselToTelegram } from "../services/telegram.js";
@@ -25,7 +25,7 @@ router.get("/styles", authenticateToken, async (req: any, res) => {
   }
 });
 
-router.post("/styles/analyze", authenticateToken, isAdmin, async (req: any, res) => {
+router.post("/styles/analyze", authenticateToken, requireAdmin, async (req: any, res) => {
   const { image, images } = req.body;
   const targetImages = images || (image ? [image] : null);
   
@@ -42,7 +42,7 @@ router.post("/styles/analyze", authenticateToken, isAdmin, async (req: any, res)
   }
 });
 
-router.post("/styles", authenticateToken, isAdmin, async (req: any, res) => {
+router.post("/styles", authenticateToken, requireAdmin, async (req: any, res) => {
   const { name, image_url, analysis, is_global } = req.body;
 
   try {
@@ -61,7 +61,7 @@ router.post("/styles", authenticateToken, isAdmin, async (req: any, res) => {
   }
 });
 
-router.delete("/styles/:id", authenticateToken, isAdmin, async (req: any, res) => {
+router.delete("/styles/:id", authenticateToken, requireAdmin, async (req: any, res) => {
   try {
     await query("DELETE FROM carousel_styles WHERE id = $1", [req.params.id]);
     res.json({ success: true });

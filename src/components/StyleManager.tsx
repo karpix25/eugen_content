@@ -75,8 +75,18 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
         },
         body: JSON.stringify({ images: referenceImages })
       });
+
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          throw new Error(data.error || `Server error (${res.status})`);
+        } catch {
+          throw new Error(`Server returned HTML/Text instead of JSON (Status: ${res.status}). This often means a proxy error or server crash.`);
+        }
+      }
+
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
       setAnalysisResult(data);
     } catch (err: any) {
       alert("Analysis failed: " + err.message);
