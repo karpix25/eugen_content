@@ -188,6 +188,7 @@ export function SettingsTab({
               timerange={plaqueTimerange} setTimerange={setPlaqueTimerange}
               onAddPlaque={onAddPlaque}
               onDeletePlaque={onDeletePlaque}
+              isAdmin={currentUser.role === 'admin'}
             />
           )}
 

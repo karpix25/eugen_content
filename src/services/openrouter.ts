@@ -285,3 +285,48 @@ export const analyzeStyle = async (imageBase64: string): Promise<any> => {
     return null;
   }
 };
+
+export const generatePlaquePrompt = async (topic: string): Promise<string> => {
+  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
+
+  const prompt = `
+    You are an elite Graphic Designer and Prompt Engineer for high-conversion advertising.
+    Your mission is to create a visual prompt for an "Ad Plaque" (advertising banner) that will be overlaid on video content.
+    
+    Topic/Text: "${topic}"
+    Format: Rectangular (3:2 aspect ratio).
+    
+    DESIGN RULES:
+    1. EXCLUSIVITY: The design must look expensive, premium, and sophisticated.
+    2. LEGIBILITY: Any text specified in the topic must be CLEAR and VIBRANT. Use high-contrast typography.
+    3. ART STYLE: Modern Digital Graphic / 3D Rendered Glassmorphism. 
+    4. BACKGROUND: Use deep gradients, abstract shapes, or elegant textures that match the topic.
+    5. BRANDING: Include subtle premium accents like gold foil, neon glow, or frosted glass effects.
+    6. NO PHOTOREALISM: Avoid realistic human faces or busy photographic backgrounds. Keep it clean and iconic.
+    
+    The output must be a single, detailed Midjourney-style prompt in English for an AI image generator (Nano Banana).
+    Focus on lighting, materials, and "premium feel".
+    
+    Return ONLY the prompt string.
+  `;
+
+  try {
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: MODEL,
+        messages: [{ role: "user", content: prompt }]
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return response.data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("OpenRouter Plaque Prompt Error:", error);
+    throw new Error("Failed to generate plaque prompt");
+  }
+};
