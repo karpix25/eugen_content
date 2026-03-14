@@ -10,12 +10,13 @@ import {
   Crown,
   ShieldCheck,
   CreditCard,
-  Settings,
-  Bell,
-  ChevronRight,
-  TrendingUp,
-  Cpu,
-  Wand2
+  Settings, 
+  Bell, 
+  ChevronRight, 
+  TrendingUp, 
+  Cpu, 
+  Wand2,
+  Globe
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { User, AdPlaque } from '../../types';
@@ -25,6 +26,7 @@ import { WatermarkSettings } from '../settings/WatermarkSettings';
 import { AutoModeSettings } from '../settings/AutoModeSettings';
 import { AIGeneratorSettings } from '../settings/AIGeneratorSettings';
 import { PersonalBrandingSettings } from '../settings/PersonalBrandingSettings';
+import { GlobalSettings } from '../settings/GlobalSettings';
 
 interface SettingsTabProps {
   currentUser: User;
@@ -43,7 +45,7 @@ export function SettingsTab({
   onAddPlaque, 
   onDeletePlaque 
 }: SettingsTabProps) {
-  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'ai_gen' | 'brand'>('subtitles');
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'ai_gen' | 'brand' | 'global'>('subtitles');
   
   // Settings State
   const [watermarkText, setWatermarkText] = useState('');
@@ -151,7 +153,10 @@ export function SettingsTab({
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
-    ...(currentUser.is_admin ? [{ id: 'ai_gen' as const, label: 'AI Генератор', icon: <Wand2 className="w-4 h-4" /> }] : []),
+    ...(currentUser.is_admin ? [
+      { id: 'ai_gen' as const, label: 'AI Генератор', icon: <Wand2 className="w-4 h-4" /> },
+      { id: 'global' as const, label: 'Глобальные', icon: <Globe className="w-4 h-4" /> }
+    ] : []),
   ];
 
   const FONT_FAMILIES = [
@@ -320,6 +325,12 @@ export function SettingsTab({
                     <AIGeneratorSettings 
                       authToken={authToken}
                       onUpdate={onUpdate}
+                    />
+                  )}
+
+                  {settingsSection === 'global' && currentUser.is_admin && (
+                    <GlobalSettings 
+                      authToken={authToken}
                     />
                   )}
 
