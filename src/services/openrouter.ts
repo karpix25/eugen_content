@@ -300,12 +300,12 @@ export const generatePlaquePrompt = async (topic: string): Promise<string> => {
     1. EXCLUSIVITY: The design must look expensive, premium, and sophisticated.
     2. LEGIBILITY: Any text specified in the topic must be CLEAR and VIBRANT. Use high-contrast typography.
     3. ART STYLE: Modern Digital Graphic / 3D Rendered Glassmorphism. 
-    4. BACKGROUND: Use deep gradients, abstract shapes, or elegant textures that match the topic.
+    4. BACKGROUND: USE A SOLID, EDGE-TO-EDGE RECTANGULAR BACKGROUND. NO TRANSPARENCY, NO HOLES, NO IRREGULAR EDGES. The background must fill the entire 3:2 canvas completely.
     5. BRANDING: Include subtle premium accents like gold foil, neon glow, or frosted glass effects.
     6. NO PHOTOREALISM: Avoid realistic human faces or busy photographic backgrounds. Keep it clean and iconic.
     
     The output must be a single, detailed Midjourney-style prompt in English for an AI image generator (Nano Banana).
-    Focus on lighting, materials, and "premium feel".
+    Focus on lighting, materials, and "premium feel". Explicitly mention "solid rectangular shape, no transparent parts".
     
     Return ONLY the prompt string.
   `;

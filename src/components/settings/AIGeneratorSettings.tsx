@@ -12,6 +12,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +38,8 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
       }
 
       setSuccess(true);
+      const data = await response.json();
+      setGeneratedUrl(data.imageUrl);
       setTopic('');
       setName('');
       onUpdate();
@@ -94,8 +97,20 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
           )}
 
           {success && (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 text-xs font-bold animate-in fade-in slide-in-from-top-2">
-              Плашка успешно сгенерирована и добавлена в вашу коллекцию!
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 text-xs font-bold">
+                Плашка успешно сгенерирована и сохранена!
+              </div>
+              {generatedUrl && (
+                <div className="relative group/preview rounded-2xl overflow-hidden border border-white/10 aspect-[3/2] bg-black/40">
+                  <img src={generatedUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center p-6 text-center">
+                    <p className="text-[10px] font-black text-white uppercase tracking-widest leading-relaxed">
+                      Эта плашка уже доступна в разделе «Настройки плашек»
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
