@@ -100,60 +100,7 @@ export function PlaqueSettings({
           )}
         </div>
 
-        {isAdmin && (
-          <div className="p-6 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-3xl border border-emerald-500/20 space-y-4 shadow-xl">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-xl">
-                <Bot className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.2em]">Nano Banana AI</p>
-                <p className="text-[9px] text-white/30 font-medium uppercase tracking-[0.1em]">Генерация плашек нового поколения</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <input 
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="Например: Скидка 50% только сегодня..." 
-                className="flex-1 bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-xs outline-none focus:border-emerald-500 placeholder:text-white/20 text-white font-medium" 
-              />
-              <button
-                onClick={async () => {
-                  if (!topic) return;
-                  setGenLoading(true);
-                  try {
-                    const res = await fetch('/api/ad-plaques/generate', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                      },
-                      body: JSON.stringify({ topic, name: topic })
-                    });
-                    if (res.ok) {
-                      setTopic('');
-                      window.location.reload();
-                    } else {
-                      const err = await res.json();
-                      alert(err.error || 'Ошибка генерации');
-                    }
-                  } catch (e) {
-                    alert('Ошибка сети');
-                  } finally {
-                    setGenLoading(false);
-                  }
-                }}
-                disabled={genLoading || !topic}
-                className="bg-white text-black font-black text-[10px] uppercase tracking-[0.15em] px-6 rounded-2xl hover:bg-emerald-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 active:scale-95"
-              >
-                {genLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                {genLoading ? "..." : "Создать"}
-              </button>
-            </div>
-          </div>
-        )}
+
 
         <div className="pt-4 space-y-6">
           <div className="space-y-4">

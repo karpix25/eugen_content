@@ -90,10 +90,7 @@ function App() {
               onDelete={handleDeleteVideo}
               onDeleteChannel={handleDeleteChannel}
               onRefresh={updateData}
-              onAddManual={handleAddManualVideo}
               onAddChannel={handleAddChannel}
-              manualYoutubeUrl={manualYoutubeUrl}
-              setManualYoutubeUrl={setManualYoutubeUrl}
               processingId={processingId}
             />
           )}

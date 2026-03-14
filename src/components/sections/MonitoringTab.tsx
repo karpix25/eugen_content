@@ -19,10 +19,7 @@ interface MonitoringTabProps {
   onDelete: (id: string) => void;
   onDeleteChannel: (id: string) => void;
   onRefresh: () => void;
-  onAddManual: (e: React.FormEvent<HTMLFormElement>) => void;
   onAddChannel: (url: string, interval: string, scrapeDays: number) => void;
-  manualYoutubeUrl: string;
-  setManualYoutubeUrl: (val: string) => void;
   processingId: string | null;
 }
 
@@ -44,10 +41,7 @@ export function MonitoringTab({
   onDelete,
   onDeleteChannel,
   onRefresh,
-  onAddManual,
   onAddChannel,
-  manualYoutubeUrl,
-  setManualYoutubeUrl,
   processingId
 }: MonitoringTabProps) {
   const [newChannelUrl, setNewChannelUrl] = useState('');
@@ -68,30 +62,6 @@ export function MonitoringTab({
 
   return (
     <div className="space-y-6">
-      {/* Add Manual Video */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-emerald-500" />
-          Добавить видео вручную
-        </h3>
-        <form onSubmit={onAddManual} className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Ссылка на YouTube (Shorts или Видео)"
-            value={manualYoutubeUrl}
-            onChange={(e) => setManualYoutubeUrl(e.target.value)}
-            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-          />
-          <button
-            type="submit"
-            disabled={loadingVideos || !manualYoutubeUrl}
-            className="px-6 py-3 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 disabled:opacity-50 transition-all flex items-center gap-2"
-          >
-            Добавить
-          </button>
-        </form>
-      </div>
-
       {/* Channels Section */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2">

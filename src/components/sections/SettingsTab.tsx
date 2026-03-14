@@ -40,7 +40,7 @@ export function SettingsTab({
   onAddPlaque, 
   onDeletePlaque 
 }: SettingsTabProps) {
-  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'accounts' | 'security'>('subtitles');
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto'>('subtitles');
   
   // Settings State
   const [watermarkText, setWatermarkText] = useState('');
@@ -142,8 +142,6 @@ export function SettingsTab({
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
-    { id: 'accounts' as const, label: 'Каналы', icon: <UserIcon className="w-4 h-4" /> },
-    { id: 'security' as const, label: 'Защита', icon: <ShieldCheck className="w-4 h-4" /> },
   ];
 
   const FONT_FAMILIES = [
@@ -307,49 +305,7 @@ export function SettingsTab({
                     />
                   )}
 
-                  {settingsSection === 'accounts' && (
-                    <div className="bg-[#111] border border-white/5 rounded-[2rem] p-8 space-y-8 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
-                      <div>
-                        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Подключенные каналы</h3>
-                        <p className="text-[10px] font-medium text-white/30 uppercase tracking-widest mb-6">Управляйте вашими социальными сетями</p>
-                        
-                        <div className="space-y-4">
-                          {[
-                            { name: 'YouTube', handle: '@clips_admin', status: 'Connected', color: 'text-red-500' },
-                            { name: 'TikTok', handle: 'not_connected', status: 'Disconnected', color: 'text-white/20' }
-                          ].map(acc => (
-                            <div key={acc.name} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 group/acc hover:border-white/10 transition-all">
-                              <div className="flex items-center gap-4">
-                                <div className={cn("w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center", acc.color)}>
-                                  <Zap className="w-5 h-5" />
-                                </div>
-                                <div>
-                                  <p className="text-xs font-black text-white uppercase tracking-widest">{acc.name}</p>
-                                  <p className="text-[10px] font-medium text-white/20 uppercase tracking-widest">{acc.handle}</p>
-                                </div>
-                              </div>
-                              <button className={cn(
-                                "text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border transition-all",
-                                acc.status === 'Connected' ? "border-emerald-500/20 text-emerald-500 bg-emerald-500/5" : "border-white/10 text-white/40 hover:bg-white/5"
-                              )}>
-                                {acc.status === 'Connected' ? 'АКТИВЕН' : 'ПОДКЛЮЧИТЬ'}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
-                  {settingsSection === 'security' && (
-                    <div className="bg-[#111] border border-white/5 rounded-[2rem] p-8 relative overflow-hidden text-center py-16">
-                      <ShieldCheck className="w-12 h-12 text-emerald-500/20 mx-auto mb-6" />
-                      <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Защита аккаунта</h3>
-                      <p className="text-[10px] font-medium text-white/30 uppercase tracking-widest mb-8 max-w-xs mx-auto leading-relaxed">Настройки двухфакторной аутентификации и доступов появятся в ближайшее время.</p>
-                      <button className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest cursor-not-allowed">Скоро...</button>
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-6 flex flex-col items-center">
