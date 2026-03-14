@@ -10,7 +10,7 @@ const AIHUBMIX_API_KEY = process.env.AIHUBMIX_API_KEY;
 /**
  * Generates an image using AIHubMix (Gemini 3 Pro Image)
  */
-export const generateImage = async (prompt: string, aspectRatio: string = "1:1"): Promise<string> => {
+export const generateImage = async (prompt: string, aspectRatio: string = "1:1", referImageUrl?: string): Promise<string> => {
   if (!AIHUBMIX_API_KEY) {
     throw new Error("AIHUBMIX_API_KEY is not set");
   }
@@ -21,19 +21,33 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
     // Clean aspect ratio (e.g. "2:3" -> "2:3", "3/2" -> "3:2")
     const cleanedAspectRatio = aspectRatio.replace('/', ':');
 
+    const contents: any[] = [
+      {
+        role: "user",
+        parts: [
+          {
+            text: `Instruction: Generate an image based on the prompt below. ${referImageUrl ? "Use the provided image as a visual reference for character appearance and style." : ""} 
+            
+Prompt: ${prompt}`
+          }
+        ]
+      }
+    ];
+
+    if (referImageUrl) {
+      // Add reference image as a part
+      contents[0].parts.unshift({
+        fileData: {
+          fileUri: referImageUrl,
+          mimeType: "image/png" // Default to png, though url could be anything
+        }
+      });
+    }
+
     const response = await axios.post(
       'https://aihubmix.com/gemini/v1beta/models/gemini-3-pro-image-preview:generateContent',
       {
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
+        contents: contents,
         generationConfig: {
           responseModalities: ["TEXT", "IMAGE"],
           imageConfig: {

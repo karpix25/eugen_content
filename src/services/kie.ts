@@ -83,7 +83,7 @@ export const generateGridImage = async (prompt: string, aspectRatio: string = "2
     // Fallback to AIHubMix
     console.warn("Kie.ai failed, trying AIHubMix fallback...");
     try {
-      return await AIHubMix.generateImage(prompt, aspectRatio);
+      return await AIHubMix.generateImage(prompt, aspectRatio, referImageUrl);
     } catch (fallbackError: any) {
       console.error("AIHubMix Fallback Error:", fallbackError.message);
       throw new Error(`Both Kie.ai and AIHubMix failed. Primary error: ${error.message}. Fallback error: ${fallbackError.message}`);
