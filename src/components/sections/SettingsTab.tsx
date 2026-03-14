@@ -14,7 +14,8 @@ import {
   Bell,
   ChevronRight,
   TrendingUp,
-  Cpu
+  Cpu,
+  Wand2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { User, AdPlaque } from '../../types';
@@ -22,6 +23,7 @@ import { SubtitleSettings } from '../settings/SubtitleSettings';
 import { PlaqueSettings } from '../settings/PlaqueSettings';
 import { WatermarkSettings } from '../settings/WatermarkSettings';
 import { AutoModeSettings } from '../settings/AutoModeSettings';
+import { AIGeneratorSettings } from '../settings/AIGeneratorSettings';
 
 interface SettingsTabProps {
   currentUser: User;
@@ -40,7 +42,7 @@ export function SettingsTab({
   onAddPlaque, 
   onDeletePlaque 
 }: SettingsTabProps) {
-  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto'>('subtitles');
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'ai_gen'>('subtitles');
   
   // Settings State
   const [watermarkText, setWatermarkText] = useState('');
@@ -142,6 +144,7 @@ export function SettingsTab({
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
+    { id: 'ai_gen' as const, label: 'AI Генератор', icon: <Wand2 className="w-4 h-4" /> },
   ];
 
   const FONT_FAMILIES = [
@@ -197,17 +200,7 @@ export function SettingsTab({
           </div>
 
           <div className="w-full md:w-auto">
-            <div className="bg-emerald-500 rounded-3xl p-6 text-black shadow-xl shadow-emerald-500/20 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500 cursor-pointer">
-              <div className="absolute top-0 right-0 p-4 opacity-20 transform translate-x-4 -translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500">
-                <Crown className="w-16 h-16" />
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-70">Nano Banana Premium</p>
-              <h2 className="text-lg font-black leading-tight mb-3">Генерируйте в 10 раз быстрее</h2>
-              <button className="bg-black text-emerald-500 text-[10px] font-black uppercase px-4 py-2 rounded-xl tracking-widest flex items-center gap-2 hover:bg-emerald-950 transition-colors">
-                <CreditCard className="w-3 h-3" />
-                Улучшить тариф
-              </button>
-            </div>
+            {/* Premium card removed based on user request */}
           </div>
         </div>
       </div>
@@ -302,6 +295,13 @@ export function SettingsTab({
                     <AutoModeSettings 
                       enabled={autoModeEnabled} setEnabled={setAutoModeEnabled}
                       videosPerDay={autoModeVideosPerDay} setVideosPerDay={setAutoModeVideosPerDay}
+                    />
+                  )}
+
+                  {settingsSection === 'ai_gen' && (
+                    <AIGeneratorSettings 
+                      authToken={authToken}
+                      onUpdate={onUpdate}
                     />
                   )}
 
