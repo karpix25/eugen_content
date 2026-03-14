@@ -6,6 +6,8 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
   const [channels, setChannels] = useState<Channel[]>([]);
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [clips, setClips] = useState<Clip[]>([]);
+  const [totalClips, setTotalClips] = useState(0);
+  const [clipsOffset, setClipsOffset] = useState(0);
   const [plaques, setPlaques] = useState<AdPlaque[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
@@ -42,8 +44,15 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
       }
 
       if (clipRes.status === 'fulfilled') {
-        const data = clipRes.value;
-        setClips(Array.isArray(data) ? data : []);
+        const data = clipRes.value as any;
+        if (data && data.items) {
+          setClips(data.items);
+          setTotalClips(data.total || 0);
+          setClipsOffset(data.items.length);
+        } else {
+          setClips(Array.isArray(data) ? data : []);
+          setTotalClips(Array.isArray(data) ? data.length : 0);
+        }
       }
 
       if (adRes.status === 'fulfilled') {
@@ -85,6 +94,20 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     return () => clearInterval(interval);
   }, [videos, authToken, fetchData]);
 
+  const loadMoreClips = useCallback(async () => {
+    if (loading || clips.length >= totalClips) return;
+    setLoading(true);
+    try {
+      const data = await api.clips.list(20, clips.length);
+      if (data && data.items) {
+        setClips(prev => [...prev, ...data.items]);
+        setClipsOffset(prev => prev + data.items.length);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, clips.length, totalClips]);
+
   return {
     channels,
     setChannels,
@@ -92,6 +115,8 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     setVideos,
     clips,
     setClips,
+    totalClips,
+    loadMoreClips,
     plaques,
     setPlaques,
     users,

@@ -36,6 +36,8 @@ function App() {
     handleAddChannel,
     handleDeleteChannel,
     clips,
+    totalClips,
+    loadMoreClips,
     users,
     publications,
     plaques,
@@ -98,11 +100,14 @@ function App() {
           {activeTab === 'clips' && (
             <ClipsTab 
               clips={clips} 
+              totalClips={totalClips}
+              loadMoreClips={loadMoreClips}
               plaques={plaques}
               onUpdate={updateData} 
               authToken={authToken} 
               isAdmin={currentUser.is_admin} 
               onOpenCarouselWizard={setSelectedCarouselClip}
+              loading={loading}
             />
           )}
 

@@ -7,20 +7,26 @@ import { cn } from '../../lib/utils';
 
 interface ClipsTabProps {
   clips: Clip[];
+  totalClips: number;
+  loadMoreClips: () => void;
   plaques: AdPlaque[];
   authToken: string | null;
   onUpdate: () => void;
   isAdmin: boolean;
   onOpenCarouselWizard: (clip: Clip) => void;
+  loading?: boolean;
 }
 
 export function ClipsTab({ 
   clips, 
+  totalClips,
+  loadMoreClips,
   plaques, 
   authToken, 
   onUpdate, 
   isAdmin,
-  onOpenCarouselWizard
+  onOpenCarouselWizard,
+  loading
 }: ClipsTabProps) {
   const [showAvailableOnly, setShowAvailableOnly] = useState(true);
   const [languageFilter, setLanguageFilter] = useState<'all' | 'ru' | 'en'>('all');
@@ -77,6 +83,23 @@ export function ClipsTab({
           </div>
         )}
       </div>
+
+      {clips.length < totalClips && (
+        <div className="flex justify-center pt-8 pb-12">
+          <button
+            onClick={loadMoreClips}
+            disabled={loading}
+            className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-3 group"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Video className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+            )}
+            {loading ? 'Загрузка...' : 'Загрузить еще'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

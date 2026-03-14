@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, XCircle, Loader2, Send, Layout, CheckCircle, X } from 'lucide-react';
 import { Clip, AdPlaque } from '../../types';
 import { cn } from '../../lib/utils';
+import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 
 interface ClipCardProps {
   clip: Clip;
@@ -17,6 +18,13 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
   const [showPlaqueSelector, setShowPlaqueSelector] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSendingCarousel, setIsSendingCarousel] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const entry = useIntersectionObserver(containerRef, {
+    threshold: 0.1,
+    freezeOnceVisible: true,
+  });
+  const isVisible = !!entry?.isIntersecting;
 
   const handleSend = async (plaqueId: string | null) => {
     if (!onSendToTelegram) return;
@@ -41,20 +49,37 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
 
   return (
     <>
-      <div className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300">
+      <div 
+        ref={containerRef}
+        className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300"
+      >
         <div className="aspect-[9/16] bg-black relative overflow-hidden">
           {!isPlaying ? (
             <>
-              {clip.thumbnail ? (
-                <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
-              ) : (
-                <video
-                  src={clip.url + '#t=0.1'}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  muted
-                  playsInline
-                  preload="metadata"
-                />
+              {isVisible && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-full h-full"
+                >
+                  {clip.thumbnail ? (
+                    <img 
+                      src={clip.thumbnail} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                      alt="" 
+                      loading="lazy"
+                    />
+                  ) : (
+                    <video
+                      src={clip.url + '#t=0.1'}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
+                  )}
+                </motion.div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
 

@@ -16,13 +16,26 @@ const router = Router();
 router.get("/", authenticateToken, async (req: any, res) => {
   try {
     const userId = String(req.user.id);
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+
     const result = await query(`
       SELECT c.*, 
              EXISTS(SELECT 1 FROM publications WHERE clip_id = c.id AND user_id = $1) as published_by_me
       FROM clips c 
       ORDER BY created_at DESC
-    `, [userId]);
-    res.json(result.rows);
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    const countResult = await query(`SELECT COUNT(*) as total FROM clips`);
+    const total = parseInt(countResult.rows[0].total);
+
+    res.json({
+      items: result.rows,
+      total,
+      limit,
+      offset
+    });
   } catch (err) {
     console.error("Clips fetch error:", err);
     res.status(500).json({ error: "Failed to fetch clips" });

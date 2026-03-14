@@ -98,8 +98,8 @@ export const api = {
   },
 
   clips: {
-    async list(): Promise<Clip[]> {
-      const res = await fetch('/api/clips', { headers: getHeaders() });
+    async list(limit: number = 20, offset: number = 0): Promise<{ items: Clip[], total: number }> {
+      const res = await fetch(`/api/clips?limit=${limit}&offset=${offset}`, { headers: getHeaders() });
       return handleResponse(res);
     },
     async applyPlaque(clipId: string, plaqueId: string | null) {
