@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
-export const sliceCarouselGrid = async (imageBufferOrUrl: Buffer | string, outDir: string): Promise<string[]> => {
+export const sliceCarouselGrid = async (imageBufferOrUrl: Buffer | string, outDir: string, logoUrl?: string | null): Promise<string[]> => {
   let buffer: Buffer;
 
   if (typeof imageBufferOrUrl === 'string') {
@@ -38,6 +38,22 @@ export const sliceCarouselGrid = async (imageBufferOrUrl: Buffer | string, outDi
   const slideHeight = Math.floor(metadata.height / 3);
   console.log(`[Slicer] Slide dims: ${slideWidth}x${slideHeight}`);
 
+  // Fetch logo if provided
+  let logoBuffer: Buffer | null = null;
+  if (logoUrl) {
+    try {
+        console.log(`[Slicer] Fetching logo from: ${logoUrl}`);
+        const logoRes = await axios.get(logoUrl, { responseType: 'arraybuffer' });
+        logoBuffer = Buffer.from(logoRes.data);
+        // Resize logo to be ~15% of slide width
+        logoBuffer = await sharp(logoBuffer)
+            .resize({ width: Math.floor(slideWidth * 0.15) })
+            .toBuffer();
+    } catch (e) {
+        console.warn(`[Slicer] Failed to fetch or process logo:`, e);
+    }
+  }
+
   const slideUrls: string[] = [];
   const sessionId = uuidv4();
 
@@ -53,14 +69,25 @@ export const sliceCarouselGrid = async (imageBufferOrUrl: Buffer | string, outDi
       const filePath = path.join(outDir, fileName);
 
       console.log(`[Slicer] Extracting slide ${index} to ${filePath}...`);
-      await sharp(buffer)
+      const slide = sharp(buffer)
         .extract({
           left: x * slideWidth,
           top: y * slideHeight,
           width: slideWidth,
           height: slideHeight
-        })
-        .toFile(filePath);
+        });
+
+      if (logoBuffer) {
+        await slide
+            .composite([{ 
+                input: logoBuffer, 
+                top: Math.floor(slideHeight * 0.05), 
+                left: Math.floor(slideWidth * 0.05) 
+            }])
+            .toFile(filePath);
+      } else {
+        await slide.toFile(filePath);
+      }
 
       slideUrls.push(`/uploads/carousels/${fileName}`);
     }

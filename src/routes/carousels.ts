@@ -7,6 +7,7 @@ import { sliceCarouselGrid } from "../services/slicer.js";
 import { sendCarouselToTelegram } from "../services/telegram.js";
 import multer from "multer";
 import { uploadToS3 } from "../lib/s3.js";
+import { SettingsManager } from "../services/SettingsManager.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -97,7 +98,10 @@ router.post("/generate", authenticateToken, async (req: any, res) => {
         const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
         const gridUrl = await generateGridImage(script, analysis, faceRef);
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
-        const slices = await sliceCarouselGrid(gridUrl, uploadsDir);
+        
+        // Fetch logo for programmatic overlay in slicer
+        const logoUrl = await SettingsManager.getCarouselLogo();
+        const slices = await sliceCarouselGrid(gridUrl, uploadsDir, logoUrl);
         await query("UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4", [JSON.stringify(script), gridUrl, slices, carouselId]);
         await sendCarouselToTelegram(String(req.user.id), slices.map(s => path.join(process.cwd(), 'public', s)), clipId);
       } catch (err: any) {
