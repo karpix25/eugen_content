@@ -4,7 +4,7 @@ import { query } from "../lib/db.js";
 import { downloadYouTubeVideo } from "../services/video-downloader.js";
 import { uploadToS3 } from "../lib/s3.js";
 import { sendToVizard, getVizardProjectStatus } from "../services/vizard.js";
-import { processClip } from "../services/processor.js";
+import { processClip, generateThumbnail } from "../services/processor.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 import { detectLanguage, translateText } from "../services/gemini.js";
 
@@ -151,9 +151,10 @@ export const pollVizardStatus = async () => {
             const originalHook = c.hook || c.headline || "";
             const finalInsertLang = normalizeLang(video?.detected_language);
             try {
+              const thumbUrl = await generateThumbnail(c.videoUrl || c.url || c.video_url, originalClipId);
               await query(
                 "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
-                [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, originalHook, c.thumbnail_url || '', originalTranscript, finalInsertLang]
+                [originalClipId, v.id, c.videoUrl || c.url || c.video_url, originalTitle, originalHook, thumbUrl || c.thumbnail_url || '', originalTranscript, finalInsertLang]
               );
               await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
             } catch (insErr: any) {

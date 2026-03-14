@@ -403,3 +403,41 @@ export const extractScreenshots = async (videoUrl: string, clipId: string, count
             });
     });
 };
+
+export const generateThumbnail = async (videoUrl: string, clipId: string): Promise<string | null> => {
+    const outputDir = path.join(process.cwd(), 'temp', 'thumbnails');
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const fileName = `${clipId}_thumb.jpg`;
+    const outputPath = path.join(outputDir, fileName);
+
+    console.log(`[Processor] Generating thumbnail for ${clipId}...`);
+
+    try {
+        await new Promise((resolve, reject) => {
+            ffmpeg(videoUrl)
+                .screenshots({
+                    timestamps: [1.0], // 1 second in
+                    filename: fileName,
+                    folder: outputDir,
+                    size: '1080x1920'
+                })
+                .on('end', resolve)
+                .on('error', reject);
+        });
+
+        if (fs.existsSync(outputPath)) {
+            const fileBuffer = fs.readFileSync(outputPath);
+            const res = await uploadToS3(fileBuffer, `thumbnails/${fileName}`, 'image/jpeg');
+            fs.unlinkSync(outputPath);
+            return (res as any).Location;
+        }
+        return null;
+    } catch (err) {
+        console.error(`[Processor] Thumbnail generation failed for ${clipId}:`, err);
+        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+        return null;
+    }
+};
