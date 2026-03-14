@@ -71,12 +71,14 @@ export function PlaqueSettings({
                 )}
               </button>
               
-              <button
-                onClick={(e) => { e.stopPropagation(); onDeletePlaque(plaque.id); }}
-                className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
+                {isAdmin && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDeletePlaque(plaque.id); }}
+                    className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                )}
             </div>
           ))}
 

@@ -144,7 +144,7 @@ export function SettingsTab({
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
-    { id: 'ai_gen' as const, label: 'AI Генератор', icon: <Wand2 className="w-4 h-4" /> },
+    ...(currentUser.is_admin ? [{ id: 'ai_gen' as const, label: 'AI Генератор', icon: <Wand2 className="w-4 h-4" /> }] : []),
   ];
 
   const FONT_FAMILIES = [
@@ -279,7 +279,7 @@ export function SettingsTab({
                       timerange={plaqueTimerange} setTimerange={setPlaqueTimerange}
                       onAddPlaque={onAddPlaque}
                       onDeletePlaque={onDeletePlaque}
-                      isAdmin={currentUser.role === 'admin'}
+                      isAdmin={currentUser.is_admin}
                     />
                   )}
 
@@ -298,7 +298,7 @@ export function SettingsTab({
                     />
                   )}
 
-                  {settingsSection === 'ai_gen' && (
+                  {settingsSection === 'ai_gen' && currentUser.is_admin && (
                     <AIGeneratorSettings 
                       authToken={authToken}
                       onUpdate={onUpdate}

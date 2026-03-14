@@ -264,7 +264,7 @@ export const analyzeStyle = async (imageBase64: string): Promise<any> => {
               {
                 type: "image_url",
                 image_url: {
-                  url: imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`
+                  url: imageBase64.startsWith('http') ? imageBase64 : (imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`)
                 }
               }
             ]

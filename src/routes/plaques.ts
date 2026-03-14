@@ -13,10 +13,10 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.get("/ad-plaques", authenticateToken, async (req: any, res) => {
   try {
-    const userRole = req.user.role;
+    const isAdmin = req.user.is_admin;
     let result;
     
-    if (userRole === 'admin') {
+    if (isAdmin) {
       // Admins see everything
       result = await query("SELECT * FROM ad_plaques ORDER BY created_at DESC");
     } else {
@@ -44,7 +44,8 @@ router.post("/ad-plaques", authenticateToken, requireAdmin, upload.single("file"
       imageUrl = endpoint ? `${endpoint.replace(/\/$/, '')}/${bucket}/${key}` : `https://${bucket}.s3.amazonaws.com/${key}`;
     }
     const id = uuidv4();
-    await query("INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)", [id, name, imageUrl, text || '', req.user.id || null]);
+    // In this project, all plaques uploaded by admin become global (user_id = null)
+    await query("INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)", [id, name, imageUrl, text || '', null]);
     res.json({ id, imageUrl });
   } catch (error) {
     res.status(500).json({ error: "Failed to upload file" });

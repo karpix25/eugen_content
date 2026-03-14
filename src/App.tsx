@@ -122,6 +122,13 @@ function App() {
             />
           )}
 
+          {activeTab === 'styles' && currentUser.is_admin && (
+            <StyleManager 
+              authToken={authToken} 
+              isAdmin={currentUser.is_admin} 
+            />
+          )}
+
           {activeTab === 'settings' && (
             <SettingsTab 
               currentUser={currentUser} 

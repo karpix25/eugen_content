@@ -25,35 +25,44 @@ router.get("/styles", authenticateToken, async (req: any, res) => {
   }
 });
 
-router.post("/styles", authenticateToken, upload.single('image'), async (req: any, res) => {
-  const { name } = req.body;
-  const file = req.file;
+router.post("/styles/analyze", authenticateToken, isAdmin, async (req: any, res) => {
+  const { image } = req.body;
+  if (!image) return res.status(400).json({ error: "No image provided" });
+  
+  try {
+    const analysis = await analyzeStyle(image);
+    res.json(analysis);
+  } catch (err: any) {
+    console.error("Style analysis error:", err);
+    res.status(500).json({ error: err.message || "Failed to analyze style" });
+  }
+});
 
-  if (!file) return res.status(400).json({ error: "No image uploaded" });
+router.post("/styles", authenticateToken, isAdmin, async (req: any, res) => {
+  const { name, image_url, analysis, is_global } = req.body;
 
   try {
-    const key = `carousel-styles/${req.user.id}_${file.originalname}`;
-    const uploadResult = await uploadToS3(file.buffer, key, file.mimetype);
-    let imageUrl = (uploadResult as any).Location;
-
-    if (!imageUrl) {
-      const endpoint = process.env.S3_ENDPOINT || '';
-      const bucket = process.env.S3_BUCKET_NAME || '';
-      imageUrl = endpoint ? `${endpoint.replace(/\/$/, '')}/${bucket}/${key}` : `https://${bucket}.s3.amazonaws.com/${key}`;
-    }
-
-    // Analyze style via Gemini
-    const styleAnalysis = await analyzeStyle(imageUrl);
-
+    // If image_url is base64, we should ideally upload it to S3, 
+    // but StyleManager currently sends base64/URL directly.
+    // For now, let's just save what we get.
     const result = await query(
       "INSERT INTO carousel_styles (user_id, name, image_url, analysis) VALUES ($1, $2, $3, $4) RETURNING *",
-      [String(req.user.id), name, imageUrl, JSON.stringify(styleAnalysis)]
+      [is_global ? null : String(req.user.id), name, image_url, JSON.stringify(analysis)]
     );
 
     res.json(result.rows[0]);
   } catch (error) {
-    console.error("Style upload error:", error);
-    res.status(500).json({ error: "Failed to upload style" });
+    console.error("Style save error:", error);
+    res.status(500).json({ error: "Failed to save style" });
+  }
+});
+
+router.delete("/styles/:id", authenticateToken, isAdmin, async (req: any, res) => {
+  try {
+    await query("DELETE FROM carousel_styles WHERE id = $1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete style" });
   }
 });
 
