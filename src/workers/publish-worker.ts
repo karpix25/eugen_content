@@ -41,6 +41,11 @@ export const autoPublish = async (bot: Telegraf) => {
         const plaqueRes = await query("SELECT image_url FROM ad_plaques WHERE id = $1", [user.default_plaque_id]);
         const plaqueImageUrl = plaqueRes.rows[0]?.image_url || null;
 
+        if (!plaqueImageUrl) {
+          console.log(`[Auto] Skipping clip ${clip.id} for user ${user.username} - no default plaque found.`);
+          continue;
+        }
+
         const defaultText = user.username ? `@${user.username}` : user.first_name;
         const watermarkConfig = user.watermark_text ? {
           text: user.watermark_text,

@@ -63,6 +63,16 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
     const dbUserRes = await query("SELECT * FROM users WHERE telegram_id = $1", [String(telegramId)]);
     const dbUser = dbUserRes.rows[0];
 
+    // Enforce plaque requirement
+    if (!plaqueImageUrl && dbUser.default_plaque_id) {
+      const defaultPlaqueRes = await query("SELECT image_url FROM ad_plaques WHERE id = $1", [dbUser.default_plaque_id]);
+      plaqueImageUrl = defaultPlaqueRes.rows[0]?.image_url || null;
+    }
+
+    if (!plaqueImageUrl) {
+      return res.status(400).json({ error: "Для обработки видео требуется рекламная плашка (выберите её или установите плашку по умолчанию в настройках)." });
+    }
+
     const watermarkConfig = (dbUser.watermark_text || user.username) ? {
       text: dbUser.watermark_text || (user.username ? `@${user.username}` : user.first_name),
       opacity: parseFloat(dbUser.watermark_opacity) || 0.08,
@@ -205,6 +215,20 @@ router.post("/:id/reprocess", authenticateToken, async (req: any, res) => {
     if (plaque_id || clip.ad_plaque_id) {
       const pRes = await query("SELECT image_url FROM ad_plaques WHERE id = $1", [plaque_id || clip.ad_plaque_id]);
       if (pRes.rows.length > 0) plaqueImageUrl = pRes.rows[0].image_url;
+    }
+
+    if (!plaqueImageUrl) {
+      const dbUserRes = await query("SELECT default_plaque_id FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+      const dbUser = dbUserRes.rows[0];
+      if (dbUser?.default_plaque_id) {
+        const pRes = await query("SELECT image_url FROM ad_plaques WHERE id = $1", [dbUser.default_plaque_id]);
+        if (pRes.rows.length > 0) plaqueImageUrl = pRes.rows[0].image_url;
+      }
+    }
+
+    // Still check if plaqueImageUrl is resolved
+    if (!plaqueImageUrl) {
+       return res.status(400).json({ error: "Для переработки видео требуется рекламная плашка (выберите её или установите плашку по умолчанию в настройках)." });
     }
 
     const tLang = target_lang || clip.language || video?.target_language;
