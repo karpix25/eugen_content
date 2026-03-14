@@ -188,11 +188,34 @@ bot.on('text', authMiddleware, async (ctx) => {
                 [urls, publicationId]
             );
             
+            // Try to update the original message to show a checkmark
+            try {
+                const pubRes = await query('SELECT message_id, clip_id FROM publications WHERE id = $1', [publicationId]);
+                if (pubRes.rows.length > 0) {
+                    const { message_id, clip_id } = pubRes.rows[0];
+                    const clipRes = await query('SELECT title FROM clips WHERE id = $1', [clip_id]);
+                    const title = clipRes.rows[0]?.title || 'Видео';
+                    
+                    await bot.telegram.editMessageCaption(from.id, Number(message_id), undefined, `✅ [Отчёт] ${title}`);
+                }
+            } catch (editErr) {
+                console.warn('Failed to edit message caption after report:', editErr);
+            }
+
             return ctx.reply('✅ Ссылка сохранена! Отличная работа.');
         } else {
              return ctx.reply('Не удалось найти публикацию для этой ссылки. Пожалуйста, отправьте ссылку ответом (Reply) на сообщение с видео.');
         }
     }
+});
+
+// Action for reporting links via button
+bot.action(/^report_link_(.+)$/, async (ctx) => {
+    const pubId = ctx.match[1];
+    await ctx.answerCbQuery();
+    await ctx.reply('Пришлите ссылку на опубликованный ролик в ответ на это сообщение (или через Reply к самому видео):', {
+        reply_markup: { force_reply: true }
+    });
 });
 
 export const sendCarouselToTelegram = async (telegramId: string, slicePaths: string[]) => {

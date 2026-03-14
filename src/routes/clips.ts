@@ -93,7 +93,14 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
     const localFilePath = await processClip(id, clip.url, plaqueImageUrl, clip.language, null, true, watermarkConfig as any, plaqueConfig, subtitleConfig, folderName);
 
     if (telegramId !== 'dev') {
-      const message = await bot.telegram.sendVideo(telegramId, { source: fs.createReadStream(localFilePath) }, { caption: `🎥 ${clip.title}` });
+      const message = await bot.telegram.sendVideo(telegramId, { source: fs.createReadStream(localFilePath) }, { 
+        caption: `⬜️ ${clip.title}`,
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]
+          ]
+        }
+      });
       
       // Ensure user exists before inserting publication
       await query(
@@ -101,10 +108,19 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
         [String(telegramId), user.username || '', user.first_name || 'Worker']
       );
 
-      await query(
-        "INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status) VALUES ($1, $2, $3, $4, 'sent')", 
+      const pubRes = await query(
+        "INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status) VALUES ($1, $2, $3, $4, 'sent') RETURNING id", 
         [id, String(telegramId), plaque_id || null, message.message_id]
       );
+      const publicationId = pubRes.rows[0].id;
+
+      // Update the message with the correct publication ID in the callback
+      await bot.telegram.editMessageReplyMarkup(telegramId, message.message_id, undefined, {
+        inline_keyboard: [
+          [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
+        ]
+      });
+
       fs.unlinkSync(localFilePath);
     }
     res.json({ success: true });

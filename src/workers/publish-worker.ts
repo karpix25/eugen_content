@@ -73,10 +73,16 @@ export const autoPublish = async (bot: Telegraf) => {
         );
 
         if (fs.existsSync(localFilePath)) {
+          // Send video with interactive button and checkbox
           const message = await bot.telegram.sendVideo(user.telegram_id, {
             source: fs.createReadStream(localFilePath)
           }, {
-            caption: `🤖 [Auto] ${clip.title}`
+            caption: `⬜️ [Auto] ${clip.title}`,
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }] // We will update the callback data after we get the publication ID
+              ]
+            }
           });
 
           // Ensure user exists before inserting publication
@@ -87,10 +93,20 @@ export const autoPublish = async (bot: Telegraf) => {
             [String(user.telegram_id), user.username || '', user.first_name || '']
           );
 
-          await query(`
+          const pubRes = await query(`
             INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status)
             VALUES ($1, $2, $3, $4, 'sent')
+            RETURNING id
           `, [clip.id, String(user.telegram_id), user.default_plaque_id, message.message_id]);
+
+          const publicationId = pubRes.rows[0].id;
+
+          // Update the message with the correct publication ID in the callback
+          await bot.telegram.editMessageReplyMarkup(user.telegram_id, message.message_id, undefined, {
+            inline_keyboard: [
+              [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
+            ]
+          });
 
           fs.unlinkSync(localFilePath);
         }
