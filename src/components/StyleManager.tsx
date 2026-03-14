@@ -21,7 +21,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [newStyleName, setNewStyleName] = useState('');
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isGlobal, setIsGlobal] = useState(true);
 
@@ -45,19 +45,26 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setReferenceImage(reader.result as string);
-      setAnalysisResult(null);
-    };
-    reader.readAsDataURL(file);
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReferenceImages(prev => [...prev, reader.result as string]);
+        setAnalysisResult(null);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeReference = (index: number) => {
+    setReferenceImages(prev => prev.filter((_, i) => i !== index));
+    setAnalysisResult(null);
   };
 
   const handleAnalyze = async () => {
-    if (!referenceImage) return;
+    if (referenceImages.length === 0) return;
     setAnalyzing(true);
     try {
       const res = await fetch('/api/carousel/styles/analyze', {
@@ -66,7 +73,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({ image: referenceImage })
+        body: JSON.stringify({ images: referenceImages })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -79,7 +86,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
   };
 
   const handleSave = async () => {
-    if (!newStyleName || !analysisResult || !referenceImage) return;
+    if (!newStyleName || !analysisResult || referenceImages.length === 0) return;
     
     setLoading(true);
     try {
@@ -91,7 +98,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
         },
         body: JSON.stringify({
           name: newStyleName,
-          image_url: referenceImage,
+          image_url: referenceImages[0], // Use first image as thumbnail
           analysis: analysisResult,
           is_global: isGlobal
         })
@@ -99,7 +106,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
       
       if (res.ok) {
         setNewStyleName('');
-        setReferenceImage(null);
+        setReferenceImages([]);
         setAnalysisResult(null);
         fetchStyles();
       }
@@ -144,26 +151,34 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
             </div>
 
             <div className="space-y-4">
-              <label className="block w-full aspect-video bg-white/5 border-2 border-dashed border-white/10 rounded-3xl hover:border-emerald-500/50 transition-all cursor-pointer overflow-hidden group">
-                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                {referenceImage ? (
-                  <img src={referenceImage} className="w-full h-full object-cover" alt="Reference" />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-                    <ImageIcon className="w-10 h-10 text-white/20 group-hover:text-emerald-500 transition-colors" />
-                    <p className="text-sm font-bold text-white/20 uppercase tracking-widest">Upload Reference Image</p>
+              <div className="grid grid-cols-2 gap-4">
+                {referenceImages.map((img, idx) => (
+                  <div key={idx} className="relative aspect-video bg-white/5 border border-white/10 rounded-2xl overflow-hidden group">
+                    <img src={img} className="w-full h-full object-cover" alt={`Ref ${idx}`} />
+                    <button 
+                      onClick={() => removeReference(idx)}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </label>
+                ))}
+                
+                <label className="flex flex-col items-center justify-center aspect-video bg-white/5 border-2 border-dashed border-white/10 rounded-2xl hover:border-emerald-500/50 transition-all cursor-pointer group">
+                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
+                  <Plus className="w-8 h-8 text-white/20 group-hover:text-emerald-500 transition-colors" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mt-2">Add Reference</p>
+                </label>
+              </div>
 
-              {referenceImage && !analysisResult && (
+              {referenceImages.length > 0 && !analysisResult && (
                 <button
                   onClick={handleAnalyze}
                   disabled={analyzing}
                   className="w-full h-14 bg-emerald-500 text-black rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-400 transition-all disabled:opacity-50"
                 >
                   {analyzing ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
-                  {analyzing ? 'Analyzing Design...' : 'Analyze Design with Gemini'}
+                  {analyzing ? 'Analyzing Design DNA...' : `Analyze ${referenceImages.length} References`}
                 </button>
               )}
             </div>
@@ -181,30 +196,80 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                 </div>
 
                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  <div className="p-4 bg-white/5 rounded-2xl space-y-4">
+                  <div className="p-6 bg-white/5 rounded-3xl space-y-6">
+                    {/* Design DNA */}
                     <div>
-                      <h4 className="text-xs font-black uppercase text-emerald-500 mb-2">Typography</h4>
-                      <p className="text-sm text-white/80">Primary: {analysisResult.fonts?.primary}</p>
-                      <p className="text-xs text-white/40 mt-1">{analysisResult.fonts?.typographyRules}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black uppercase text-emerald-500 mb-2">Palette</h4>
-                      <div className="flex gap-2">
-                        {analysisResult.colors?.primary?.map((c: string) => (
-                          <div key={c} className="w-6 h-6 rounded-full border border-white/10" style={{ backgroundColor: c }} title={c} />
+                      <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-3">Brand DNA</h4>
+                      <p className="text-base font-bold text-white mb-1">{analysisResult.design_dna?.vibe}</p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {analysisResult.design_dna?.core_principles?.map((p: string) => (
+                          <span key={p} className="px-2 py-1 bg-white/5 rounded-md text-[10px] uppercase font-bold text-white/40 border border-white/5">{p}</span>
                         ))}
                       </div>
                     </div>
-                    {analysisResult.thematicLogic && (
-                      <div>
-                        <h4 className="text-xs font-black uppercase text-emerald-500 mb-2">Imagery Logic</h4>
-                        <p className="text-sm text-white/80 italic">"{analysisResult.thematicLogic}"</p>
+
+                    {/* Typography */}
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-3">Typography System</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-[10px] text-white/40 uppercase font-black mb-1">Primary</p>
+                          <p className="text-sm font-bold">{analysisResult.typography?.primary_family}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-white/40 uppercase font-black mb-1">Pairing</p>
+                          <p className="text-sm font-bold">{analysisResult.typography?.secondary_family}</p>
+                        </div>
                       </div>
-                    )}
-                    {analysisResult.reuseInstructions && (
-                      <div>
-                        <h4 className="text-xs font-black uppercase text-emerald-500 mb-2">AI Implementation Rules</h4>
-                        <p className="text-xs text-white/40 leading-relaxed">{analysisResult.reuseInstructions}</p>
+                      <p className="text-[10px] text-white/40 mt-3 leading-relaxed">{analysisResult.typography?.hierarchy_rules}</p>
+                    </div>
+
+                    {/* Palette */}
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-3">Color System</h4>
+                      <div className="flex flex-wrap gap-3">
+                        {analysisResult.color_system?.primary_hex?.map((c: string) => (
+                          <div key={c} className="group relative">
+                            <div className="w-10 h-10 rounded-xl border border-white/10 shadow-lg" style={{ backgroundColor: c }} />
+                            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-mono text-white/20 opacity-0 group-hover:opacity-100 transition-opacity">{c}</span>
+                          </div>
+                        ))}
+                        {analysisResult.color_system?.accent_hex && (
+                           <div className="w-10 h-10 rounded-xl border-2 border-emerald-500/30 p-0.5">
+                             <div className="w-full h-full rounded-lg" style={{ backgroundColor: analysisResult.color_system.accent_hex }} />
+                           </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Design Code */}
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-3">Design Code</h4>
+                      <div className="grid grid-cols-2 gap-y-4 text-[11px]">
+                        <div>
+                          <p className="text-white/40">Corner Radii</p>
+                          <p className="font-bold">{analysisResult.visual_elements?.corner_radii}</p>
+                        </div>
+                        <div>
+                          <p className="text-white/40">Weights</p>
+                          <p className="font-bold">{analysisResult.visual_elements?.stroke_weights}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-white/40 mb-1">Connectors</p>
+                          <p className="font-bold italic text-white/80">"{analysisResult.layout_logic?.visual_connectors}"</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI Prompt */}
+                    {analysisResult.prompts?.midjourney_base && (
+                      <div className="pt-4 border-t border-emerald-500/20">
+                        <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em] mb-3">AI Synthesis Prompt</h4>
+                        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                          <p className="text-[10px] text-emerald-500/60 leading-relaxed font-mono italic">
+                            {analysisResult.prompts.midjourney_base}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>

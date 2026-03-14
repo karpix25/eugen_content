@@ -205,18 +205,26 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
     
     STYLE DESCRIPTION & DESIGN RULES:
     - ${styleAnalysis?.styleDescription || "Minimalist Professional Design"}
-    - ART STYLE: ${styleAnalysis?.elements?.artStyle || "Flat Graphic"}.
-    - COLORS: ${styleAnalysis?.colors?.primary?.join(", ") || "Corporate Blues"}.
-    - LAYOUT RULES: ${styleAnalysis?.layout?.compositionRules || "Clean grid placement"}.
+    - BRAIN ANALYSIS: ${styleAnalysis?.design_dna?.vibe || "Business Luxury"}
+    - ART STYLE: ${styleAnalysis?.visual_elements?.art_style || "Flat Graphic"}.
+    - COLORS: ${styleAnalysis?.color_system?.primary_hex?.join(", ") || "Corporate Blues"}.
+    - ACCENT: ${styleAnalysis?.color_system?.accent_hex || "None"}.
+    - LAYOUT RULES: ${styleAnalysis?.layout_logic?.grid_math || "Clean grid placement"}.
+    - WHITE SPACE: ${styleAnalysis?.layout_logic?.whitespace_usage || "Balanced"}.
     ${faceInstruction}
     
     CONTENT INSTRUCTIONS:
     If the style uses illustrations or background imagery, you MUST adapt the subject matter to the TITLE and BODY of each slide. 
     - MANDATORY: Keep the artwork strictly FLAT. No 3D, no realistic hands, no glossy textures unless explicitly requested.
-    - VISUAL FLOW: Render the "${styleAnalysis?.layout?.visualConnectors || "wavy lines"}" so they physically bridge the slides across the 2x3 grid.
+    - VISUAL FLOW: Render the "${styleAnalysis?.layout_logic?.visual_connectors || "wavy lines"}" so they physically bridge the slides across the 2x3 grid.
     - SEAMLESSNESS: The background must be one continuous, high-resolution piece. NO borders between slides.
 
-    TYPOGRAPHY GUIDELINES:
+    TYPOGRAPHY SYSTEM:
+    - FONT FAMILIES: ${styleAnalysis?.typography?.primary_family}, ${styleAnalysis?.typography?.secondary_family}.
+    - HIERARCHY: ${styleAnalysis?.typography?.hierarchy_rules || "Titles significantly larger than body"}.
+    - LETTER SPACING: ${styleAnalysis?.typography?.letter_spacing || "Normal"}.
+    
+    PLACEMENT GUIDELINES:
     1. HIERARCHY: Titles must be Bold and significantly larger than the body text.
     2. PLACEMENT: Place exactly one title+body pair within each of the 6 slide zones of the 2x3 grid.
     3. ALIGNMENT: Strict vertical and horizontal centering within each slide's zone.
@@ -243,25 +251,69 @@ export const generateImagePrompt = async (script: CarouselSlide[], styleAnalysis
   return response.data.choices[0].message.content.trim();
 };
 
-export const analyzeStyle = async (imageBase64: string): Promise<any> => {
+export const analyzeStyle = async (images: string | string[]): Promise<any> => {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
 
-  const prompt = `Analyze this design reference image in extreme detail. 
-    Extract the following design variables and return them in a structured JSON format:
-    - fonts: { primary: string, secondary: string, styles: string[], typographyRules: string }
-    - colors: { primary: string[], secondary: string[], background: string }
-    - layout: { gridType: string, elementPositions: string, alignment: string, layering: string, visualConnectors: string }
-    - elements: { textures: string[], decorativeElements: string[], artStyle: "Flat Graphic" | "Minimalist Illustration" | "Realistic Photo", specificContentDetails: string }
-    - thematicLogic: string (How does the background flow across the 2x3 grid? Does it use "ribbons", "waves", or "geometric paths" to connect the slides?)
-    - reuseInstructions: string (Instructions for another AI on how to recreate this exact style. E.g., "Flat 2D vector style with blue wavy ribbons on a cream background")
-    - styleDescription: string (detailed stylistic summary)
+  const imageList = Array.isArray(images) ? images : [images];
+  
+  const prompt = `You are an elite Creative Director and Brand Architect. 
+    Analyze the provided design references to extract a comprehensive, corporate-level Design System.
+    Synthesize the patterns across ALL provided images into a single cohesive stylistic DNA.
     
-    Be specific about hex codes and font families. 
-    CRITICAL: Identify the "Visual Connector" (e.g. "blue wavy ribbon") that flows across multiple slides. This is the most important element for consistency.
-    ENFORCE FLATNESS: If the reference is graphic, explicitly state "No 3D, No Shadows, No Gloss".
-`;
+    Extract the following segments and return them in a STACKED JSON format:
+    - design_dna: {
+        vibe: string (Psychological impact: e.g., "High-trust professional", "Cyberpunk Brutalist", "Minimalist Luxury"),
+        core_principles: string[] (e.g., "Deep contrast", "Geometric rigor", "Organic flow"),
+        target_vibe: string
+      },
+    - typography: { 
+        primary_family: string, 
+        secondary_family: string, 
+        hierarchy_rules: string (sizing ratios, line heights),
+        letter_spacing: string,
+        weight_pairings: string 
+      },
+    - color_system: { 
+        primary_hex: string[], 
+        secondary_hex: string[], 
+        accent_hex: string,
+        gradient_logic: string,
+        background_vibe: string 
+      },
+    - layout_logic: { 
+        grid_math: string (e.g., "8pt grid system", "Asymmetric modules"), 
+        whitespace_usage: string (e.g., "Expansive macro-whitespace"),
+        layering_depth: string (Z-index logic, shadow depth, blur usage),
+        visual_connectors: string (EXACT description of how slides link: e.g., "Metallic liquid ribbons", "Continuous grain texture")
+      },
+    - visual_elements: { 
+        corner_radii: string (e.g., "Strict 0px", "Extra rounded 32px"),
+        stroke_weights: string,
+        decorative_elements: string[],
+        textures: string[] (e.g., "Film grain", "Paper noise", "Glass reflection"),
+        art_style: "Flat Graphic" | "Minimalist Illustration" | "Realistic Photo" | "3D Glassmorphism"
+      },
+    - prompts: { 
+        midjourney_base: string (A highly distilled prompt for recreating this visual style)
+      },
+    - styleDescription: string (Executive summary of the design language),
+    - thematicLogic: string (How the brand flow operates across the grid),
+    - reuseInstructions: string (Strict rules for an AI generator)
+
+    CRITICAL RULES:
+    1. SYNTHESIS: If multiple images are provided, find the common denominator between them.
+    2. TECHNICAL PRECISION: Be specific about "Stroke Weights" (e.g. 1px vs 4px) and "Corner Radii".
+    3. FLATNESS/DEPTH: Clearly distinguish if the style is "Strictly Flat" or has "Depth and Layers".
+  `;
 
   try {
+    const formattedImages = imageList.map(img => ({
+      type: "image_url" as const,
+      image_url: {
+        url: img.startsWith('http') ? img : (img.startsWith('data:') ? img : `data:image/png;base64,${img}`)
+      }
+    }));
+
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -271,12 +323,7 @@ export const analyzeStyle = async (imageBase64: string): Promise<any> => {
             role: "user",
             content: [
               { type: "text", text: prompt },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageBase64.startsWith('http') ? imageBase64 : (imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`)
-                }
-              }
+              ...formattedImages
             ]
           }
         ],

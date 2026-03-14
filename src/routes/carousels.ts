@@ -26,11 +26,15 @@ router.get("/styles", authenticateToken, async (req: any, res) => {
 });
 
 router.post("/styles/analyze", authenticateToken, isAdmin, async (req: any, res) => {
-  const { image } = req.body;
-  if (!image) return res.status(400).json({ error: "No image provided" });
+  const { image, images } = req.body;
+  const targetImages = images || (image ? [image] : null);
+  
+  if (!targetImages || (Array.isArray(targetImages) && targetImages.length === 0)) {
+    return res.status(400).json({ error: "No images provided" });
+  }
   
   try {
-    const analysis = await analyzeStyle(image);
+    const analysis = await analyzeStyle(targetImages);
     res.json(analysis);
   } catch (err: any) {
     console.error("Style analysis error:", err);
