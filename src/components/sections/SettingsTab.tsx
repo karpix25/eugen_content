@@ -5,7 +5,16 @@ import {
   Zap, 
   Bot, 
   Loader2, 
-  CheckCircle 
+  CheckCircle,
+  User as UserIcon,
+  Crown,
+  ShieldCheck,
+  CreditCard,
+  Settings,
+  Bell,
+  ChevronRight,
+  TrendingUp,
+  Cpu
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { User, AdPlaque } from '../../types';
@@ -31,7 +40,7 @@ export function SettingsTab({
   onAddPlaque, 
   onDeletePlaque 
 }: SettingsTabProps) {
-  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto'>('subtitles');
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'accounts' | 'security'>('subtitles');
   
   // Settings State
   const [watermarkText, setWatermarkText] = useState('');
@@ -117,7 +126,6 @@ export function SettingsTab({
         })
       });
       if (res.ok) {
-        alert('Настройки сохранены!');
         onUpdate();
       } else {
         alert('Ошибка при сохранении.');
@@ -134,6 +142,8 @@ export function SettingsTab({
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
+    { id: 'accounts' as const, label: 'Каналы', icon: <UserIcon className="w-4 h-4" /> },
+    { id: 'security' as const, label: 'Защита', icon: <ShieldCheck className="w-4 h-4" /> },
   ];
 
   const FONT_FAMILIES = [
@@ -144,174 +154,306 @@ export function SettingsTab({
   ];
 
   return (
-    <div className="max-w-4xl mx-auto pb-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="flex gap-1 bg-white/5 border border-white/10 rounded-2xl p-1.5">
-            {SETTINGS_TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setSettingsSection(tab.id)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all",
-                  settingsSection === tab.id
-                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20"
-                    : "text-white/40 hover:text-white/70 hover:bg-white/5"
+    <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Profile Header Block */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#111] to-[#050505] rounded-[2.5rem] border border-white/5 p-8 shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 blur-[100px] -mr-48 -mt-48 rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 blur-[80px] -ml-32 -mb-32 rounded-full pointer-events-none" />
+        
+        <div className="relative flex flex-col md:flex-row items-center gap-8">
+          <div className="relative shrink-0">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-1 shadow-xl shadow-emerald-500/20 rotate-3">
+              <div className="w-full h-full bg-[#0A0A0A] rounded-[1.4rem] flex items-center justify-center -rotate-3 overflow-hidden">
+                {currentUser.username ? (
+                  <span className="text-3xl font-black text-emerald-500">{currentUser.username[0].toUpperCase()}</span>
+                ) : (
+                  <UserIcon className="w-10 h-10 text-emerald-500" />
                 )}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+              </div>
+            </div>
+            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-black p-1.5 rounded-xl shadow-lg border-4 border-[#0A0A0A]">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
           </div>
 
-          {settingsSection === 'subtitles' && (
-            <SubtitleSettings 
-              enabled={subtitleEnabled} setEnabled={setSubtitleEnabled}
-              style={subtitleStyle} setStyle={setSubtitleStyle}
-              fontFamily={subtitleFontFamily} setFontFamily={setSubtitleFontFamily}
-              fontSize={subtitleFontSize} setFontSize={setSubtitleFontSize}
-              position={subtitlePosition} setPosition={setSubtitlePosition}
-              fontColor={subtitleFontColor} setFontColor={setSubtitleFontColor}
-              outlineColor={subtitleOutlineColor} setOutlineColor={setSubtitleOutlineColor}
-              highlightEnabled={subtitleHighlightEnabled} setHighlightEnabled={setSubtitleHighlightEnabled}
-              highlightColor={subtitleHighlightColor} setHighlightColor={setSubtitleHighlightColor}
-            />
-          )}
+          <div className="flex-1 text-center md:text-left space-y-2">
+            <h1 className="text-2xl font-black tracking-tight text-white flex items-center justify-center md:justify-start gap-3">
+              {currentUser.first_name || currentUser.username}
+              <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border border-emerald-500/20">
+                {currentUser.role || 'PRO'}
+              </span>
+            </h1>
+            <p className="text-white/40 text-xs font-medium uppercase tracking-[0.2em]">
+              ID: {currentUser.telegram_id || 'NANOBANANA_BASE'} • {currentUser.is_admin ? 'ADMINISTRATOR' : 'WORKER'}
+            </p>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
+              <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+                <TrendingUp className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{currentUser.publication_count || 0} ПУБЛИКАЦИЙ</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+                <Cpu className="w-3 h-3 text-purple-400" />
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">AUTO: {currentUser.auto_mode_enabled ? 'ON' : 'OFF'}</span>
+              </div>
+            </div>
+          </div>
 
-          {settingsSection === 'plaque' && (
-            <PlaqueSettings 
-              plaques={plaques}
-              defaultPlaqueId={defaultPlaqueId} setDefaultPlaqueId={setDefaultPlaqueId}
-              position={plaquePosition} setPosition={setPlaquePosition}
-              size={plaqueSize} setSize={setPlaqueSize}
-              timerange={plaqueTimerange} setTimerange={setPlaqueTimerange}
-              onAddPlaque={onAddPlaque}
-              onDeletePlaque={onDeletePlaque}
-              isAdmin={currentUser.role === 'admin'}
-            />
-          )}
-
-          {settingsSection === 'watermark' && (
-            <WatermarkSettings 
-              text={watermarkText} setText={setWatermarkText}
-              opacity={watermarkOpacity} setOpacity={setWatermarkOpacity}
-              position={watermarkPosition} setPosition={setWatermarkPosition}
-            />
-          )}
-
-          {settingsSection === 'auto' && (
-            <AutoModeSettings 
-              enabled={autoModeEnabled} setEnabled={setAutoModeEnabled}
-              videosPerDay={autoModeVideosPerDay} setVideosPerDay={setAutoModeVideosPerDay}
-            />
-          )}
-
-          <button
-            onClick={saveSettings}
-            disabled={saving}
-            className="w-full py-4 rounded-2xl bg-emerald-500 text-black font-black uppercase tracking-[0.3em] text-xs hover:bg-emerald-400 transition-all shadow-[0_15px_40px_rgba(16,185,129,0.2)] disabled:opacity-50 flex items-center justify-center gap-3 group"
-          >
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5 transition-transform group-hover:scale-110" />}
-            {saving ? 'СОХРАНЕНИЕ...' : 'ПРИМЕНИТЬ ДЛЯ ВСЕХ ВИДЕО'}
-          </button>
+          <div className="w-full md:w-auto">
+            <div className="bg-emerald-500 rounded-3xl p-6 text-black shadow-xl shadow-emerald-500/20 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500 cursor-pointer">
+              <div className="absolute top-0 right-0 p-4 opacity-20 transform translate-x-4 -translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500">
+                <Crown className="w-16 h-16" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-70">Nano Banana Premium</p>
+              <h2 className="text-lg font-black leading-tight mb-3">Генерируйте в 10 раз быстрее</h2>
+              <button className="bg-black text-emerald-500 text-[10px] font-black uppercase px-4 py-2 rounded-xl tracking-widest flex items-center gap-2 hover:bg-emerald-950 transition-colors">
+                <CreditCard className="w-3 h-3" />
+                Улучшить тариф
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="space-y-6">
-          <div className="sticky top-24 space-y-4">
-            <div className="flex flex-col items-center">
-              <style>
-                {`@import url('https://fonts.googleapis.com/css2?family=${FONT_FAMILIES.find(f => f.id === subtitleFontFamily)?.googleUrl || 'Anton'}&display=swap');`}
-              </style>
-              <div className="flex items-center gap-2 mb-3 self-start md:self-center">
-                <ImageIcon className="w-4 h-4 text-emerald-500" />
-                <span className="block text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">ФИНАЛЬНЫЙ ПРЕДПРОСМОТР</span>
-              </div>
-
-              <div className="relative aspect-[9/16] bg-[#000] rounded-[3rem] overflow-hidden border-[6px] border-white/10 w-full max-w-[320px] shadow-[0_0_120px_rgba(0,0,0,0.8)]">
-                <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80" alt="bg" className="w-full h-full object-cover opacity-50 scale-105 blur-[2px]" />
-
-                {defaultPlaqueId && plaques.find(p => p.id === defaultPlaqueId) && (
-                  <div className={cn(
-                    "absolute left-0 right-0 z-20 flex justify-center px-4 transition-all duration-500 pointer-events-none",
-                    plaquePosition === 'top' ? 'top-8' : plaquePosition === 'center' ? 'top-1/2 -translate-y-1/2' : 'bottom-12'
-                  )}>
-                    <img
-                      src={plaques.find(p => p.id === defaultPlaqueId)?.image_url}
-                      className="h-auto drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] rounded-xl object-contain"
-                      style={{ width: `${plaqueSize}%` }}
-                      alt=""
-                    />
-                  </div>
-                )}
-
-                <div
-                  className="absolute left-0 right-0 flex justify-center px-4 z-10 transition-all duration-500"
-                  style={{
-                    top: `${subtitlePosition}%`,
-                    transform: 'translateY(-50%)'
-                  }}
-                >
-                  <div
-                    className="inline-block px-3 py-1 font-bold"
-                    style={{
-                      fontFamily: `"${subtitleFontFamily}", sans-serif`,
-                      fontSize: `${Math.max(12, subtitleFontSize * 0.8)}px`,
-                      borderRadius: '6px',
-                      textShadow: (subtitleStyle === 'karaoke') ? `1px 1px 4px ${subtitleOutlineColor}` : 'none',
-                      color: '#FFFFFF',
-                      textTransform: 'none',
-                      letterSpacing: 'normal'
-                    }}
-                  >
-                    {subtitleStyle === 'celine' ? (
-                      <span className="tracking-[0.1em]">ОБЫЧНЫЕ СУБТИТРЫ</span>
-                    ) : (
-                      <>
-                        <span style={{ display: 'inline-block' }}>ЛУЧШИЙ </span>
-                        <span
-                          style={{
-                            color: (subtitleHighlightEnabled ? subtitleHighlightColor : subtitleFontColor),
-                            display: 'inline-block',
-                            fontWeight: 'bold',
-                            margin: '0 8px',
-                          }}
-                        >РЕЗУЛЬТАТ</span>
-                      </>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        {/* Settings Controls */}
+        <div className="xl:col-span-12">
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="w-full md:w-64 shrink-0 space-y-4">
+              <div className="bg-white/5 rounded-[2rem] p-4 space-y-2 border border-white/10 backdrop-blur-xl">
+                <p className="px-4 text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-4">Меню настроек</p>
+                {SETTINGS_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSettingsSection(tab.id)}
+                    className={cn(
+                      "w-full flex items-center gap-4 px-4 py-3.5 rounded-[1.25rem] transition-all duration-300 relative group",
+                      settingsSection === tab.id
+                        ? "bg-emerald-500 text-black shadow-xl shadow-emerald-500/20"
+                        : "text-white/40 hover:text-white hover:bg-white/5"
                     )}
-                  </div>
-                </div>
-
-                <div
-                  className={cn(
-                    "absolute font-black text-white whitespace-nowrap tracking-[0.2em] transition-all duration-700",
-                    watermarkPosition === 'top_left' ? 'top-8 left-8' :
-                      watermarkPosition === 'top_right' ? 'top-8 right-8' :
-                        watermarkPosition === 'bottom_left' ? 'bottom-12 left-8' :
-                          watermarkPosition === 'bottom_right' ? 'bottom-12 right-8' :
-                            'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
-                  )}
-                  style={{
-                    opacity: watermarkOpacity,
-                    fontSize: watermarkPosition === 'tilted_center' ? '48px' : '12px',
-                    transform: (watermarkPosition === 'center' || watermarkPosition === 'tilted_center')
-                      ? `translate(-50%, -50%) ${watermarkPosition === 'tilted_center' ? 'rotate(-35deg)' : ''}`
-                      : 'none'
-                  }}
-                >
-                  {watermarkText}
-                </div>
+                  >
+                    <div className={cn(
+                      "p-2 rounded-xl transition-colors duration-300",
+                      settingsSection === tab.id ? "bg-black/10" : "bg-white/5 group-hover:bg-white/10"
+                    )}>
+                      {tab.icon}
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-widest">{tab.label}</span>
+                    {settingsSection === tab.id && (
+                      <div className="absolute right-4">
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
 
-              <div className="mt-4 flex items-center gap-3 justify-center">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="w-6 h-6 rounded-full border-2 border-black bg-emerald-500/20 flex items-center justify-center">
-                      <Zap className="w-2.5 h-2.5 text-emerald-500" />
+              <button
+                onClick={saveSettings}
+                disabled={saving}
+                className="w-full py-5 rounded-[2rem] bg-emerald-500 text-black font-black uppercase tracking-[0.25em] text-[10px] hover:bg-emerald-400 transition-all shadow-[0_20px_40px_rgba(16,185,129,0.15)] disabled:opacity-50 flex items-center justify-center gap-3 active:scale-95 group"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 transition-transform group-hover:scale-125" />
+                )}
+                {saving ? 'СОХРАНЯЕМ...' : 'ПРИМЕНИТЬ ХУКИ'}
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-right-4 duration-1000">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  {settingsSection === 'subtitles' && (
+                    <SubtitleSettings 
+                      enabled={subtitleEnabled} setEnabled={setSubtitleEnabled}
+                      style={subtitleStyle} setStyle={setSubtitleStyle}
+                      fontFamily={subtitleFontFamily} setFontFamily={setSubtitleFontFamily}
+                      fontSize={subtitleFontSize} setFontSize={setSubtitleFontSize}
+                      position={subtitlePosition} setPosition={setSubtitlePosition}
+                      fontColor={subtitleFontColor} setFontColor={setSubtitleFontColor}
+                      outlineColor={subtitleOutlineColor} setOutlineColor={setSubtitleOutlineColor}
+                      highlightEnabled={subtitleHighlightEnabled} setHighlightEnabled={setSubtitleHighlightEnabled}
+                      highlightColor={subtitleHighlightColor} setHighlightColor={setSubtitleHighlightColor}
+                    />
+                  )}
+
+                  {settingsSection === 'plaque' && (
+                    <PlaqueSettings 
+                      plaques={plaques}
+                      defaultPlaqueId={defaultPlaqueId} setDefaultPlaqueId={setDefaultPlaqueId}
+                      position={plaquePosition} setPosition={setPlaquePosition}
+                      size={plaqueSize} setSize={setPlaqueSize}
+                      timerange={plaqueTimerange} setTimerange={setPlaqueTimerange}
+                      onAddPlaque={onAddPlaque}
+                      onDeletePlaque={onDeletePlaque}
+                      isAdmin={currentUser.role === 'admin'}
+                    />
+                  )}
+
+                  {settingsSection === 'watermark' && (
+                    <WatermarkSettings 
+                      text={watermarkText} setText={setWatermarkText}
+                      opacity={watermarkOpacity} setOpacity={setWatermarkOpacity}
+                      position={watermarkPosition} setPosition={setWatermarkPosition}
+                    />
+                  )}
+
+                  {settingsSection === 'auto' && (
+                    <AutoModeSettings 
+                      enabled={autoModeEnabled} setEnabled={setAutoModeEnabled}
+                      videosPerDay={autoModeVideosPerDay} setVideosPerDay={setAutoModeVideosPerDay}
+                    />
+                  )}
+
+                  {settingsSection === 'accounts' && (
+                    <div className="bg-[#111] border border-white/5 rounded-[2rem] p-8 space-y-8 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
+                      <div>
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Подключенные каналы</h3>
+                        <p className="text-[10px] font-medium text-white/30 uppercase tracking-widest mb-6">Управляйте вашими социальными сетями</p>
+                        
+                        <div className="space-y-4">
+                          {[
+                            { name: 'YouTube', handle: '@clips_admin', status: 'Connected', color: 'text-red-500' },
+                            { name: 'TikTok', handle: 'not_connected', status: 'Disconnected', color: 'text-white/20' }
+                          ].map(acc => (
+                            <div key={acc.name} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 group/acc hover:border-white/10 transition-all">
+                              <div className="flex items-center gap-4">
+                                <div className={cn("w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center", acc.color)}>
+                                  <Zap className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-black text-white uppercase tracking-widest">{acc.name}</p>
+                                  <p className="text-[10px] font-medium text-white/20 uppercase tracking-widest">{acc.handle}</p>
+                                </div>
+                              </div>
+                              <button className={cn(
+                                "text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border transition-all",
+                                acc.status === 'Connected' ? "border-emerald-500/20 text-emerald-500 bg-emerald-500/5" : "border-white/10 text-white/40 hover:bg-white/5"
+                              )}>
+                                {acc.status === 'Connected' ? 'АКТИВЕН' : 'ПОДКЛЮЧИТЬ'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  {settingsSection === 'security' && (
+                    <div className="bg-[#111] border border-white/5 rounded-[2rem] p-8 relative overflow-hidden text-center py-16">
+                      <ShieldCheck className="w-12 h-12 text-emerald-500/20 mx-auto mb-6" />
+                      <h3 className="text-sm font-black text-white uppercase tracking-widest mb-2">Защита аккаунта</h3>
+                      <p className="text-[10px] font-medium text-white/30 uppercase tracking-widest mb-8 max-w-xs mx-auto leading-relaxed">Настройки двухфакторной аутентификации и доступов появятся в ближайшее время.</p>
+                      <button className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest cursor-not-allowed">Скоро...</button>
+                    </div>
+                  )}
                 </div>
-                <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">Ready for Reels / TikTok</p>
+
+                <div className="space-y-6 flex flex-col items-center">
+                  <style>
+                    {`@import url('https://fonts.googleapis.com/css2?family=${FONT_FAMILIES.find(f => f.id === subtitleFontFamily)?.googleUrl || 'Anton'}&display=swap');`}
+                  </style>
+                  
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-purple-500 rounded-[3.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="relative aspect-[9/16] bg-[#000] rounded-[3rem] overflow-hidden border-[8px] border-white/10 w-full max-w-[340px] shadow-2xl">
+                      <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80" alt="bg" className="w-full h-full object-cover opacity-60 scale-105 blur-[2px]" />
+
+                      {/* Video Player Mock Controls */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 pointer-events-none" />
+                      
+                      <div className="absolute right-4 bottom-32 flex flex-col items-center gap-6 z-30 opacity-60 scale-75">
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><Zap className="w-4 h-4 fill-white" /></div>
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><ImageIcon className="w-4 h-4 fill-white" /></div>
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white"><Bot className="w-4 h-4 fill-white" /></div>
+                      </div>
+
+                      {defaultPlaqueId && plaques.find(p => p.id === defaultPlaqueId) && (
+                        <div className={cn(
+                          "absolute left-0 right-0 z-20 flex justify-center px-6 transition-all duration-700 pointer-events-none drop-shadow-2xl",
+                          plaquePosition === 'top' ? 'top-10' : plaquePosition === 'center' ? 'top-1/2 -translate-y-1/2' : 'bottom-20'
+                        )}>
+                          <img
+                            src={plaques.find(p => p.id === defaultPlaqueId)?.image_url}
+                            className="h-auto object-contain animate-in zoom-in-75 duration-500"
+                            style={{ width: `${plaqueSize}%` }}
+                            alt=""
+                          />
+                        </div>
+                      )}
+
+                      <div
+                        className="absolute left-0 right-0 flex justify-center px-6 z-10 transition-all duration-700 pointer-events-none"
+                        style={{
+                          top: `${subtitlePosition}%`,
+                          transform: 'translateY(-50%)'
+                        }}
+                      >
+                        <div
+                          className="inline-block px-4 py-2 font-black leading-tight text-center"
+                          style={{
+                            fontFamily: `"${subtitleFontFamily}", sans-serif`,
+                            fontSize: `${Math.max(14, subtitleFontSize * 0.75)}px`,
+                            textShadow: (subtitleStyle === 'karaoke') ? `0px 2px 10px ${subtitleOutlineColor}` : 'none',
+                            color: '#FFFFFF',
+                            textTransform: 'uppercase',
+                            letterSpacing: '-0.02em'
+                          }}
+                        >
+                          {subtitleStyle === 'celine' ? (
+                            <span className="tracking-wider">КАЧЕСТВЕННЫЙ КОНТЕНТ</span>
+                          ) : (
+                            <>
+                              <span style={{ display: 'inline-block' }}>ТВОЙ </span>
+                              <span
+                                style={{
+                                  color: (subtitleHighlightEnabled ? subtitleHighlightColor : subtitleFontColor),
+                                  display: 'inline-block',
+                                  margin: '0 4px',
+                                }}
+                              >ЛУЧШИЙ</span>
+                              <span style={{ display: 'inline-block' }}> ШОТС</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div
+                        className={cn(
+                          "absolute font-black text-white/50 uppercase whitespace-nowrap tracking-[0.3em] transition-all duration-700 pointer-events-none",
+                          watermarkPosition === 'top_left' ? 'top-10 left-8' :
+                            watermarkPosition === 'top_right' ? 'top-10 right-8' :
+                              watermarkPosition === 'bottom_left' ? 'bottom-16 left-8' :
+                                watermarkPosition === 'bottom_right' ? 'bottom-16 right-8' :
+                                  'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
+                        )}
+                        style={{
+                          opacity: watermarkOpacity,
+                          fontSize: watermarkPosition === 'tilted_center' ? '32px' : '9px',
+                          transform: (watermarkPosition === 'center' || watermarkPosition === 'tilted_center')
+                            ? `translate(-50%, -50%) ${watermarkPosition === 'tilted_center' ? 'rotate(-35deg)' : ''}`
+                            : 'none'
+                        }}
+                      >
+                        {watermarkText}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 bg-white/5 px-6 py-3 rounded-full border border-white/10 shadow-lg">
+                    <div className="flex -space-x-1.5">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="w-5 h-5 rounded-full border-2 border-[#0A0A0A] bg-emerald-500/20 flex items-center justify-center">
+                          <Zap className="w-2.5 h-2.5 text-emerald-500 fill-emerald-500" />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] pt-0.5">Live Preview Ready</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
