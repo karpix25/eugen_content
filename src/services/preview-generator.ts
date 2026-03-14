@@ -1,6 +1,8 @@
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
+import ffmpeg from 'fluent-ffmpeg';
+import { v4 as uuidv4 } from 'uuid';
 
 export class PreviewGenerator {
     private static FONTS_DIR = path.join(process.cwd(), 'assets', 'fonts');
@@ -9,10 +11,102 @@ export class PreviewGenerator {
     private static TRANSITION_WORDS = ['это', 'как', 'для', 'в', 'на', 'с', 'и', 'или', 'но'];
 
     /**
+     * Extracts a frame from the video and overlays the title.
+     * Returns a Buffer (JPEG) optimized for Telegram thumbnails.
+     */
+    static async generateVideoThumbnail(videoUrl: string, title: string): Promise<Buffer> {
+        const tempId = uuidv4();
+        const tempFramePath = path.join('/tmp', `frame_${tempId}.jpg`);
+
+        console.log(`[PreviewGenerator] Extracting frame from: ${videoUrl}`);
+
+        return new Promise((resolve, reject) => {
+            ffmpeg(videoUrl)
+                .screenshots({
+                    timestamps: [0.1], // Start of video
+                    filename: `frame_${tempId}.jpg`,
+                    folder: '/tmp',
+                    size: '1080x1920'
+                })
+                .on('end', async () => {
+                    try {
+                        console.log(`[PreviewGenerator] Frame extracted to ${tempFramePath}`);
+                        
+                        // Use sharp to overlay text on the extracted frame
+                        const frameBuffer = fs.readFileSync(tempFramePath);
+                        
+                        // Clean up temp file
+                        fs.unlinkSync(tempFramePath);
+
+                        // Overlay logic:
+                        // 1. Create a dark semi-transparent rectangle
+                        // 2. Render text on top
+                        const overlaySvg = `
+                            <svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <style>
+                                        .rect { fill: rgba(0, 0, 0, 0.7); }
+                                        .text { 
+                                            fill: #FFFFFF; 
+                                            font-family: 'Helvetica', 'Arial', sans-serif; 
+                                            font-size: 72px; 
+                                            font-weight: bold; 
+                                            text-align: center;
+                                        }
+                                    </style>
+                                </defs>
+                                <rect x="50" y="800" width="980" height="320" rx="20" class="rect" />
+                                <text x="540" y="940" text-anchor="middle" class="text">
+                                    ${this.wrapText(title, 25).map((line, k) => `<tspan x="540" dy="${k === 0 ? 0 : 90}">${line}</tspan>`).join('')}
+                                </text>
+                            </svg>
+                        `;
+
+                        const finalBuffer = await sharp(frameBuffer)
+                            .resize(1080, 1920, { fit: 'cover' })
+                            .composite([{
+                                input: Buffer.from(overlaySvg),
+                                top: 0,
+                                left: 0
+                            }])
+                            .jpeg({ quality: 80 })
+                            .toBuffer();
+
+                        resolve(finalBuffer);
+                    } catch (err) {
+                        reject(err);
+                    }
+                })
+                .on('error', (err) => {
+                    console.error('[PreviewGenerator] FFMPEG Error:', err);
+                    reject(err);
+                });
+        });
+    }
+
+    private static wrapText(text: string, maxCharsPerLine: number): string[] {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+
+        words.forEach(word => {
+            if ((currentLine + word).length > maxCharsPerLine) {
+                lines.push(currentLine.trim());
+                currentLine = word + ' ';
+            } else {
+                currentLine += word + ' ';
+            }
+        });
+        lines.push(currentLine.trim());
+        return lines.slice(0, 3); // Max 3 lines
+    }
+
+    /**
      * Generates a "Font Hook" preview image (PNG)
      * 1080x1920 (Vertical for TikTok/Reels/Shorts feel in Telegram)
      */
     static async generateFontHook(title: string): Promise<Buffer> {
+        // ... (existing generateFontHook code)
         const words = title.split(/\s+/);
         
         // Split into two parts

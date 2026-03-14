@@ -144,12 +144,18 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
 
     await ctx.reply(`Вы скачали: ${clip.title}`);
     
-    // Generate Font Hook Preview
+    // Generate Real Video Thumbnail with Overlay
     let thumbBuffer: Buffer | undefined;
     try {
-        thumbBuffer = await PreviewGenerator.generateFontHook(clip.title);
+        // use url for ffmpeg extraction
+        thumbBuffer = await PreviewGenerator.generateVideoThumbnail(clip.url, clip.title);
     } catch (e) {
-        console.warn('Failed to generate thumb for clip:', e);
+        console.warn('Failed to generate video thumb for clip, falling back to font hook:', e);
+        try {
+            thumbBuffer = await PreviewGenerator.generateFontHook(clip.title);
+        } catch (e2) {
+            console.warn('Failed fallback font hook thumb:', e2);
+        }
     }
 
     const message = await ctx.replyWithVideo(clip.url, { 
