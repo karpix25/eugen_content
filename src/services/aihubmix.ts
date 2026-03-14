@@ -95,8 +95,14 @@ Prompt: ${cleanPrompt}`
       const endpoint = process.env.S3_ENDPOINT || '';
       const bucket = process.env.S3_BUCKET_NAME || '';
       const key = fileName;
-      imageUrl = endpoint 
-        ? `${endpoint.replace(/\/$/, '')}/${bucket}/${key}` 
+      
+      let baseEndpoint = endpoint.replace(/\/$/, '');
+      if (baseEndpoint && !baseEndpoint.startsWith('http')) {
+        baseEndpoint = `https://${baseEndpoint}`;
+      }
+
+      imageUrl = baseEndpoint 
+        ? `${baseEndpoint}/${bucket}/${key}` 
         : `https://${bucket}.s3.amazonaws.com/${key}`;
     }
 

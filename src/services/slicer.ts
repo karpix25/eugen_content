@@ -8,9 +8,14 @@ export const sliceCarouselGrid = async (imageBufferOrUrl: Buffer | string, outDi
   let buffer: Buffer;
 
   if (typeof imageBufferOrUrl === 'string') {
-    console.log(`[Slicer] Fetching image from URL: ${imageBufferOrUrl}`);
+    let imageUrl = imageBufferOrUrl;
+    if (!imageUrl.startsWith('http')) {
+      console.warn(`[Slicer] URL missing protocol: ${imageUrl}. Prepending https://`);
+      imageUrl = `https://${imageUrl}`;
+    }
+    console.log(`[Slicer] Fetching image from URL: ${imageUrl}`);
     try {
-      const response = await axios.get(imageBufferOrUrl, { 
+      const response = await axios.get(imageUrl, { 
         responseType: 'arraybuffer',
         timeout: 30000 // 30s timeout
       });
