@@ -8,7 +8,7 @@ dotenv.config();
 const AIHUBMIX_API_KEY = process.env.AIHUBMIX_API_KEY;
 
 /**
- * Generates an image using AIHubMix (Gemini 3 Pro Image)
+ * Generates an image using AIHubMix (Gemini 3.1 Flash Image)
  */
 export const generateImage = async (prompt: string, aspectRatio: string = "1:1", referImageUrl?: string): Promise<string> => {
   if (!AIHUBMIX_API_KEY) {
@@ -45,14 +45,14 @@ Prompt: ${prompt}`
     }
 
     const response = await axios.post(
-      'https://aihubmix.com/gemini/v1beta/models/gemini-3-pro-image-preview:generateContent',
+      'https://aihubmix.com/gemini/v1beta/models/gemini-3.1-flash-image-preview:generateContent',
       {
         contents: contents,
         generationConfig: {
           responseModalities: ["TEXT", "IMAGE"],
           imageConfig: {
             aspectRatio: cleanedAspectRatio,
-            imageSize: "1k"
+            imageSize: "2k"
           }
         }
       },
