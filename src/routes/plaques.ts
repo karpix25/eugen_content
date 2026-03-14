@@ -60,7 +60,7 @@ router.post("/ad-plaques/generate", authenticateToken, requireAdmin, async (req:
     const id = uuidv4();
     // Global plaque has user_id = null
     await query(
-      "INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, NULL)",
+      "INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)",
       [id, name || topic, imageUrl, topic, null]
     );
     res.json({ id, imageUrl });
