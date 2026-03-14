@@ -192,6 +192,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS error_message TEXT",
+      "ALTER TABLE videos ADD COLUMN IF NOT EXISTS approved_by TEXT REFERENCES users(telegram_id)",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS language TEXT",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS hook TEXT",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT",

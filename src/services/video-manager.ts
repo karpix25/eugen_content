@@ -81,8 +81,8 @@ export class VideoManager {
     return evaluation;
   }
 
-  static async approveVideo(id: string, targetLanguage?: string) {
-    await query("UPDATE videos SET status = 'approved', target_language = $2 WHERE id = $1", [id, targetLanguage || null]);
+  static async approveVideo(id: string, userId: string, targetLanguage?: string) {
+    await query("UPDATE videos SET status = 'approved', target_language = $2, approved_by = $3 WHERE id = $1", [id, targetLanguage || null, userId]);
     const videoUrl = `https://www.youtube.com/watch?v=${id}`;
     const vizardId = await sendToVizard(videoUrl, id);
     

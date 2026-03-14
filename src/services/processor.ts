@@ -201,177 +201,162 @@ export const processClip = async (
             }
         }
 
-        // 4. FFmpeg Processing
-        if (finalPlaqueUrl || watermarkConfig || srtFilePath) {
-            const filters: any[] = [];
-            let lastOutput = '[0:v]';
-            const command = ffmpeg(currentVideoUrl);
-
-            // 4a. Probe video to get real dimensions (handling rotation)
-            const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(currentVideoUrl, (err, meta) => res(meta)));
-            const videoStream = metadata?.streams.find((s: any) => s.codec_type === 'video');
-            const rotation = videoStream?.side_data_list?.find((sd: any) => sd.side_data_type === 'Display Matrix')?.rotation || 0;
-            
-            let originalW = parseInt(videoStream?.width || '1080');
-            let originalH = parseInt(videoStream?.height || '1920');
-            
-            // If rotated 90 or 270, width and height are swapped for display
-            const isRotated = Math.abs(rotation) === 90 || Math.abs(rotation) === 270;
-            const effectiveW = isRotated ? originalH : originalW;
-            const effectiveH = isRotated ? originalW : originalH;
-
-            console.log(`[Processor] Video dimensions: ${originalW}x${originalH}, rotation: ${rotation}, effective: ${effectiveW}x${effectiveH}`);
-
-            // 4b. Normalize ONLY if needed
-            if (effectiveW !== 1080 || effectiveH !== 1920) {
-                console.log(`[Processor] Normalizing video to 1080x1920...`);
-                filters.push({ 
-                    filter: 'scale', 
-                    options: 'w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
-                    inputs: '[0:v]', 
-                    outputs: '[scaled_v]' 
-                });
-                filters.push({ 
-                    filter: 'pad', 
-                    options: '1080:1920:(1080-iw)/2:(1920-ih)/2:color=black', 
-                    inputs: '[scaled_v]', 
-                    outputs: '[normalized_v]' 
-                });
-                lastOutput = '[normalized_v]';
-            }
-
-            // Ensure consistent pixel format and square pixels (SAR 1:1)
-            // This is critical for Telegram to display the correct aspect ratio.
-            filters.push({
-                filter: 'setsar',
-                options: '1',
-                inputs: [lastOutput],
-                outputs: '[sar_reset_v]'
-            });
-            filters.push({
-                filter: 'format',
-                options: 'yuv420p',
-                inputs: ['[sar_reset_v]'],
-                outputs: '[formatted_v]'
-            });
-            lastOutput = '[formatted_v]';
-
-            // 4c. Plaque
-            if (finalPlaqueUrl) {
-                command.input(tempPlaqueFile.replace(/\\/g, '/')).inputOptions('-loop 1');
-                
-                // Scale plaque relative to the final video width (1080 after normalization or already 1080)
-                const targetBaseW = 1080; 
-                const plaqueWidth = Math.floor(targetBaseW * (plaqueConfig?.size || 40) / 100);
-                
-                filters.push({ 
-                    filter: 'scale', 
-                    options: `w=${plaqueWidth}:h=-1`, 
-                    inputs: '[1:v]', 
-                    outputs: '[plaque_scaled]' 
-                });
-
-                let y = plaqueConfig?.position === 'top' ? 'H*0.1' : plaqueConfig?.position === 'center' ? '(H-h)/2' : 'H-h-H*0.1';
-                let enable = '';
-                if (plaqueConfig?.timerange && metadata?.format?.duration) {
-                    enable = `:enable='gte(t,${Math.random() * metadata.format.duration * (plaqueConfig.timerange / 100)})'`;
-                }
-                filters.push({
-                    filter: 'overlay',
-                    options: `x=(W-w)/2:y=${y}:shortest=1${enable}`,
-                    inputs: [lastOutput, '[plaque_scaled]'],
-                    outputs: '[with_plaque]'
-                });
-                lastOutput = '[with_plaque]';
-            }
-
-            // Subtitles
-            if (srtFilePath) {
-                let pos = Math.max(2, Math.min(95, Number(subtitleConfig?.position) || 80));
-                if (subtitleConfig?.position === 'Bottom') pos = 80;
-                else if (subtitleConfig?.position === 'Center') pos = 50;
-                else if (subtitleConfig?.position === 'Top') pos = 15;
-
-                const style = getSubtitleStyle(subtitleConfig, toAssColor(subtitleConfig?.font_color || '#FFF'), toAssColor(subtitleConfig?.highlight_color || '#FF0'), toAssColor(subtitleConfig?.outline_color || '#000'), 2, Math.floor((1 - pos / 100) * 1920));
-
-                filters.push({
-                    filter: 'subtitles',
-                    options: `filename='${path.relative(process.cwd(), srtFilePath).replace(/\\/g, '/')}':fontsdir='${process.env.NODE_ENV === 'production' ? '/app/fonts' : './fonts'}':force_style='${style}'`,
-                    inputs: lastOutput,
-                    outputs: '[with_subs]'
-                });
-                lastOutput = '[with_subs]';
-            }
-
-            // Watermark
-            if (watermarkConfig?.text) {
-                const alpha = Math.round((1 - watermarkConfig.opacity) * 255).toString(16).padStart(2, '0').toUpperCase();
-                let align = 5, rot = 0, fsz = 64, v = 0, l = 0, r = 0;
-                if (watermarkConfig.position === 'top_left') { align = 7; v = 40; l = 40; }
-                else if (watermarkConfig.position === 'top_right') { align = 9; v = 40; r = 40; }
-                else if (watermarkConfig.position === 'bottom_left') { align = 1; v = 40; l = 40; }
-                else if (watermarkConfig.position === 'bottom_right') { align = 3; v = 40; r = 40; }
-                else if (watermarkConfig.position === 'tilted_center') { align = 5; rot = -30; fsz = 84; }
-
-                watermarkAssPath = path.join(outputDir, `watermark_${clipId}.ass`);
-                fs.writeFileSync(watermarkAssPath, `[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,${fsz},&H${alpha}FFFFFF,&H000000FF,&H${alpha}000000,&H${alpha}000000,-1,0,0,0,100,100,0,0,1,2,2,${align},${l},${r},${v},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rot}}${watermarkConfig.text}\n`);
-
-                filters.push({ filter: 'subtitles', options: `filename='${watermarkAssPath.replace(/'/g, "'\\''").replace(/\\/g, '/')}':fontsdir='${path.join(process.cwd(), 'fonts')}'`, inputs: lastOutput, outputs: '[final]' });
-                lastOutput = '[final]';
-            }
-
-            return new Promise((resolve, reject) => {
-                command.complexFilter(filters, lastOutput)
-                    .videoCodec('libx264')
-                    .audioCodec('aac')
-                    .outputOptions([
-                        '-map', '0:a?', 
-                        '-crf', '18', 
-                        '-preset', 'fast', 
-                        '-aspect', '9:16', 
-                        '-movflags', '+faststart',
-                        '-metadata:s:v', 'rotate=0'
-                    ])
-                    .on('start', cmd => console.log('FFmpeg command:', cmd))
-                    .on('progress', p => console.log(`Processing ${clipId}: ${p.percent}%`))
-                    .on('end', async () => {
-                        console.error(`!!! [Processor] FFmpeg finished for ${clipId} !!!`);
-                        if (skipS3Upload) {
-                            cleanupFiles(true); // Keep output for local use
-                            resolve(outputPath);
-                            return;
-                        }
-                        try {
-                            const fileBuffer = fs.readFileSync(outputPath);
-                            const res = await uploadToS3(fileBuffer, `processed/${outputFileName}`, 'video/mp4');
-                            console.log(`[Processor] S3 Upload success for ${clipId}: ${res.Location}`);
-                            await query("UPDATE clips SET status = 'processed', url = $1 WHERE id = $2", [res.Location, clipId]);
-                            cleanupFiles();
-                            resolve(res.Location || "");
-                        } catch (uploadErr) {
-                            console.error(`[Processor] S3 upload failed for ${clipId}:`, uploadErr);
-                            cleanupFiles();
-                            reject(uploadErr);
-                        }
-                    })
-                    .on('error', (err) => { console.error('FFmpeg error:', err); cleanupFiles(); reject(err); })
-                    .save(outputPath);
-            });
-        } else {
-            console.log(`No overlays for ${clipId}.`);
-            if (skipS3Upload) {
-                await query("UPDATE clips SET status = 'processed' WHERE id = $1", [clipId]);
-                return currentVideoUrl;
-            }
-            const res = await uploadToS3(fs.readFileSync(currentVideoUrl.startsWith('http') ? await (async () => {
-                const p = path.join(outputDir, `${clipId}_raw.mp4`);
-                await downloadFile(currentVideoUrl, p);
-                return p;
-            })() : currentVideoUrl), `processed/${outputFileName}`, 'video/mp4');
-            await query("UPDATE clips SET status = 'processed', url = $1 WHERE id = $2", [res.Location, clipId]);
-            cleanupFiles();
-            return res.Location || "";
+        if (!finalPlaqueUrl) {
+            throw new Error(`Branding plaque is required to process clip ${clipId}`);
         }
+
+        // 4. FFmpeg Processing
+        const filters: any[] = [];
+        let lastOutput = '[0:v]';
+        const command = ffmpeg(currentVideoUrl);
+
+        // 4a. Probe video to get real dimensions (handling rotation)
+        const metadata = await new Promise<any>((res) => ffmpeg.ffprobe(currentVideoUrl, (err, meta) => res(meta)));
+        const videoStream = metadata?.streams.find((s: any) => s.codec_type === 'video');
+        const rotation = videoStream?.side_data_list?.find((sd: any) => sd.side_data_type === 'Display Matrix')?.rotation || 0;
+        
+        let originalW = parseInt(videoStream?.width || '1080');
+        let originalH = parseInt(videoStream?.height || '1920');
+        
+        // If rotated 90 or 270, width and height are swapped for display
+        const isRotated = Math.abs(rotation) === 90 || Math.abs(rotation) === 270;
+        const effectiveW = isRotated ? originalH : originalW;
+        const effectiveH = isRotated ? originalW : originalH;
+
+        console.log(`[Processor] Video dimensions: ${originalW}x${originalH}, rotation: ${rotation}, effective: ${effectiveW}x${effectiveH}`);
+
+        // 4b. Normalize ONLY if needed
+        if (effectiveW !== 1080 || effectiveH !== 1920) {
+            console.log(`[Processor] Normalizing video to 1080x1920...`);
+            filters.push({ 
+                filter: 'scale', 
+                options: 'w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2', 
+                inputs: '[0:v]', 
+                outputs: '[scaled_v]' 
+            });
+            filters.push({ 
+                filter: 'pad', 
+                options: '1080:1920:(1080-iw)/2:(1920-ih)/2:color=black', 
+                inputs: '[scaled_v]', 
+                outputs: '[normalized_v]' 
+            });
+            lastOutput = '[normalized_v]';
+        }
+
+        // Ensure consistent pixel format and square pixels (SAR 1:1)
+        filters.push({
+            filter: 'setsar',
+            options: '1',
+            inputs: [lastOutput],
+            outputs: '[sar_reset_v]'
+        });
+        filters.push({
+            filter: 'format',
+            options: 'yuv420p',
+            inputs: ['[sar_reset_v]'],
+            outputs: '[formatted_v]'
+        });
+        lastOutput = '[formatted_v]';
+
+        // 4c. Plaque (Guaranteed to be here because of early throw)
+        command.input(tempPlaqueFile.replace(/\\/g, '/')).inputOptions('-loop 1');
+        
+        const targetBaseW = 1080; 
+        const plaqueWidth = Math.floor(targetBaseW * (plaqueConfig?.size || 80) / 100);
+        
+        filters.push({ 
+            filter: 'scale', 
+            options: `w=${plaqueWidth}:h=-1`, 
+            inputs: '[1:v]', 
+            outputs: '[plaque_scaled]' 
+        });
+
+        let y = plaqueConfig?.position === 'top' ? 'H*0.1' : plaqueConfig?.position === 'center' ? '(H-h)/2' : 'H-h-H*0.1';
+        let enable = '';
+        if (plaqueConfig?.timerange && metadata?.format?.duration) {
+            enable = `:enable='gte(t,${Math.random() * metadata.format.duration * (plaqueConfig.timerange / 100)})'`;
+        }
+        filters.push({
+            filter: 'overlay',
+            options: `x=(W-w)/2:y=${y}:shortest=1${enable}`,
+            inputs: [lastOutput, '[plaque_scaled]'],
+            outputs: '[with_plaque]'
+        });
+        lastOutput = '[with_plaque]';
+
+        // Subtitles
+        if (srtFilePath) {
+            let pos = Math.max(2, Math.min(95, Number(subtitleConfig?.position) || 80));
+            if (subtitleConfig?.position === 'Bottom') pos = 80;
+            else if (subtitleConfig?.position === 'Center') pos = 50;
+            else if (subtitleConfig?.position === 'Top') pos = 15;
+
+            const style = getSubtitleStyle(subtitleConfig, toAssColor(subtitleConfig?.font_color || '#FFF'), toAssColor(subtitleConfig?.highlight_color || '#FF0'), toAssColor(subtitleConfig?.outline_color || '#000'), 2, Math.floor((1 - pos / 100) * 1920));
+
+            filters.push({
+                filter: 'subtitles',
+                options: `filename='${path.relative(process.cwd(), srtFilePath).replace(/\\/g, '/')}':fontsdir='${process.env.NODE_ENV === 'production' ? '/app/fonts' : './fonts'}':force_style='${style}'`,
+                inputs: lastOutput,
+                outputs: '[with_subs]'
+            });
+            lastOutput = '[with_subs]';
+        }
+
+        // Watermark
+        if (watermarkConfig?.text) {
+            const alpha = Math.round((1 - watermarkConfig.opacity) * 255).toString(16).padStart(2, '0').toUpperCase();
+            let align = 5, rot = 0, fsz = 64, v = 0, l = 0, r = 0;
+            if (watermarkConfig.position === 'top_left') { align = 7; v = 40; l = 40; }
+            else if (watermarkConfig.position === 'top_right') { align = 9; v = 40; r = 40; }
+            else if (watermarkConfig.position === 'bottom_left') { align = 1; v = 40; l = 40; }
+            else if (watermarkConfig.position === 'bottom_right') { align = 3; v = 40; r = 40; }
+            else if (watermarkConfig.position === 'tilted_center') { align = 5; rot = -30; fsz = 84; }
+
+            watermarkAssPath = path.join(outputDir, `watermark_${clipId}.ass`);
+            fs.writeFileSync(watermarkAssPath, `[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,${fsz},&H${alpha}FFFFFF,&H000000FF,&H${alpha}000000,&H${alpha}000000,-1,0,0,0,100,100,0,0,1,2,2,${align},${l},${r},${v},1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:00.00,99:59:59.99,Default,,0,0,0,,{\\frz${rot}}${watermarkConfig.text}\n`);
+
+            filters.push({ filter: 'subtitles', options: `filename='${watermarkAssPath.replace(/'/g, "'\\''").replace(/\\/g, '/')}':fontsdir='${path.join(process.cwd(), 'fonts')}'`, inputs: lastOutput, outputs: '[final]' });
+            lastOutput = '[final]';
+        }
+
+        return new Promise((resolve, reject) => {
+            command.complexFilter(filters, lastOutput)
+                .videoCodec('libx264')
+                .audioCodec('aac')
+                .outputOptions([
+                    '-map', '0:a?', 
+                    '-crf', '18', 
+                    '-preset', 'fast', 
+                    '-aspect', '9:16', 
+                    '-movflags', '+faststart',
+                    '-metadata:s:v', 'rotate=0'
+                ])
+                .on('start', cmd => console.log('FFmpeg command:', cmd))
+                .on('progress', p => console.log(`Processing ${clipId}: ${p.percent}%`))
+                .on('end', async () => {
+                    console.error(`!!! [Processor] FFmpeg finished for ${clipId} !!!`);
+                    if (skipS3Upload) {
+                        cleanupFiles(true); // Keep output for local use
+                        resolve(outputPath);
+                        return;
+                    }
+                    try {
+                        const fileBuffer = fs.readFileSync(outputPath);
+                        const res = await uploadToS3(fileBuffer, `processed/${outputFileName}`, 'video/mp4');
+                        console.log(`[Processor] S3 Upload success for ${clipId}: ${res.Location}`);
+                        await query("UPDATE clips SET status = 'processed', url = $1 WHERE id = $2", [res.Location, clipId]);
+                        cleanupFiles();
+                        resolve(res.Location || "");
+                    } catch (uploadErr) {
+                        console.error(`[Processor] S3 upload failed for ${clipId}:`, uploadErr);
+                        cleanupFiles();
+                        reject(uploadErr);
+                    }
+                })
+                .on('error', (err) => { console.error('FFmpeg error:', err); cleanupFiles(); reject(err); })
+                .save(outputPath);
+        });
+
     } catch (err) {
         console.error('Process error:', err);
         cleanupFiles();

@@ -50,7 +50,7 @@ router.post("/:id/approve", authenticateToken, requireAdmin, async (req, res) =>
   try {
     const { id } = req.params;
     const { target_language } = req.body;
-    const vizardId = await VideoManager.approveVideo(id, target_language);
+    const vizardId = await VideoManager.approveVideo(id, String(req.user.id), target_language);
     res.json({ success: true, vizardId });
   } catch (error) {
     console.error("Approval error:", error);

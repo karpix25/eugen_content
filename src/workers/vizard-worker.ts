@@ -112,11 +112,12 @@ export const pollVizardStatus = async () => {
 
           await query("UPDATE videos SET status = 'completed', error_message = NULL WHERE id = $1", [v.id]);
 
-          const videoResult = await query("SELECT detected_language, target_language, transcript FROM videos WHERE id = $1", [v.id]);
+          const videoResult = await query("SELECT detected_language, target_language, transcript, approved_by FROM videos WHERE id = $1", [v.id]);
           const video = videoResult.rows[0];
           
           let detLang = normalizeLang(video?.detected_language);
           const tarLang = normalizeLang(video?.target_language);
+          const approvedBy = video?.approved_by;
 
           if (!detLang && video?.transcript) {
             detLang = await detectLanguage(video.transcript);
@@ -128,6 +129,20 @@ export const pollVizardStatus = async () => {
 
           const finalLanguage = tarLang || detLang || null;
           const needsTranslation = tarLang && detLang && tarLang !== detLang;
+
+          // Fetch approver's default plaque
+          let approverPlaqueUrl = null;
+          if (approvedBy) {
+            const userPRes = await query(`
+              SELECT p.image_url 
+              FROM users u 
+              JOIN ad_plaques p ON u.default_plaque_id = p.id 
+              WHERE u.telegram_id = $1
+            `, [approvedBy]);
+            if (userPRes.rows.length > 0) {
+              approverPlaqueUrl = userPRes.rows[0].image_url;
+            }
+          }
 
           for (const c of clips) {
             const originalClipId = Math.random().toString(36).substr(2, 9);
@@ -170,12 +185,17 @@ export const pollVizardStatus = async () => {
                 console.error(`[Vizard] Failed to insert dubbed clip ${dubbedClipId}:`, insErr.message);
               }
 
+              if (!approverPlaqueUrl) {
+                console.error(`[Vizard] Skipping dubbed clip ${dubbedClipId} - no default plaque for approver ${approvedBy}`);
+                continue;
+              }
+
               try {
                 const folderName = sanitizeFolderName(v.title || "Unknown_Video");
                 await processClip(
                   dubbedClipId,
                   c.videoUrl || c.url || c.video_url,
-                  null,
+                  approverPlaqueUrl,
                   finalLanguage,
                   finalInsertLang,
                   false,
