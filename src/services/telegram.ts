@@ -141,7 +141,32 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
     );
 
     await ctx.reply(`Вы скачали: ${clip.title}`);
-    return ctx.replyWithVideo(clip.url, { width: 1080, height: 1920 });
+    const message = await ctx.replyWithVideo(clip.url, { 
+        width: 1080, 
+        height: 1920,
+        caption: `⬜️ ${clip.title}`,
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]
+            ]
+        }
+    });
+
+    // Create publication record
+    const pubRes = await query(
+        "INSERT INTO publications (clip_id, user_id, message_id, status) VALUES ($1, $2, $3, 'sent') RETURNING id",
+        [clipId, String(from.id), message.message_id]
+    );
+    const publicationId = pubRes.rows[0].id;
+
+    // Update button with real publication ID
+    await bot.telegram.editMessageReplyMarkup(from.id, message.message_id, undefined, {
+        inline_keyboard: [
+            [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
+        ]
+    });
+
+    return;
 });
 
 // Handle URL reporting
@@ -218,7 +243,7 @@ bot.action(/^report_link_(.+)$/, async (ctx) => {
     });
 });
 
-export const sendCarouselToTelegram = async (telegramId: string, slicePaths: string[]) => {
+export const sendCarouselToTelegram = async (telegramId: string, slicePaths: string[], clipId?: string) => {
     try {
         const media = slicePaths.map((path, index) => ({
             type: 'photo' as const,
@@ -226,8 +251,26 @@ export const sendCarouselToTelegram = async (telegramId: string, slicePaths: str
             caption: index === 0 ? '🎡 Ваша новая карусель готова!' : undefined
         }));
         
-        await bot.telegram.sendMediaGroup(telegramId, media);
+        const messages = await bot.telegram.sendMediaGroup(telegramId, media);
         console.log(`Carousel sent to Telegram user ${telegramId}`);
+
+        // If clipId is provided, create a publication and a reporting button
+        if (clipId) {
+            const lastMessageId = messages[messages.length - 1].message_id;
+            const pubRes = await query(
+                "INSERT INTO publications (clip_id, user_id, message_id, status) VALUES ($1, $2, $3, 'sent') RETURNING id",
+                [clipId, String(telegramId), lastMessageId]
+            );
+            const pubId = pubRes.rows[0].id;
+
+            await bot.telegram.sendMessage(telegramId, 'Используйте кнопку ниже, чтобы прислать ссылку на опубликованную карусель:', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${pubId}` }]
+                    ]
+                }
+            });
+        }
     } catch (err: any) {
         console.error('Failed to send carousel to Telegram:', err.message);
         throw err;

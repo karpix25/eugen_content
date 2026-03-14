@@ -172,7 +172,7 @@ router.post("/:id/carousel", authenticateToken, async (req: any, res) => {
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
         const slices = await sliceCarouselGrid(gridUrl, uploadsDir);
         await query("UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4", [JSON.stringify(script), gridUrl, slices, carouselId]);
-        await sendCarouselToTelegram(String(telegramId), slices.map(s => path.join(process.cwd(), 'public', s)));
+        await sendCarouselToTelegram(String(telegramId), slices.map(s => path.join(process.cwd(), 'public', s)), id);
       } catch (err: any) {
         console.error("Background carousel generation error:", err);
         await query("UPDATE carousels SET status = 'error', error_message = $1 WHERE id = $2", [err.message, carouselId]);
