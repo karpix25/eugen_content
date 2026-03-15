@@ -9,6 +9,8 @@ import { analyzeStyle, generateCarouselScript, generateGridImage, detectLanguage
 import { sliceCarouselGrid } from "../services/slicer.js";
 import { sendCarouselToTelegram } from "../services/telegram.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
+import { PreviewGenerator } from "../services/preview-generator.js";
+import { uploadToS3 } from "../lib/s3.js";
 
 const router = Router();
 // Removed hardcoded JWT_SECRET fallback
@@ -116,8 +118,45 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
     const localFilePath = await processClip(id, clip.url, plaqueImageUrl, clip.language, null, true, watermarkConfig as any, plaqueConfig, subtitleConfig, folderName);
 
     if (telegramId !== 'dev') {
-      const message = await bot.telegram.sendVideo(telegramId, { source: fs.createReadStream(localFilePath) }, { 
+      let videoPayload: any = { source: fs.createReadStream(localFilePath) };
+      let videoThumb: any = undefined;
+
+      // 1. Check file size
+      const stats = fs.statSync(localFilePath);
+      const fileSizeBytes = stats.size;
+      const fileSizeMB = fileSizeBytes / (1024 * 1024);
+      console.log(`[Telegram] Sending video ${id}, size: ${fileSizeMB.toFixed(2)}MB`);
+
+      // 2. If > 50MB, upload to S3 first and send via URL
+      if (fileSizeMB > 50) {
+        console.warn(`[Telegram] Video exceeds 50MB (${fileSizeMB.toFixed(2)}MB). Uploading to S3 fallback...`);
+        const fileBuffer = fs.readFileSync(localFilePath);
+        const s3Res = await uploadToS3(fileBuffer, `processed/${id}_branded.mp4`, 'video/mp4');
+        videoPayload = s3Res.Location;
+      }
+
+      // 3. Generate thumbnail
+      try {
+        const thumbBuffer = await PreviewGenerator.generateVideoThumbnail(localFilePath, clip.title);
+        if (thumbBuffer) {
+          videoThumb = { source: thumbBuffer };
+        }
+      } catch (thumbErr) {
+        console.warn(`[Telegram] Metadata-based thumb failed, trying font hook...`);
+        try {
+          const fontThumb = await PreviewGenerator.generateFontHook(clip.title);
+          if (fontThumb) videoThumb = { source: fontThumb };
+        } catch (e) {
+          console.warn(`[Telegram] All thumbnail attempts failed:`, e);
+        }
+      }
+
+      const message = await bot.telegram.sendVideo(telegramId, videoPayload, { 
         caption: `⬜️ ${clip.title}`,
+        thumbnail: videoThumb,
+        width: 1080,
+        height: 1920,
+        supports_streaming: true,
         reply_markup: {
           inline_keyboard: [
             [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]

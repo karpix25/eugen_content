@@ -39,11 +39,19 @@ export const autoPublish = async (bot: Telegraf) => {
       for (const clip of clipsToPublish.rows) {
         console.log(`[Auto] Publishing clip ${clip.id} for user ${user.username}...`);
         
+        // Check if a default plaque ID is set in user settings
+        if (!user.default_plaque_id) {
+          console.warn(`[Auto] Skipping clip ${clip.id} for user ${user.username} - no default plaque found in settings.`);
+          // Optional: Notify user once per run if they haven't set a plaque
+          // bot.telegram.sendMessage(user.telegram_id, "⚠️ Авто-публикация пропущена: у вас не установлена рекламная плашка по умолчанию в настройках.");
+          continue;
+        }
+
         const plaqueRes = await query("SELECT image_url FROM ad_plaques WHERE id = $1", [user.default_plaque_id]);
         const plaqueImageUrl = plaqueRes.rows[0]?.image_url || null;
 
         if (!plaqueImageUrl) {
-          console.log(`[Auto] Skipping clip ${clip.id} for user ${user.username} - no default plaque found.`);
+          console.warn(`[Auto] Skipping clip ${clip.id} for user ${user.username} - default plaque (ID: ${user.default_plaque_id}) not found in database.`);
           continue;
         }
 
