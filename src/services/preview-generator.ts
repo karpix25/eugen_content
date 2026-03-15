@@ -18,62 +18,69 @@ export class PreviewGenerator {
         const tempId = uuidv4();
         const tempFramePath = path.join('/tmp', `frame_${tempId}.jpg`);
 
-        console.log(`[PreviewGenerator] Extracting frame from: ${videoUrl}`);
+        console.log(`[PreviewGenerator] Requesting thumbnail for: ${videoUrl}`);
 
         return new Promise((resolve, reject) => {
             ffmpeg(videoUrl)
                 .screenshots({
-                    timestamps: [0.1], // Start of video
+                    timestamps: [0.1], 
                     filename: `frame_${tempId}.jpg`,
                     folder: '/tmp',
                     size: '1080x1920'
                 })
                 .on('end', async () => {
                     try {
-                        console.log(`[PreviewGenerator] Frame extracted to ${tempFramePath}`);
-                        
-                        // Use sharp to overlay text on the extracted frame
+                        if (!fs.existsSync(tempFramePath)) {
+                            throw new Error(`FFmpeg finished but frame not found at ${tempFramePath}`);
+                        }
+
+                        console.log(`[PreviewGenerator] Frame extracted successfully.`);
                         const frameBuffer = fs.readFileSync(tempFramePath);
-                        
-                        // Clean up temp file
                         fs.unlinkSync(tempFramePath);
 
-                        // Overlay logic:
-                        // 1. Create a dark semi-transparent rectangle
-                        // 2. Render text on top
+                        // Escape XML special characters in title
+                        const escapedTitle = title
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&apos;');
+
+                        // Overlay logic: 360x640 for Telegram (max 320x320 suggested but vertical 640 usually works)
                         const overlaySvg = `
-                            <svg width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="360" height="640" viewBox="0 0 360 640" xmlns="http://www.w3.org/2000/svg">
                                 <defs>
                                     <style>
                                         .rect { fill: rgba(0, 0, 0, 0.7); }
                                         .text { 
                                             fill: #FFFFFF; 
-                                            font-family: 'Helvetica', 'Arial', sans-serif; 
-                                            font-size: 72px; 
+                                            font-family: sans-serif; 
+                                            font-size: 24px; 
                                             font-weight: bold; 
-                                            text-align: center;
                                         }
                                     </style>
                                 </defs>
-                                <rect x="50" y="800" width="980" height="320" rx="20" class="rect" />
-                                <text x="540" y="940" text-anchor="middle" class="text">
-                                    ${this.wrapText(title, 25).map((line, k) => `<tspan x="540" dy="${k === 0 ? 0 : 90}">${line}</tspan>`).join('')}
+                                <rect x="20" y="270" width="320" height="100" rx="10" class="rect" />
+                                <text x="180" y="315" text-anchor="middle" class="text">
+                                    ${this.wrapText(escapedTitle, 20).map((line, k) => `<tspan x="180" dy="${k === 0 ? 0 : 30}">${line}</tspan>`).join('')}
                                 </text>
                             </svg>
                         `;
 
                         const finalBuffer = await sharp(frameBuffer)
-                            .resize(1080, 1920, { fit: 'cover' })
+                            .resize(360, 640, { fit: 'cover' })
                             .composite([{
                                 input: Buffer.from(overlaySvg),
                                 top: 0,
                                 left: 0
                             }])
-                            .jpeg({ quality: 80 })
+                            .jpeg({ quality: 85 })
                             .toBuffer();
 
+                        console.log(`[PreviewGenerator] Thumbnail generated, size: ${finalBuffer.length} bytes`);
                         resolve(finalBuffer);
                     } catch (err) {
+                        console.error('[PreviewGenerator] Processing Error:', err);
                         reject(err);
                     }
                 })

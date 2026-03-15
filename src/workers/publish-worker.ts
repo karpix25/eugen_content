@@ -4,6 +4,7 @@ import { Telegraf } from "telegraf";
 import { processClip } from "../services/processor.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 import fs from "fs";
+import { PreviewGenerator } from "../services/preview-generator";
 
 export const autoPublish = async (bot: Telegraf) => {
   console.log("Checking for videos for auto-publication...");
@@ -78,11 +79,22 @@ export const autoPublish = async (bot: Telegraf) => {
         );
 
         if (fs.existsSync(localFilePath)) {
+          // Generate customized thumbnail with text overlay
+          let thumbSource: any = undefined;
+          try {
+            console.log(`[AutoPublish] Generating thumbnail for local video: ${localFilePath}`);
+            const thumbBuffer = await PreviewGenerator.generateVideoThumbnail(localFilePath, clip.title);
+            thumbSource = { source: thumbBuffer };
+          } catch (error) {
+            console.error(`[AutoPublish] Thumbnail generation failed:`, error);
+          }
+
           // Send video with interactive button and checkbox
           const message = await bot.telegram.sendVideo(user.telegram_id, {
             source: fs.createReadStream(localFilePath)
           }, {
             caption: `⬜️ [Auto] ${clip.title}`,
+            thumbnail: thumbSource,
             reply_markup: {
               inline_keyboard: [
                 [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }] // We will update the callback data after we get the publication ID
