@@ -96,6 +96,19 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     return () => clearInterval(interval);
   }, [videos, authToken, fetchVideos]);
 
+  // Polling for channels - updates sync status
+  useEffect(() => {
+    if (!authToken) return;
+    const hasSyncing = channels.some(c => c.sync_status === 'syncing');
+    if (!hasSyncing) return;
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [channels, authToken, fetchData]);
+
   const loadMoreClips = useCallback(async () => {
     if (loading || clips.length >= totalClips) return;
     setLoading(true);

@@ -8,6 +8,8 @@ export interface Channel {
   next_check?: string;
   user_id?: string;
   is_public?: boolean;
+  sync_status?: 'idle' | 'syncing' | 'error';
+  sync_error?: string;
 }
 
 export interface VideoData {

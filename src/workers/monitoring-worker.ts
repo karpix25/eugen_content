@@ -19,6 +19,8 @@ export function calculateNextCheck(interval: string): Date {
 export const syncChannel = async (channelId: string, name: string, monitoringInterval: string, scrapeDays: number = 7, handle?: string) => {
   console.log(`Syncing channel: ${name} (${channelId}) - Handle: ${handle || 'N/A'}`);
   try {
+    await query("UPDATE channels SET sync_status = 'syncing', sync_error = NULL WHERE id = $1", [channelId]);
+    
     const searchUrl = handle ? `https://www.youtube.com/${handle.startsWith('@') ? handle : '@' + handle}` : `https://www.youtube.com/channel/${channelId}`;
     const discoveredVideos = await getLatestVideos(searchUrl, 20, scrapeDays);
     for (const item of discoveredVideos) {
@@ -63,9 +65,10 @@ export const syncChannel = async (channelId: string, name: string, monitoringInt
     }
 
     const nextCheck = calculateNextCheck(monitoringInterval);
-    await query("UPDATE channels SET last_checked = CURRENT_TIMESTAMP, next_check = $1 WHERE id = $2", [nextCheck, channelId]);
-  } catch (err) {
+    await query("UPDATE channels SET last_checked = CURRENT_TIMESTAMP, next_check = $1, sync_status = 'idle' WHERE id = $2", [nextCheck, channelId]);
+  } catch (err: any) {
     console.error(`Sync error for ${channelId}:`, err);
+    await query("UPDATE channels SET sync_status = 'error', sync_error = $1 WHERE id = $2", [err.message, channelId]);
   }
 };
 

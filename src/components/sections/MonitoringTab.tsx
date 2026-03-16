@@ -6,7 +6,9 @@ import {
   RefreshCw,
   Tv,
   Eye,
-  EyeOff
+  EyeOff,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import { VideoData, Channel } from '../../types';
 import { VideoCard } from '../videos/VideoCard';
@@ -172,20 +174,44 @@ export function MonitoringTab({
                   )}
                   <button
                     onClick={async () => {
+                      if (channel.sync_status === 'syncing') return;
                       setSyncingId(channel.id);
-                      await onSyncChannel(channel.id);
-                      setSyncingId(channel.id + '-success');
-                      setTimeout(() => setSyncingId(null), 2000);
+                      try {
+                        await onSyncChannel(channel.id);
+                        setSyncingId(channel.id + '-success');
+                      } catch (err) {
+                        setSyncingId(channel.id + '-error');
+                      } finally {
+                        setTimeout(() => setSyncingId(null), 3000);
+                      }
                     }}
-                    disabled={syncingId === channel.id}
+                    disabled={syncingId === channel.id || channel.sync_status === 'syncing'}
                     className={`p-1.5 rounded-lg border transition-all ${
-                      syncingId === channel.id + '-success'
-                        ? "bg-green-500/20 text-green-500 border-green-500/20"
-                        : "bg-white/5 text-white/20 border-white/10 hover:bg-white/10 hover:text-blue-400"
+                      syncingId === channel.id + '-success' || (channel.sync_status === 'idle' && (syncingId === null || syncingId === channel.id + '-success'))
+                        ? "bg-green-600/20 text-green-500 border-green-600/20"
+                        : syncingId === channel.id || channel.sync_status === 'syncing'
+                          ? "bg-blue-600/20 text-blue-500 border-blue-600/20"
+                          : syncingId === channel.id + '-error' || channel.sync_status === 'error'
+                            ? "bg-red-600/20 text-red-500 border-red-600/20"
+                            : "bg-white/5 text-white/40 border-white/10 hover:bg-white/10"
                     }`}
-                    title="Синхронизировать сейчас"
+                    title={
+                      channel.sync_status === 'syncing' 
+                        ? "Синхронизация..." 
+                        : channel.sync_status === 'error' 
+                          ? `Ошибка: ${channel.sync_error || 'Неизвестная ошибка'}` 
+                          : "Синхронизировать сейчас"
+                    }
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${syncingId === channel.id ? 'animate-spin' : ''}`} />
+                    {syncingId === channel.id + '-success' ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : syncingId === channel.id || channel.sync_status === 'syncing' ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : syncingId === channel.id + '-error' || channel.sync_status === 'error' ? (
+                      <AlertCircle className="w-3.5 h-3.5" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    )}
                   </button>
                   <button
                     onClick={() => onDeleteChannel(channel.id)}
