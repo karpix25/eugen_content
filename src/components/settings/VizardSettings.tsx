@@ -104,10 +104,11 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
                             onChange={(e) => setSettings({...settings, vizard_prefer_length: e.target.value})}
                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-purple-500/50 transition-all font-bold appearance-none cursor-pointer hover:bg-white/10"
                         >
-                            <option value="1">До 30 секунд</option>
-                            <option value="2">30 - 60 секунд</option>
-                            <option value="3">60 - 90 секунд</option>
-                            <option value="4">Менее 90 секунд</option>
+                            <option value="0">Автоматически (Vizard AI)</option>
+                            <option value="1">Менее 30 секунд</option>
+                            <option value="2">От 30 до 60 секунд</option>
+                            <option value="3">От 60 до 90 секунд</option>
+                            <option value="4">От 90 секунд до 3 минут</option>
                         </select>
                         <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
                              <Scissors className="w-3 h-3 rotate-90" />
