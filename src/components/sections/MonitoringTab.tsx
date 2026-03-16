@@ -143,15 +143,6 @@ export function MonitoringTab({
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
-                  {currentUserProfile?.is_admin && onToggleChannelPublic && (
-                    <button
-                      onClick={() => onToggleChannelPublic(channel.id, !channel.is_public)}
-                      className="p-1.5 text-white/20 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
-                      title={channel.is_public ? "Сделать приватным" : "Сделать публичным"}
-                    >
-                      {channel.is_public ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  )}
                   <button
                     onClick={() => onDeleteChannel(channel.id)}
                     className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
@@ -160,14 +151,29 @@ export function MonitoringTab({
                   </button>
                 </div>
                 
-                <div className="absolute top-2 right-2 flex gap-1 pointer-events-none">
-                  {channel.is_public ? (
-                    <span className="p-1 bg-blue-500/20 text-blue-400 rounded-md border border-blue-500/20" title="Публичный">
-                      <Eye className="w-3 h-3" />
-                    </span>
+                <div className="absolute top-2 right-2 flex gap-1 items-center">
+                  {currentUserProfile?.is_admin && onToggleChannelPublic ? (
+                    <button
+                      onClick={() => onToggleChannelPublic(channel.id, !channel.is_public)}
+                      className={`p-1 rounded-md border transition-all ${
+                        channel.is_public 
+                          ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/30" 
+                          : "bg-white/5 text-white/20 border-white/10 hover:bg-white/10"
+                      }`}
+                      title={channel.is_public ? "Сделать приватным" : "Сделать публичным"}
+                    >
+                      {channel.is_public ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    </button>
                   ) : (
-                    <span className="p-1 bg-white/5 text-white/20 rounded-md border border-white/10" title="Приватный">
-                      <EyeOff className="w-3 h-3" />
+                    <span 
+                      className={`p-1 rounded-md border ${
+                        channel.is_public 
+                          ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/20" 
+                          : "bg-white/5 text-white/20 border-white/10"
+                      }`}
+                      title={channel.is_public ? "Публичный" : "Приватный"}
+                    >
+                      {channel.is_public ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                     </span>
                   )}
                 </div>
