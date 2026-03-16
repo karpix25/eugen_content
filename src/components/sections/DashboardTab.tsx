@@ -67,7 +67,7 @@ export function DashboardTab({ authToken }: { authToken: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export function DashboardTab({ authToken }: { authToken: string }) {
 
   const mainMetrics = [
     { label: 'Всего пользователей', value: stats.total.users, subValue: `${stats.total.authorized_users} активных`, icon: <Users className="w-5 h-5 text-blue-400" />, color: 'blue' },
-    { label: 'Опубликовано видео', value: stats.total_published_videos, subValue: `${stats.recent.today} за сегодня`, icon: <CheckCircle2 className="w-5 h-5 text-emerald-400" />, color: 'emerald' },
+    { label: 'Опубликовано видео', value: stats.total_published_videos, subValue: `${stats.recent.today} за сегодня`, icon: <CheckCircle2 className="w-5 h-5 text-blue-500" />, color: 'blue' },
     { label: 'Всего назок', value: stats.total.clips, subValue: `из ${stats.total.videos} видео`, icon: <Video className="w-5 h-5 text-purple-400" />, color: 'purple' },
     { label: 'Активных каналов', value: stats.total.channels, subValue: 'в мониторинге', icon: <TrendingUp className="w-5 h-5 text-orange-400" />, color: 'orange' },
   ];
@@ -84,7 +84,7 @@ export function DashboardTab({ authToken }: { authToken: string }) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-black tracking-tight">Дашборд <span className="text-emerald-500">Статистики</span></h2>
+        <h2 className="text-3xl font-black tracking-tight">Дашборд <span className="text-blue-600">Статистики</span></h2>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-white/40">
           <Calendar className="w-3 h-3" />
           Обновлено сегодня
@@ -99,7 +99,7 @@ export function DashboardTab({ authToken }: { authToken: string }) {
               <div className={cn(
                 "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500",
                 m.color === 'blue' && "bg-blue-500/10",
-                m.color === 'emerald' && "bg-emerald-500/10",
+                m.color === 'blue' && "bg-blue-600/10",
                 m.color === 'purple' && "bg-purple-500/10",
                 m.color === 'orange' && "bg-orange-500/10"
               )}>
@@ -120,15 +120,15 @@ export function DashboardTab({ authToken }: { authToken: string }) {
         {/* Top Users */}
         <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 space-y-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-emerald-400" />
+            <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-blue-500" />
             </div>
-            <h3 className="text-xl font-bold italic tracking-tight uppercase">Топ работников <span className="text-emerald-500">.</span></h3>
+            <h3 className="text-xl font-bold italic tracking-tight uppercase">Топ работников <span className="text-blue-600">.</span></h3>
           </div>
           <div className="space-y-3">
             {stats.top_users.map((user, i) => (
-              <div key={i} className="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all group">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs font-black text-emerald-500 border border-emerald-500/20">
+              <div key={i} className="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 hover:border-blue-600/30 transition-all group">
+                <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center text-xs font-black text-blue-600 border border-blue-600/20">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -136,7 +136,7 @@ export function DashboardTab({ authToken }: { authToken: string }) {
                   <p className="text-[10px] text-white/40 uppercase tracking-widest">@{user.username}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-black text-emerald-400 tracking-tighter">{user.count}</p>
+                  <p className="text-xl font-black text-blue-500 tracking-tighter">{user.count}</p>
                   <p className="text-[9px] text-white/20 uppercase font-black">Сыллок</p>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export function DashboardTab({ authToken }: { authToken: string }) {
                 <div key={i} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
                   <div className="relative w-full flex justify-center h-full items-end">
                     <div 
-                      className="w-full max-w-[12px] bg-gradient-to-t from-emerald-500/20 to-emerald-400 rounded-t-full transition-all duration-1000 group-hover:opacity-80 relative"
+                      className="w-full max-w-[12px] bg-gradient-to-t from-blue-600/20 to-blue-500 rounded-t-full transition-all duration-1000 group-hover:opacity-80 relative"
                       style={{ height: `${height}%` }}
                     >
                       {day.count > 0 && (
@@ -189,12 +189,12 @@ export function DashboardTab({ authToken }: { authToken: string }) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {stats.top_clips.slice(0, 6).map((clip) => (
-            <div key={clip.id} className="flex items-center gap-4 bg-black/40 p-3 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all">
+            <div key={clip.id} className="flex items-center gap-4 bg-black/40 p-3 rounded-2xl border border-white/5 hover:border-blue-600/20 transition-all">
               <img src={clip.thumbnail} className="w-14 h-14 rounded-xl object-cover grayscale group-hover:grayscale-0 transition-all shrink-0" alt="" />
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm text-white truncate">{clip.title}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
                   <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">{clip.publish_count} публикаций</p>
                 </div>
               </div>

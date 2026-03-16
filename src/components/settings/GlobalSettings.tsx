@@ -65,19 +65,19 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-8 space-y-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover:bg-emerald-500/20 transition-colors duration-1000" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[80px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover:bg-blue-600/20 transition-colors duration-1000" />
       
       <div className="relative space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20">
-            <Globe className="w-5 h-5 text-emerald-500" />
+          <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center border border-blue-600/20">
+            <Globe className="w-5 h-5 text-blue-600" />
           </div>
           <div>
             <h3 className="text-lg font-black text-white uppercase tracking-tight">Глобальные Настройки</h3>
@@ -94,7 +94,7 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
               </div>
               <label className="cursor-pointer">
                 <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*" />
-                <div className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 px-4 py-2 rounded-xl border border-emerald-500/20 transition-all font-black text-[10px] uppercase tracking-widest">
+                <div className="flex items-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 px-4 py-2 rounded-xl border border-blue-600/20 transition-all font-black text-[10px] uppercase tracking-widest">
                   {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                   {uploading ? 'ЗАГРУЗКА...' : 'ВЫБРАТЬ ФАЙЛ'}
                 </div>
@@ -120,7 +120,7 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
         {message && (
           <div className={cn(
             "p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in slide-in-from-top-2",
-            message.type === 'success' ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border border-red-500/20 text-red-500"
+            message.type === 'success' ? "bg-blue-600/10 border border-blue-600/20 text-blue-600" : "bg-red-500/10 border border-red-500/20 text-red-500"
           )}>
             {message.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
             {message.text}

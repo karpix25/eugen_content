@@ -31,22 +31,22 @@ export function WorkersTab({
             {users.map(user => (
               <tr key={user.telegram_id} className="hover:bg-white/5 transition-colors group">
                 <td className="px-6 py-4">
-                  <div className="font-medium text-emerald-400">{user.first_name}</div>
+                  <div className="font-medium text-blue-500">{user.first_name}</div>
                   <div className="text-xs text-white/40">@{user.username || 'n/a'}</div>
                 </td>
                 <td className="px-6 py-4 font-mono text-sm text-white/60">{user.telegram_id}</td>
                 <td className="px-6 py-4 text-center">
                   <button
                     onClick={() => setSelectedWorker(user)}
-                    className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 rounded-full transition-all"
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-blue-600/10 border border-white/10 hover:border-blue-600/30 rounded-full transition-all"
                   >
                     <span className="font-bold text-sm text-white">{user.publication_count || 0}</span>
-                    <ChevronRight className="w-3 h-3 text-white/40 group-hover:text-emerald-500 transition-colors" />
+                    <ChevronRight className="w-3 h-3 text-white/40 group-hover:text-blue-600 transition-colors" />
                   </button>
                 </td>
                 <td className="px-6 py-4">
                   {user.is_authorized ? (
-                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold uppercase">Авторизован</span>
+                    <span className="px-2 py-1 bg-blue-600/20 text-blue-500 rounded text-[10px] font-bold uppercase">Авторизован</span>
                   ) : (
                     <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-[10px] font-bold uppercase">В ожидании</span>
                   )}
@@ -57,7 +57,7 @@ export function WorkersTab({
                       onClick={() => handleAuthorize(user.telegram_id, !user.is_authorized)}
                       className={cn(
                         "px-3 py-1 rounded text-xs font-bold transition-colors",
-                        user.is_authorized ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-emerald-500 text-black hover:bg-emerald-400"
+                        user.is_authorized ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-blue-600 text-black hover:bg-blue-500"
                       )}
                     >
                       {user.is_authorized ? "Деавторизовать" : "Авторизовать"}

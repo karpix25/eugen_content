@@ -56,7 +56,7 @@ export function SubtitleSettings({
         </div>
         <button
           onClick={() => setEnabled(!enabled)}
-          className={`w-14 h-7 rounded-full transition-all relative ${enabled ? 'bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-white/10'}`}
+          className={`w-14 h-7 rounded-full transition-all relative ${enabled ? 'bg-blue-600 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-white/10'}`}
         >
           <div className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${enabled ? 'translate-x-7 shadow-sm' : ''}`} />
         </button>
@@ -70,7 +70,7 @@ export function SubtitleSettings({
               <button
                 key={s.id}
                 onClick={() => setStyle(s.id)}
-                className={`text-[10px] uppercase font-black py-4 px-1 rounded-2xl transition-all border-2 ${style === s.id ? 'bg-emerald-500 border-emerald-400 text-black shadow-lg shadow-emerald-500/20' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:border-white/10'}`}
+                className={`text-[10px] uppercase font-black py-4 px-1 rounded-2xl transition-all border-2 ${style === s.id ? 'bg-blue-600 border-blue-500 text-black shadow-lg shadow-blue-600/20' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:border-white/10'}`}
               >
                 {s.name}
               </button>
@@ -85,7 +85,7 @@ export function SubtitleSettings({
               <button
                 key={font.id}
                 onClick={() => setFontFamily(font.id)}
-                className={`text-center py-3 px-2 rounded-xl text-[10px] font-black transition-all border-2 ${fontFamily === font.id ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-black/30 border-white/5 text-white/40 hover:bg-white/5 hover:border-white/20'}`}
+                className={`text-center py-3 px-2 rounded-xl text-[10px] font-black transition-all border-2 ${fontFamily === font.id ? 'bg-blue-600/10 border-blue-600/50 text-blue-500' : 'bg-black/30 border-white/5 text-white/40 hover:bg-white/5 hover:border-white/20'}`}
               >
                 {font.name}
               </button>
@@ -97,19 +97,19 @@ export function SubtitleSettings({
           <div className="space-y-3">
             <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] px-1 flex justify-between items-end">
               <span>Размер</span>
-              <span className="text-emerald-400 font-mono text-[12px]">{fontSize}px</span>
+              <span className="text-blue-500 font-mono text-[12px]">{fontSize}px</span>
             </label>
             <div className="px-1">
-              <input type="range" min="10" max="64" step="1" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+              <input type="range" min="10" max="64" step="1" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-600" />
             </div>
           </div>
           <div className="space-y-3">
             <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] px-1 flex justify-between items-end">
               <span>Позиция</span>
-              <span className="text-emerald-400 font-mono text-[12px]">{position}%</span>
+              <span className="text-blue-500 font-mono text-[12px]">{position}%</span>
             </label>
             <div className="px-1">
-              <input type="range" min="0" max="100" step="1" value={position} onChange={(e) => setPosition(e.target.value)} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+              <input type="range" min="0" max="100" step="1" value={position} onChange={(e) => setPosition(e.target.value)} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-600" />
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ export function SubtitleSettings({
         <div className={cn("transition-all duration-300 space-y-4", (enabled && style === 'karaoke') ? 'opacity-100' : 'opacity-40 pointer-events-none grayscale')}>
           <div className="flex items-center justify-between px-1">
             <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Выделение активного слова</label>
-            <button onClick={() => setHighlightEnabled(!highlightEnabled)} className={`w-10 h-5 rounded-full transition-all relative ${highlightEnabled ? 'bg-emerald-500' : 'bg-white/10'}`}>
+            <button onClick={() => setHighlightEnabled(!highlightEnabled)} className={`w-10 h-5 rounded-full transition-all relative ${highlightEnabled ? 'bg-blue-600' : 'bg-white/10'}`}>
               <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${highlightEnabled ? 'translate-x-5 shadow-sm' : ''}`} />
             </button>
           </div>

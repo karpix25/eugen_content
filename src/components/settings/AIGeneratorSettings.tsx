@@ -52,12 +52,12 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-8 space-y-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover:bg-emerald-500/20 transition-colors duration-1000" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[80px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover:bg-blue-600/20 transition-colors duration-1000" />
       
       <div className="relative space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20">
-            <Bot className="w-5 h-5 text-emerald-500" />
+          <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center border border-blue-600/20">
+            <Bot className="w-5 h-5 text-blue-600" />
           </div>
           <div>
             <h3 className="text-lg font-black text-white uppercase tracking-tight">Генератор плашек</h3>
@@ -73,7 +73,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Например: Скидка 50% на все кроссовки Nike, яркий дизайн, неоновые цвета..."
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-emerald-500 outline-none transition-all min-h-[120px] resize-none placeholder:text-white/10"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-blue-600 outline-none transition-all min-h-[120px] resize-none placeholder:text-white/10"
                 required
               />
             </div>
@@ -85,7 +85,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Nike Promo Plaque"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-emerald-500 outline-none transition-all placeholder:text-white/10"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-blue-600 outline-none transition-all placeholder:text-white/10"
               />
             </div>
           </div>
@@ -98,7 +98,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
 
           {success && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 text-xs font-bold">
+              <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-2xl text-blue-600 text-xs font-bold">
                 Плашка успешно сгенерирована и сохранена!
               </div>
               {generatedUrl && (
@@ -117,7 +117,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
           <button
             type="submit"
             disabled={loading || !topic}
-            className="w-full py-5 rounded-[2rem] bg-emerald-500 text-black font-black uppercase tracking-[0.25em] text-[10px] hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-3 active:scale-95 group relative overflow-hidden"
+            className="w-full py-5 rounded-[2rem] bg-blue-600 text-black font-black uppercase tracking-[0.25em] text-[10px] hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 disabled:opacity-50 flex items-center justify-center gap-3 active:scale-95 group relative overflow-hidden"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -129,7 +129,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
             )}
             
             {loading && (
-              <div className="absolute inset-0 bg-emerald-400/20 animate-pulse" />
+              <div className="absolute inset-0 bg-blue-500/20 animate-pulse" />
             )}
           </button>
         </form>
@@ -140,7 +140,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest leading-relaxed">Используются SOTA модели для генерации графики</p>
           </div>
           <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2">
-            <RefreshCw className="w-4 h-4 text-emerald-400" />
+            <RefreshCw className="w-4 h-4 text-blue-500" />
             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest leading-relaxed">Результат сразу доступен в настройках плашек</p>
           </div>
         </div>

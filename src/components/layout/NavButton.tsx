@@ -17,7 +17,7 @@ export function NavButton({ active, onClick, icon, label, collapsed }: NavButton
         "w-full flex items-center rounded-xl transition-all duration-300 group",
         collapsed ? "justify-center p-3" : "gap-3 px-4 py-3",
         active
-          ? "bg-emerald-500 text-black font-semibold shadow-lg shadow-emerald-500/20"
+          ? "bg-blue-600 text-black font-semibold shadow-lg shadow-blue-600/20"
           : "text-white/60 hover:text-white hover:bg-white/5"
       )}
       title={collapsed ? label : undefined}

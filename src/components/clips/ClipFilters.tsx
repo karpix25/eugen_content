@@ -28,7 +28,7 @@ interface ClipFiltersProps {
            placeholder="Поиск по названию или тексту..."
            value={searchQuery}
            onChange={(e) => onSearchChange(e.target.value)}
-           className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:border-emerald-500 transition-colors"
+           className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:border-blue-600 transition-colors"
          />
        </div>
  

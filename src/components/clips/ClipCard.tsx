@@ -52,7 +52,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
     <>
       <div 
         ref={containerRef}
-        className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-emerald-500/50 transition-all duration-300"
+        className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-blue-600/50 transition-all duration-300"
       >
         <div className="aspect-[9/16] bg-black relative overflow-hidden">
           {!isPlaying ? (
@@ -122,7 +122,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
           
           {clip.published_by_me && (
             <div className="absolute top-3 left-3 z-30 pointer-events-none">
-              <span className="px-2 py-1 bg-emerald-500/90 backdrop-blur-md text-black rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+              <span className="px-2 py-1 bg-blue-600/90 backdrop-blur-md text-black rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
                 <CheckCircle className="w-3 h-3" /> Отправлено
               </span>
             </div>
@@ -132,13 +132,13 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
             <div className="absolute inset-0 z-30 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
               <XCircle className="w-12 h-12 text-red-500 mb-2" />
               <p className="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Уже скачано</p>
-              <p className="text-sm font-medium text-emerald-400">{clip.downloaded_by || 'Кто-то'}</p>
+              <p className="text-sm font-medium text-blue-500">{clip.downloaded_by || 'Кто-то'}</p>
             </div>
           )}
           {isSending && (
             <div className="absolute inset-0 z-40 bg-black/80 flex flex-col items-center justify-center p-6 text-center">
-              <Loader2 className="w-10 h-10 text-emerald-500 mb-3 animate-spin" />
-              <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Рендеринг и отправка...</p>
+              <Loader2 className="w-10 h-10 text-blue-600 mb-3 animate-spin" />
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-500">Рендеринг и отправка...</p>
             </div>
           )}
           {isSendingCarousel && (
@@ -186,7 +186,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
             <button
               onClick={() => setShowPlaqueSelector(true)}
               disabled={!clip.is_available || isSending || isSendingCarousel || !onSendToTelegram}
-              className="flex-1 text-[11px] uppercase tracking-widest font-black py-3 bg-emerald-500 text-black rounded-xl hover:bg-emerald-400 transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
+              className="flex-1 text-[11px] uppercase tracking-widest font-black py-3 bg-blue-600 text-black rounded-xl hover:bg-blue-500 transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
             >
               <Send className="w-3 h-3" /> {clip.published_by_me ? 'ВИДЕО ЕЩЕ РАЗ' : 'ВИДЕО'}
             </button>
@@ -233,11 +233,11 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                   <button
                     key={plaque.id}
                     onClick={() => handleSend(plaque.id)}
-                    className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/50 transition-all flex items-center gap-4 group"
+                    className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-blue-600/50 transition-all flex items-center gap-4 group"
                   >
                     <img src={plaque.image_url} alt="" className="w-12 h-12 rounded object-cover" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate text-white group-hover:text-emerald-400 transition-colors">{plaque.name}</p>
+                      <p className="font-bold text-sm truncate text-white group-hover:text-blue-500 transition-colors">{plaque.name}</p>
                     </div>
                   </button>
                 ))}

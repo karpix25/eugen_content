@@ -27,7 +27,7 @@ export function PublicationsTab({ publications, authToken, isAdmin }: Publicatio
           </div>
         )}
         {publications.map((pub) => (
-          <div key={pub.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row gap-6 hover:border-emerald-500/30 transition-all group">
+          <div key={pub.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row gap-6 hover:border-blue-600/30 transition-all group">
 
 
             <div className="flex-1 min-w-0 space-y-4">
@@ -35,7 +35,7 @@ export function PublicationsTab({ publications, authToken, isAdmin }: Publicatio
                 <div>
                   <h4 className="font-bold text-lg mb-1 line-clamp-1">{pub.clip_title}</h4>
                   <div className="flex items-center gap-2 text-sm text-white/40">
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-[8px] font-bold text-emerald-500 border border-emerald-500/20">
+                    <div className="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-[8px] font-bold text-blue-600 border border-blue-600/20">
                       {pub.first_name?.[0] || 'U'}
                     </div>
                     <span className="font-medium text-white/70">{pub.first_name}</span>
@@ -47,7 +47,7 @@ export function PublicationsTab({ publications, authToken, isAdmin }: Publicatio
 
                 <div className="flex items-center gap-2 text-xs">
                   {pub.status === 'published' ? (
-                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-full font-bold uppercase">Опубликовано</span>
+                    <span className="px-2 py-1 bg-blue-600/20 text-blue-500 rounded-full font-bold uppercase">Опубликовано</span>
                   ) : (
                     <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full font-bold uppercase">Отправлено</span>
                   )}
@@ -56,7 +56,7 @@ export function PublicationsTab({ publications, authToken, isAdmin }: Publicatio
 
               <div className="flex flex-wrap gap-2">
                 {pub.social_links.map((link, i) => (
-                  <a key={i} href={link} target="_blank" rel="noreferrer" className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs text-emerald-400 hover:bg-white/10 transition-colors inline-flex items-center gap-2">
+                  <a key={i} href={link} target="_blank" rel="noreferrer" className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs text-blue-500 hover:bg-white/10 transition-colors inline-flex items-center gap-2">
                     <ExternalLink className="w-3 h-3" /> Ссылка {i + 1}
                   </a>
                 ))}

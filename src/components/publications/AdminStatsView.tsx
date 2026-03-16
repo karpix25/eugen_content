@@ -19,11 +19,11 @@ export function AdminStatsView({ authToken }: { authToken: string }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <p className="text-white/40 text-sm mb-2">Пользователей с публикациями</p>
-          <p className="text-3xl font-bold text-emerald-400">{stats.reporting_users}</p>
+          <p className="text-3xl font-bold text-blue-500">{stats.reporting_users}</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <p className="text-white/40 text-sm mb-2">Опубликованных роликов</p>
-          <p className="text-3xl font-bold text-emerald-400">{stats.total_published_videos}</p>
+          <p className="text-3xl font-bold text-blue-500">{stats.total_published_videos}</p>
         </div>
       </div>
       
@@ -37,7 +37,7 @@ export function AdminStatsView({ authToken }: { authToken: string }) {
                 <img src={clip.thumbnail} className="w-12 h-12 rounded bg-black object-cover" alt="" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{clip.title}</p>
-                  <p className="text-emerald-400 text-xs mt-1">{clip.publish_count} публикаций</p>
+                  <p className="text-blue-500 text-xs mt-1">{clip.publish_count} публикаций</p>
                 </div>
               </div>
             ))}

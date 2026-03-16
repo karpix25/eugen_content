@@ -52,7 +52,7 @@ export function FolderCard({
               className={cn(
                 "p-2 rounded-lg backdrop-blur-md border transition-all shadow-lg",
                 isPublic 
-                  ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30" 
+                  ? "bg-blue-600/20 border-blue-600/50 text-blue-500 hover:bg-blue-600/30" 
                   : "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30"
               )}
               title={isPublic ? "Сделать приватной" : "Сделать публичной"}
@@ -63,7 +63,7 @@ export function FolderCard({
             <div className={cn(
               "p-2 rounded-lg backdrop-blur-md border shadow-lg",
               isPublic 
-                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" 
+                ? "bg-blue-600/20 border-blue-600/50 text-blue-500" 
                 : "bg-amber-500/20 border-amber-500/50 text-amber-400"
             )}>
               {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
@@ -72,7 +72,7 @@ export function FolderCard({
         </div>
 
         <div className="absolute top-3 right-3 flex gap-2">
-          <span className="bg-emerald-500 text-black text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg">
+          <span className="bg-blue-600 text-black text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg">
             <Film className="w-3 h-3" />
             {clips.length}
           </span>
@@ -91,7 +91,7 @@ export function FolderCard({
       </div>
 
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-bold text-sm line-clamp-2 mb-2 group-hover:text-emerald-400 transition-colors">
+        <h3 className="font-bold text-sm line-clamp-2 mb-2 group-hover:text-blue-500 transition-colors">
           {videoTitle}
         </h3>
         
@@ -102,7 +102,7 @@ export function FolderCard({
               {lastUpdate.toLocaleDateString('ru-RU')}
             </div>
           )}
-          <div className="text-emerald-500/60 font-bold group-hover:text-emerald-400">
+          <div className="text-blue-600/60 font-bold group-hover:text-blue-500">
             ОТКРЫТЬ
           </div>
         </div>

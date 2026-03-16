@@ -58,7 +58,7 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
             {video.ai_score !== null && (
               <div className={cn(
                 "px-3 py-1 rounded-full text-sm font-bold",
-                video.ai_score > 70 ? "bg-emerald-500/20 text-emerald-400" : "bg-yellow-500/20 text-yellow-400"
+                video.ai_score > 70 ? "bg-blue-600/20 text-blue-500" : "bg-yellow-500/20 text-yellow-400"
               )}>
                 {video.ai_score}% Match
               </div>
@@ -100,7 +100,7 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
                   onClick={() => setShowDubModal(true)}
                   disabled={loading}
                   className={cn(
-                    "p-2 bg-emerald-500 text-black rounded-lg hover:bg-emerald-400 transition-colors",
+                    "p-2 bg-blue-600 text-black rounded-lg hover:bg-blue-500 transition-colors",
                     loading && "opacity-50 cursor-not-allowed"
                   )}
                   title="Одобрить и выбрать язык"
@@ -115,12 +115,12 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
 
             {video.status === 'approved' && (
               <div className="ml-auto flex flex-col items-end gap-1">
-                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                <div className="flex items-center gap-2 text-blue-500 text-sm font-medium">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   В обработке Vizard...
                 </div>
                 {video.target_language && (
-                  <div className="text-[10px] uppercase font-bold text-emerald-500/60 tracking-wider">
+                  <div className="text-[10px] uppercase font-bold text-blue-600/60 tracking-wider">
                     Запланирован дубляж: {video.target_language}
                   </div>
                 )}
@@ -129,7 +129,7 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
 
             {video.status === 'completed' && (
               <div className="ml-auto flex flex-col items-end gap-1">
-                <div className="text-emerald-400 text-sm font-medium flex items-center gap-2">
+                <div className="text-blue-500 text-sm font-medium flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" /> Готово
                 </div>
               </div>
@@ -156,7 +156,7 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
 
               <div className="space-y-1">
                 <h3 className="text-xl font-bold">Выберите язык</h3>
-                <p className="text-sm text-white/40">Определен язык оригинала: <strong className="text-emerald-400 uppercase">{video.detected_language || 'Неизвестен'}</strong></p>
+                <p className="text-sm text-white/40">Определен язык оригинала: <strong className="text-blue-500 uppercase">{video.detected_language || 'Неизвестен'}</strong></p>
               </div>
 
               <div className="space-y-2 pt-2">
@@ -167,10 +167,10 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
                       setShowDubModal(false);
                       onApprove(opt.value);
                     }}
-                    className="w-full text-left p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-emerald-500/50 transition-all font-medium text-sm flex items-center justify-between group"
+                    className="w-full text-left p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-blue-600/50 transition-all font-medium text-sm flex items-center justify-between group"
                   >
                     {opt.label}
-                    <CheckCircle className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <CheckCircle className="w-4 h-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 ))}
               </div>

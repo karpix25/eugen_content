@@ -41,5 +41,5 @@
   @apply mb-2;
 }
 .markdown-body strong {
-  @apply text-emerald-400 font-bold;
+  @apply text-blue-500 font-bold;
 }

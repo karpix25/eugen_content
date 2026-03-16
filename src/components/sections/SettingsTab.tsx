@@ -172,21 +172,21 @@ export function SettingsTab({
     <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Profile Header Block */}
       <div className="relative overflow-hidden bg-gradient-to-br from-[#111] to-[#050505] rounded-[2.5rem] border border-white/5 p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 blur-[100px] -mr-48 -mt-48 rounded-full pointer-events-none" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[100px] -mr-48 -mt-48 rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 blur-[80px] -ml-32 -mb-32 rounded-full pointer-events-none" />
         
         <div className="relative flex flex-col md:flex-row items-center gap-8">
           <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-1 shadow-xl shadow-emerald-500/20 rotate-3">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-700 p-1 shadow-xl shadow-blue-600/20 rotate-3">
               <div className="w-full h-full bg-[#0A0A0A] rounded-[1.4rem] flex items-center justify-center -rotate-3 overflow-hidden">
                 {currentUser.username ? (
-                  <span className="text-3xl font-black text-emerald-500">{currentUser.username[0].toUpperCase()}</span>
+                  <span className="text-3xl font-black text-blue-600">{currentUser.username[0].toUpperCase()}</span>
                 ) : (
-                  <UserIcon className="w-10 h-10 text-emerald-500" />
+                  <UserIcon className="w-10 h-10 text-blue-600" />
                 )}
               </div>
             </div>
-            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-black p-1.5 rounded-xl shadow-lg border-4 border-[#0A0A0A]">
+            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-black p-1.5 rounded-xl shadow-lg border-4 border-[#0A0A0A]">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
@@ -194,7 +194,7 @@ export function SettingsTab({
           <div className="flex-1 text-center md:text-left space-y-2">
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center justify-center md:justify-start gap-3">
               {currentUser.first_name || currentUser.username}
-              <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border border-emerald-500/20">
+              <span className="bg-blue-600/10 text-blue-600 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border border-blue-600/20">
                 {currentUser.role || 'PRO'}
               </span>
             </h1>
@@ -203,8 +203,8 @@ export function SettingsTab({
             </p>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
               <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-                <TrendingUp className="w-3 h-3 text-emerald-400" />
-                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{currentUser.publication_count || 0} ПУБЛИКАЦИЙ</span>
+                <TrendingUp className="w-3 h-3 text-blue-500" />
+                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{currentUser.publication_count || 0} ПУБЛИКАЦИЙ</span>
               </div>
               <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
                 <Cpu className="w-3 h-3 text-purple-400" />
@@ -233,7 +233,7 @@ export function SettingsTab({
                     className={cn(
                       "w-full flex items-center gap-4 px-4 py-3.5 rounded-[1.25rem] transition-all duration-300 relative group",
                       settingsSection === tab.id
-                        ? "bg-emerald-500 text-black shadow-xl shadow-emerald-500/20"
+                        ? "bg-blue-600 text-black shadow-xl shadow-blue-600/20"
                         : "text-white/40 hover:text-white hover:bg-white/5"
                     )}
                   >
@@ -256,7 +256,7 @@ export function SettingsTab({
               <button
                 onClick={saveSettings}
                 disabled={saving}
-                className="w-full py-5 rounded-[2rem] bg-emerald-500 text-black font-black uppercase tracking-[0.25em] text-[10px] hover:bg-emerald-400 transition-all shadow-[0_20px_40px_rgba(16,185,129,0.15)] disabled:opacity-50 flex items-center justify-center gap-3 active:scale-95 group"
+                className="w-full py-5 rounded-[2rem] bg-blue-600 text-black font-black uppercase tracking-[0.25em] text-[10px] hover:bg-blue-500 transition-all shadow-[0_20px_40px_rgba(16,185,129,0.15)] disabled:opacity-50 flex items-center justify-center gap-3 active:scale-95 group"
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -345,7 +345,7 @@ export function SettingsTab({
                   </style>
                   
                   <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-purple-500 rounded-[3.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-500 rounded-[3.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
                     <div className="relative aspect-[9/16] bg-[#000] rounded-[3rem] overflow-hidden border-[8px] border-white/10 w-full max-w-[340px] shadow-2xl">
                       <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80" alt="bg" className="w-full h-full object-cover opacity-60 scale-105 blur-[2px]" />
 

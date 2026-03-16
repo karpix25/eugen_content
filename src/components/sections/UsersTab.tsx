@@ -55,14 +55,14 @@ export function UsersTab({ users, onUpdate, authToken }: UsersTabProps) {
         {users.map((user) => (
           <div key={user.telegram_id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:border-white/20 transition-all">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-500 font-bold text-xl border border-emerald-500/20">
+              <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-blue-600 font-bold text-xl border border-blue-600/20">
                 {user.first_name?.[0] || 'U'}
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-bold">{user.first_name}</h4>
                   {user.is_admin && (
-                    <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-500 text-[8px] font-black uppercase rounded tracking-wider border border-emerald-500/20 flex items-center gap-1">
+                    <span className="px-1.5 py-0.5 bg-blue-600/20 text-blue-600 text-[8px] font-black uppercase rounded tracking-wider border border-blue-600/20 flex items-center gap-1">
                       <Shield className="w-2 h-2" /> Admin
                     </span>
                   )}
@@ -75,7 +75,7 @@ export function UsersTab({ users, onUpdate, authToken }: UsersTabProps) {
               <button 
                 onClick={() => toggleAdmin(user)}
                 disabled={loading === user.telegram_id}
-                className={`p-2 rounded-xl transition-all ${user.is_admin ? 'bg-emerald-500/10 text-emerald-500' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                className={`p-2 rounded-xl transition-all ${user.is_admin ? 'bg-blue-600/10 text-blue-600' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
                 title={user.is_admin ? "Убрать админа" : "Сделать админом"}
               >
                 {loading === user.telegram_id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}

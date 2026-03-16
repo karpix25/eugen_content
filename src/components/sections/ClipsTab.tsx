@@ -106,7 +106,7 @@ export function ClipsTab({
             onClick={() => { setViewMode('folder'); setSelectedFolderId(null); }}
             className={cn(
               "p-2 rounded-lg transition-all flex items-center gap-2 text-xs font-bold",
-              viewMode === 'folder' ? "bg-emerald-500 text-black shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"
+              viewMode === 'folder' ? "bg-blue-600 text-black shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"
             )}
           >
             <FolderIcon className="w-4 h-4" />
@@ -116,7 +116,7 @@ export function ClipsTab({
             onClick={() => setViewMode('grid')}
             className={cn(
               "p-2 rounded-lg transition-all flex items-center gap-2 text-xs font-bold",
-              viewMode === 'grid' ? "bg-emerald-500 text-black shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"
+              viewMode === 'grid' ? "bg-blue-600 text-black shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5"
             )}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -128,9 +128,9 @@ export function ClipsTab({
       {viewMode === 'folder' && selectedFolderId && (
         <button 
           onClick={() => setSelectedFolderId(null)}
-          className="flex items-center gap-2 text-white/40 hover:text-emerald-400 transition-colors text-sm font-bold group"
+          className="flex items-center gap-2 text-white/40 hover:text-blue-500 transition-colors text-sm font-bold group"
         >
-          <div className="bg-white/5 border border-white/10 p-1.5 rounded-lg group-hover:border-emerald-500/50">
+          <div className="bg-white/5 border border-white/10 p-1.5 rounded-lg group-hover:border-blue-600/50">
             <ChevronLeft className="w-4 h-4" />
           </div>
           Назад к папкам
@@ -201,7 +201,7 @@ export function ClipsTab({
 
       {clips.length < totalClips && !selectedFolderId && (
         <div ref={observerTarget} className="flex justify-center pt-8 pb-12">
-          <div className="w-8 h-8 border-4 border-white/10 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-white/10 border-t-blue-600 rounded-full animate-spin" />
         </div>
       )}
     </div>

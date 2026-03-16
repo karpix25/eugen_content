@@ -58,12 +58,12 @@ export function Sidebar({
           isOpen ? "justify-between px-2" : "justify-center"
         )}>
           <div className="flex items-center gap-4 group">
-            <div className="w-10 h-10 md:w-11 md:h-11 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] group-hover:rotate-12 transition-transform duration-500 shrink-0 overflow-hidden">
+            <div className="w-10 h-10 md:w-11 md:h-11 bg-blue-600 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] group-hover:rotate-12 transition-transform duration-500 shrink-0 overflow-hidden">
               <img src="/logo.png" className="w-6 h-6 md:w-7 md:h-7 object-contain brightness-0" alt="MineHash" />
             </div>
             {isOpen && (
               <div className="transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-                <h1 className="text-lg font-black tracking-tighter text-white uppercase italic">MINE<span className="text-emerald-500">HASH</span></h1>
+                <h1 className="text-lg font-black tracking-tighter text-white uppercase italic">MINE<span className="text-blue-600">HASH</span></h1>
                 <p className="text-[9px] text-white/40 font-bold uppercase tracking-[0.2em]">Video Automation</p>
               </div>
             )}
@@ -172,7 +172,7 @@ export function Sidebar({
             "flex items-center gap-3 bg-white/5 rounded-2xl border border-white/5 transition-all duration-500",
             isOpen ? "px-4 py-2 w-full" : "p-2"
           )}>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-500 border border-emerald-500/20 shadow-inner shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-blue-600/20 flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-600/20 shadow-inner shrink-0">
               {currentUser?.first_name?.[0] || 'U'}
             </div>
             {isOpen && (

@@ -71,7 +71,7 @@ export function MonitoringTab({
       {/* Channels Section */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Tv className="w-5 h-5 text-emerald-500" />
+          <Tv className="w-5 h-5 text-blue-600" />
           YouTube каналы
         </h3>
 
@@ -81,19 +81,19 @@ export function MonitoringTab({
             value={newChannelUrl}
             onChange={(e) => setNewChannelUrl(e.target.value)}
             placeholder="YouTube URL или ID канала"
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-600 outline-none transition-all"
           />
           <div className="flex gap-3">
             <select
               value={monitoringInterval}
               onChange={(e) => setMonitoringInterval(e.target.value)}
-              className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 text-sm flex-1"
+              className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-600 text-sm flex-1"
             >
               <option value="daily">Каждый день</option>
               <option value="weekly">Каждую неделю</option>
               <option value="manual">Вручную</option>
             </select>
-            <div className="flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 focus-within:border-emerald-500 items-center">
+            <div className="flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 focus-within:border-blue-600 items-center">
               <span className="pl-4 text-white/40 text-[10px] uppercase font-bold whitespace-nowrap">Видео за:</span>
               <input
                 type="number"
@@ -109,7 +109,7 @@ export function MonitoringTab({
             <button
               onClick={handleAddChannel}
               disabled={addingChannel || !newChannelUrl}
-              className="px-6 py-3 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 disabled:opacity-50 transition-all whitespace-nowrap"
+              className="px-6 py-3 bg-blue-600 text-black font-bold rounded-xl hover:bg-blue-500 disabled:opacity-50 transition-all whitespace-nowrap"
             >
               {addingChannel ? 'Загрузка...' : 'Добавить канал'}
             </button>
@@ -148,7 +148,7 @@ export function MonitoringTab({
                       onClick={() => onToggleChannelPublic(channel.id, !channel.is_public)}
                       className={`p-1.5 rounded-lg border transition-all ${
                         channel.is_public 
-                          ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/30" 
+                          ? "bg-blue-600/20 text-blue-600 border-blue-600/20 hover:bg-blue-600/30" 
                           : "bg-white/5 text-white/20 border-white/10 hover:bg-white/10"
                       }`}
                       title={channel.is_public ? "Сделать приватным" : "Сделать публичным"}
@@ -159,7 +159,7 @@ export function MonitoringTab({
                     <span 
                       className={`p-1.5 rounded-lg border ${
                         channel.is_public 
-                          ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/20" 
+                          ? "bg-blue-600/20 text-blue-600 border-blue-600/20" 
                           : "bg-white/5 text-white/20 border-white/10"
                       }`}
                       title={channel.is_public ? "Публичный" : "Приватный"}
@@ -179,7 +179,7 @@ export function MonitoringTab({
                 {/* Always visible status dot/icon when not hovered if needed, but for now we follow the user's focus on "fixing placement" */}
                 {!currentUserProfile?.is_admin && (
                    <div className="absolute top-2 right-2 group-hover:hidden transition-all">
-                      <span className={`w-2 h-2 rounded-full block ${channel.is_public ? 'bg-emerald-500' : 'bg-white/20'}`} />
+                      <span className={`w-2 h-2 rounded-full block ${channel.is_public ? 'bg-blue-600' : 'bg-white/20'}`} />
                    </div>
                 )}
               </div>

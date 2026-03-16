@@ -63,27 +63,27 @@ export function Auth({ onLogin }: AuthProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#0A0A0A]">
       <div className="absolute top-0 left-0 w-full h-full">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[120px] rounded-full animate-pulse [animation-delay:2s]" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
         <div className="mb-12 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2rem] bg-gradient-to-br from-emerald-400 to-emerald-600 p-[1px] mb-6 shadow-2xl shadow-emerald-500/20 group">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2rem] bg-gradient-to-br from-blue-500 to-blue-700 p-[1px] mb-6 shadow-2xl shadow-blue-600/20 group">
             <div className="w-full h-full rounded-[2rem] bg-black flex items-center justify-center relative overflow-hidden">
-               <div className="absolute inset-0 bg-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-               <Shield className="w-8 h-8 text-emerald-400 relative z-10" />
+               <div className="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+               <Shield className="w-8 h-8 text-blue-500 relative z-10" />
             </div>
           </div>
           <h1 className="text-4xl font-black text-white mb-3 tracking-tighter">
-            EUGEN<span className="text-emerald-500">.</span>CONTROL
+            EUGEN<span className="text-blue-600">.</span>CONTROL
           </h1>
           <p className="text-white/40 font-medium uppercase tracking-[0.3em] text-[10px]">Система управления контентом</p>
         </div>
 
         <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden relative">
           <div className="absolute top-0 right-0 p-4">
-            <Sparkles className="w-5 h-5 text-emerald-500/20" />
+            <Sparkles className="w-5 h-5 text-blue-600/20" />
           </div>
 
           <div className="space-y-6">
@@ -107,12 +107,12 @@ export function Auth({ onLogin }: AuthProps) {
             ) : (
               <div className="p-8 bg-black/40 border border-white/10 rounded-[2rem] text-center space-y-6">
                 <div className="flex justify-center">
-                  <div className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                  <div className="w-12 h-12 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
                 </div>
                 <div className="space-y-2">
                   <p className="text-white font-black uppercase tracking-[0.2em] text-xs">Ждем подтверждения</p>
                   <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold leading-relaxed">
-                    Откройте Telegram и нажмите кнопку <span className="text-emerald-500">ЗАПУСТИТЬ</span> (START) в боте
+                    Откройте Telegram и нажмите кнопку <span className="text-blue-600">ЗАПУСТИТЬ</span> (START) в боте
                   </p>
                 </div>
                 <button

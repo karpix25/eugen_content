@@ -45,7 +45,7 @@ export function PlaqueSettings({
                 className={cn(
                   "w-full aspect-square flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden",
                   defaultPlaqueId === plaque.id 
-                    ? 'bg-emerald-500 border-emerald-400 shadow-xl shadow-emerald-500/20' 
+                    ? 'bg-blue-600 border-blue-500 shadow-xl shadow-blue-600/20' 
                     : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
                 )}
               >
@@ -92,8 +92,8 @@ export function PlaqueSettings({
                 }} className="h-full">
                   <input type="file" name="file" accept="image/*" required onChange={(e) => e.target.form?.requestSubmit()} className="hidden" />
                   <input type="hidden" name="name" value={`Plaque ${plaques.length + 1}`} />
-                  <div className="w-full h-full border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center gap-3 text-white/20 hover:border-emerald-500/50 hover:text-emerald-500/50 hover:bg-emerald-500/5 transition-all group">
-                    {uploadLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-500" /> : <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />}
+                  <div className="w-full h-full border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center gap-3 text-white/20 hover:border-blue-600/50 hover:text-blue-600/50 hover:bg-blue-600/5 transition-all group">
+                    {uploadLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600" /> : <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />}
                     <span className="text-[10px] font-black uppercase tracking-widest">Загрузить</span>
                   </div>
                 </form>
@@ -116,7 +116,7 @@ export function PlaqueSettings({
                 <button
                   key={pos.id}
                   onClick={() => setPosition(pos.id)}
-                  className={`text-[10px] uppercase font-black py-4 rounded-2xl border-2 transition-all ${position === pos.id ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:border-white/10'}`}
+                  className={`text-[10px] uppercase font-black py-4 rounded-2xl border-2 transition-all ${position === pos.id ? 'bg-blue-600/10 border-blue-600 text-blue-500 shadow-lg shadow-blue-600/10' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:border-white/10'}`}
                 >
                   {pos.label}
                 </button>
@@ -127,22 +127,22 @@ export function PlaqueSettings({
           <div className="space-y-4">
             <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] px-1 flex justify-between items-end">
               <span>Масштаб</span>
-              <span className="text-emerald-400 font-mono text-[12px]">{size}%</span>
+              <span className="text-blue-500 font-mono text-[12px]">{size}%</span>
             </label>
             <div className="px-1">
-              <input type="range" min="20" max="100" step="1" value={size} onChange={(e) => setSize(parseInt(e.target.value))} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+              <input type="range" min="20" max="100" step="1" value={size} onChange={(e) => setSize(parseInt(e.target.value))} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-600" />
             </div>
           </div>
 
           <div className="space-y-4">
             <label className="block text-[10px] font-black text-white/40 uppercase tracking-[0.2em] px-1 flex justify-between items-end">
               <span>Появление</span>
-              <span className="text-emerald-400 font-mono text-[12px]">
+              <span className="text-blue-500 font-mono text-[12px]">
                 {timerange === 0 ? 'СРАЗУ' : `ДО ${timerange}%`}
               </span>
             </label>
             <div className="px-1">
-              <input type="range" min="0" max="100" step="5" value={timerange} onChange={(e) => setTimerange(parseInt(e.target.value))} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+              <input type="range" min="0" max="100" step="5" value={timerange} onChange={(e) => setTimerange(parseInt(e.target.value))} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-600" />
               <p className="text-[9px] text-white/20 mt-3 font-medium uppercase tracking-[0.1em] leading-relaxed">Плашка появится в случайный момент времени до указанного процента видео.</p>
             </div>
           </div>
