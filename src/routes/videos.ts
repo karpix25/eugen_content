@@ -68,4 +68,15 @@ router.post("/:id/complete", authenticateToken, async (req, res) => {
   }
 });
 
+router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isPublic } = req.body;
+    await VideoManager.togglePublic(id, isPublic);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to toggle video visibility" });
+  }
+});
+
 export default router;

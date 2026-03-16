@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Video, LayoutGrid, Folder as FolderIcon, ChevronLeft } from 'lucide-react';
 import { Clip, AdPlaque } from '../../types';
 import { ClipCard } from '../clips/ClipCard';
@@ -33,11 +33,30 @@ export function ClipsTab({
   onTogglePublic,
   currentUserProfile
 }: ClipsTabProps) {
-  const [showAvailableOnly, setShowAvailableOnly] = useState(true);
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
   const [languageFilter, setLanguageFilter] = useState<'all' | 'ru' | 'en'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'folder'>('folder');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && clips.length < totalClips && !loading && !selectedFolderId) {
+          loadMoreClips();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [clips.length, totalClips, loading, loadMoreClips, selectedFolderId]);
 
   const visibleClips = clips.filter(c => {
     if (showAvailableOnly && c.is_available === false) return false;
@@ -47,19 +66,42 @@ export function ClipsTab({
   });
 
   // Grouping logic for Folder View
-  const folders = visibleClips.reduce((acc: Record<string, { id: string, title: string, thumbnail?: string, clips: Clip[] }>, clip) => {
+  const folders = visibleClips.reduce((acc: Record<string, { id: string, title: string, thumbnail?: string, clips: Clip[], isPublic?: boolean }>, clip) => {
     const videoId = clip.video_id;
     if (!acc[videoId]) {
       acc[videoId] = {
         id: videoId,
         title: (clip as any).video_title || 'Unknown Video',
         thumbnail: (clip as any).video_thumbnail,
+        isPublic: !!clip.video_is_public,
         clips: []
       };
     }
     acc[videoId].clips.push(clip);
     return acc;
   }, {});
+
+  const handleToggleFolderPublic = async (videoId: string, isPublic: boolean) => {
+    try {
+      const res = await fetch(`/api/videos/${videoId}/toggle-public`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ isPublic })
+      });
+
+      if (res.ok) {
+        onUpdate();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Ошибка при изменении приватности");
+      }
+    } catch (error) {
+      console.error("Error toggling folder public:", error);
+    }
+  };
 
   const displayedClips = selectedFolderId 
     ? visibleClips.filter(c => c.video_id === selectedFolderId)
@@ -121,8 +163,13 @@ export function ClipsTab({
               videoId={folder.id}
               videoTitle={folder.title}
               videoThumbnail={folder.thumbnail}
+              isPublic={folder.isPublic}
               clips={folder.clips}
               onClick={() => setSelectedFolderId(folder.id)}
+              onTogglePublic={isAdmin ? (e) => {
+                e.stopPropagation();
+                handleToggleFolderPublic(folder.id, !folder.isPublic);
+              } : undefined}
             />
           ))
         ) : (
@@ -171,19 +218,8 @@ export function ClipsTab({
       </div>
 
       {clips.length < totalClips && !selectedFolderId && (
-        <div className="flex justify-center pt-8 pb-12">
-          <button
-            onClick={loadMoreClips}
-            disabled={loading}
-            className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-3 group"
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Video className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
-            )}
-            {loading ? 'Загрузка...' : 'Загрузить еще'}
-          </button>
+        <div ref={observerTarget} className="flex justify-center pt-8 pb-12">
+          <div className="w-8 h-8 border-4 border-white/10 border-t-emerald-500 rounded-full animate-spin" />
         </div>
       )}
     </div>

@@ -22,6 +22,7 @@ export interface VideoData {
   detected_language: string | null;
   target_language: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'sent_to_vizard' | 'completed';
+  is_public?: boolean;
 }
 
 export interface Clip {
@@ -41,6 +42,7 @@ export interface Clip {
   published_by_me?: boolean;
   hook?: string;
   created_at?: string;
+  video_is_public?: boolean;
 }
 
 export interface Publication {

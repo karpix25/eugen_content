@@ -99,6 +99,10 @@ export class VideoManager {
     await query("UPDATE videos SET status = 'completed' WHERE id = $1", [id]);
   }
 
+  static async togglePublic(id: string, isPublic: boolean) {
+    await query("UPDATE videos SET is_public = $1 WHERE id = $2", [isPublic, id]);
+  }
+
   static async addManualVideo(url: string) {
     // Detect if it's a channel URL (contains @, /channel/, /c/, or /user/)
     const isChannel = url.includes('/@') || url.includes('/channel/') || url.includes('/c/') || url.includes('/user/');

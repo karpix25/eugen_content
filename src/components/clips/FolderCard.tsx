@@ -1,5 +1,4 @@
-import React from 'react';
-import { Folder, Film, Calendar, Globe } from 'lucide-react';
+import { Folder, Film, Calendar, Globe, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import { Clip } from '../../types';
 import { cn } from '../../lib/utils';
 
@@ -7,15 +6,19 @@ interface FolderCardProps {
   videoId: string;
   videoTitle: string;
   videoThumbnail?: string;
+  isPublic?: boolean;
   clips: Clip[];
   onClick: () => void;
+  onTogglePublic?: (e: React.MouseEvent) => void;
 }
 
 export function FolderCard({
   videoTitle,
   videoThumbnail,
+  isPublic,
   clips,
-  onClick
+  onClick,
+  onTogglePublic
 }: FolderCardProps) {
   const lastUpdate = clips.length > 0 
     ? new Date(Math.max(...clips.map(c => new Date(c.created_at || 0).getTime())))
@@ -42,6 +45,32 @@ export function FolderCard({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
         
+        <div className="absolute top-3 left-3 flex gap-2">
+          {onTogglePublic ? (
+            <button
+              onClick={onTogglePublic}
+              className={cn(
+                "p-2 rounded-lg backdrop-blur-md border transition-all shadow-lg",
+                isPublic 
+                  ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30" 
+                  : "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30"
+              )}
+              title={isPublic ? "Сделать приватной" : "Сделать публичной"}
+            >
+              {isPublic ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </button>
+          ) : (
+            <div className={cn(
+              "p-2 rounded-lg backdrop-blur-md border shadow-lg",
+              isPublic 
+                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" 
+                : "bg-amber-500/20 border-amber-500/50 text-amber-400"
+            )}>
+              {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            </div>
+          )}
+        </div>
+
         <div className="absolute top-3 right-3 flex gap-2">
           <span className="bg-emerald-500 text-black text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg">
             <Film className="w-3 h-3" />
