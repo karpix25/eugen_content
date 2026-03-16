@@ -271,7 +271,10 @@ export function SettingsTab({
             </div>
 
             <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-right-4 duration-1000">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className={cn(
+                "grid grid-cols-1 gap-8",
+                ['subtitles', 'plaque', 'watermark'].includes(settingsSection) && "lg:grid-cols-2"
+              )}>
                 <div className="space-y-6">
                   {settingsSection === 'subtitles' && (
                     <SubtitleSettings 
@@ -348,7 +351,8 @@ export function SettingsTab({
 
                 </div>
 
-                <div className="space-y-6 flex flex-col items-center">
+                {['subtitles', 'plaque', 'watermark'].includes(settingsSection) && (
+                  <div className="space-y-6 flex flex-col items-center">
                   <style>
                     {`@import url('https://fonts.googleapis.com/css2?family=${FONT_FAMILIES.find(f => f.id === subtitleFontFamily)?.googleUrl || 'Anton'}&display=swap');`}
                   </style>
@@ -439,7 +443,8 @@ export function SettingsTab({
                     </div>
                   </div>
 
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

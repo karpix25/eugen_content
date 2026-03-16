@@ -87,127 +87,124 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 md:gap-6">
-            {/* Preferred Length */}
-            <div className="p-6 md:p-8 bg-black/40 border border-white/5 rounded-[2rem] group/card hover:border-blue-500/40 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-600/5">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8">
-                    <div className="flex items-center gap-4 min-w-[200px]">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 group-hover/card:bg-blue-600/20 transition-colors shadow-inner shrink-0 text-blue-500">
-                            <Zap className="w-6 h-6" />
+    return (
+        <div className="bg-black/40 border border-white/5 rounded-[2.5rem] p-6 md:p-8 space-y-8 shadow-2xl relative overflow-hidden group/main">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 blur-[100px] -mr-32 -mt-32 rounded-full pointer-events-none" />
+            
+            <div className="space-y-10">
+                {/* Preferred Length */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 text-blue-500">
+                            <Zap className="w-5 h-5" />
                         </div>
-                        <h4 className="text-[11px] md:text-xs font-black text-white uppercase tracking-[0.2em] leading-tight">Длина клипов</h4>
+                        <h4 className="text-[10px] md:text-xs font-black text-white uppercase tracking-[0.2em] leading-tight">Длина клипов</h4>
                     </div>
                     
-                    <div className="flex-1 space-y-2">
-                        <p className="text-xs md:text-sm text-white/50 font-medium leading-relaxed max-w-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                        <p className="text-[11px] md:text-sm text-white/40 font-medium leading-relaxed">
                             Определяет предпочтительный временной интервал для автоматически создаваемых клипов AI-ассистентом.
                         </p>
-                    </div>
-
-                    <div className="relative min-w-[280px]">
-                        <select 
-                            value={settings.vizard_prefer_length}
-                            onChange={(e) => setSettings({...settings, vizard_prefer_length: e.target.value})}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs md:text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all font-bold appearance-none cursor-pointer hover:bg-white/10 pr-12 uppercase tracking-widest"
-                        >
-                            <option value="0">Автоматически (Vizard AI)</option>
-                            <option value="1">Менее 30 секунд</option>
-                            <option value="2">От 30 до 60 секунд</option>
-                            <option value="3">От 60 до 90 секунд</option>
-                            <option value="4">От 90 секунд до 3 минут</option>
-                        </select>
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                             <Scissors className="w-4 h-4 rotate-90" />
+                        <div className="relative">
+                            <select 
+                                value={settings.vizard_prefer_length}
+                                onChange={(e) => setSettings({...settings, vizard_prefer_length: e.target.value})}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-[11px] md:text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all font-bold appearance-none cursor-pointer hover:bg-white/10 pr-12 uppercase tracking-widest"
+                            >
+                                <option value="0">Автоматически (Vizard AI)</option>
+                                <option value="1">Менее 30 секунд</option>
+                                <option value="2">От 30 до 60 секунд</option>
+                                <option value="3">От 60 до 90 секунд</option>
+                                <option value="4">От 90 секунд до 3 минут</option>
+                            </select>
+                            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                                 <Scissors className="w-4 h-4 rotate-90" />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Silence Removal */}
-            <div className="p-6 md:p-8 bg-black/40 border border-white/5 rounded-[2rem] group/card hover:border-blue-500/40 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-600/5">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8">
-                    <div className="flex items-center gap-4 min-w-[200px]">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 group-hover/card:bg-blue-600/20 transition-colors shadow-inner shrink-0 text-blue-500">
-                            <VolumeX className="w-6 h-6" />
+                <div className="h-px bg-white/5 w-full" />
+
+                {/* Silence Removal */}
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 text-blue-500">
+                                <VolumeX className="w-5 h-5" />
+                            </div>
+                            <h4 className="text-[10px] md:text-xs font-black text-white uppercase tracking-[0.2em] leading-tight">Удаление тишины</h4>
                         </div>
-                        <h4 className="text-[11px] md:text-xs font-black text-white uppercase tracking-[0.2em] leading-tight">Удаление тишины</h4>
-                    </div>
-                    
-                    <div className="flex-1">
-                        <p className="text-xs md:text-sm text-white/50 font-medium leading-relaxed max-w-xl">
-                            Интеллектуальный анализатор автоматически вырезает длинные паузы и тишину из видео для повышения динамики и удержания внимания зрителей.
-                        </p>
-                    </div>
-
-                    <div className="flex justify-end lg:min-w-[100px]">
-                        <label className="relative inline-flex items-center cursor-pointer scale-110">
+                        <label className="relative inline-flex items-center cursor-pointer">
                             <input 
                                 type="checkbox" 
                                 checked={settings.vizard_remove_silence === '1'} 
                                 onChange={(e) => setSettings({...settings, vizard_remove_silence: e.target.checked ? '1' : '0'})}
                                 className="sr-only peer" 
                             />
-                            <div className="w-12 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                            <div className="w-10 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                         </label>
                     </div>
-                </div>
-            </div>
-
-            {/* Auto B-Roll */}
-            <div className="p-6 md:p-8 bg-black/40 border border-white/5 rounded-[2rem] group/card hover:border-blue-500/40 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-600/5">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-8">
-                    <div className="flex items-center gap-4 min-w-[200px]">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 group-hover/card:bg-blue-600/20 transition-colors shadow-inner shrink-0 text-blue-500">
-                            <Image className="w-6 h-6" />
-                        </div>
-                        <h4 className="text-[11px] md:text-xs font-black text-white uppercase tracking-[0.2em] leading-tight">Авто B-roll</h4>
-                    </div>
                     
-                    <div className="flex-1 space-y-2">
-                        <p className="text-xs md:text-sm text-white/50 font-medium leading-relaxed max-w-xl">
-                            Автоматическая подстановка релевантных стоковых футажей во время пауз или для визуальной иллюстрации речи. 
-                        </p>
-                        <div className="flex items-center gap-2">
-                            <div className="w-1 h-1 rounded-full bg-blue-600/50" />
-                            <span className="text-[9px] md:text-[10px] text-blue-500/60 font-black uppercase tracking-widest">
-                                Увеличивает время обработки видео
-                            </span>
-                        </div>
-                    </div>
+                    <p className="text-[11px] md:text-sm text-white/40 font-medium leading-relaxed">
+                        Интеллектуальный анализатор автоматически вырезает длинные паузы и тишину из видео для повышения динамики и удержания внимания зрителей.
+                    </p>
+                </div>
 
-                    <div className="flex justify-end lg:min-w-[100px]">
-                        <label className="relative inline-flex items-center cursor-pointer scale-110">
+                <div className="h-px bg-white/5 w-full" />
+
+                {/* Auto B-Roll */}
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 text-blue-500">
+                                <Image className="w-5 h-5" />
+                            </div>
+                            <h4 className="text-[10px] md:text-xs font-black text-white uppercase tracking-[0.2em] leading-tight">Авто B-roll</h4>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
                             <input 
                                 type="checkbox" 
                                 checked={settings.vizard_auto_broll === '1'} 
                                 onChange={(e) => setSettings({...settings, vizard_auto_broll: e.target.checked ? '1' : '0'})}
                                 className="sr-only peer" 
                             />
-                            <div className="w-12 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                            <div className="w-10 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                         </label>
                     </div>
-                </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="pt-2">
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="w-full relative group/btn overflow-hidden rounded-[1.5rem]"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-400 opacity-100 group-hover/btn:scale-110 transition-transform duration-500" />
-                    <div className="relative py-5 rounded-[1.5rem] flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                        {saving ? (
-                            <Loader2 className="w-5 h-5 animate-spin text-white" />
-                        ) : (
-                            <CheckCircle className="w-5 h-5 text-white group-hover/btn:rotate-[360deg] transition-transform duration-700" />
-                        )}
-                        <span className="text-white font-black text-[11px] uppercase tracking-[0.3em]">
-                            {saving ? 'Сохранение...' : 'Сохранить параметры'}
-                        </span>
+                    
+                    <div className="space-y-4">
+                        <p className="text-[11px] md:text-sm text-white/40 font-medium leading-relaxed">
+                            Автоматическая подстановка релевантных стоковых футажей во время пауз или для визуальной иллюстрации речи. 
+                        </p>
+                        <div className="flex items-center gap-2 bg-blue-600/5 border border-blue-600/10 py-2 px-3 rounded-xl w-fit">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                            <span className="text-[9px] text-blue-500 font-black uppercase tracking-widest leading-none">
+                                Увеличивает время обработки
+                            </span>
+                        </div>
                     </div>
-                </button>
+                </div>
+
+                <div className="pt-4">
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="w-full relative group/btn overflow-hidden rounded-2xl"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-400 opacity-100 group-hover/btn:scale-110 transition-transform duration-500 shadow-xl shadow-blue-600/20" />
+                        <div className="relative py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                            {saving ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                            ) : (
+                                <CheckCircle className="w-4 h-4 text-white group-hover/btn:rotate-[360deg] transition-transform duration-700" />
+                            )}
+                            <span className="text-white font-black text-[10px] uppercase tracking-[0.3em]">
+                                {saving ? 'Сохранение...' : 'Сохранить изменения Vizard'}
+                            </span>
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
 
