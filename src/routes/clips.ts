@@ -24,6 +24,8 @@ router.get("/", authenticateToken, async (req: any, res) => {
 
     let queryText = `
       SELECT c.*, 
+             v.title as video_title,
+             v.thumbnail as video_thumbnail,
              EXISTS(SELECT 1 FROM publications WHERE clip_id = c.id AND user_id = $1) as published_by_me
       FROM clips c 
       JOIN videos v ON c.video_id = v.id
@@ -40,7 +42,7 @@ router.get("/", authenticateToken, async (req: any, res) => {
     const queryParams: any[] = [userId];
 
     if (!isUserAdmin) {
-      const filter = " WHERE c.is_public = true OR ch.is_public = true OR ch.user_id = $1";
+      const filter = " WHERE (c.is_public = true OR ch.is_public = true OR ch.user_id = $1)";
       queryText += filter;
       countQueryText += filter;
     }

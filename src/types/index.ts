@@ -40,6 +40,7 @@ export interface Clip {
   language: string | null;
   published_by_me?: boolean;
   hook?: string;
+  created_at?: string;
 }
 
 export interface Publication {
