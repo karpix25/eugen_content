@@ -73,12 +73,10 @@ export function DashboardTab({ authToken }: { authToken: string }) {
   }
 
   if (!stats) return null;
-
   const mainMetrics = [
     { label: 'Всего пользователей', value: stats.total.users, subValue: `${stats.total.authorized_users} активных`, icon: <Users className="w-5 h-5 text-blue-400" />, color: 'blue' },
-    { label: 'Опубликовано видео', value: stats.total_published_videos, subValue: `${stats.recent.today} за сегодня`, icon: <CheckCircle2 className="w-5 h-5 text-blue-500" />, color: 'blue' },
+    { label: 'Опубликовано видео', value: stats.total_published_videos, subValue: `${stats.recent.today} за сегодня`, icon: <CheckCircle2 className="w-5 h-5 text-blue-600" />, color: 'blue' },
     { label: 'Всего назок', value: stats.total.clips, subValue: `из ${stats.total.videos} видео`, icon: <Video className="w-5 h-5 text-purple-400" />, color: 'purple' },
-    { label: 'Активных каналов', value: stats.total.channels, subValue: 'в мониторинге', icon: <TrendingUp className="w-5 h-5 text-orange-400" />, color: 'orange' },
   ];
 
   return (
@@ -92,7 +90,7 @@ export function DashboardTab({ authToken }: { authToken: string }) {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {mainMetrics.map((m, i) => (
           <div key={i} className="group bg-white/5 border border-white/10 rounded-[2rem] p-6 hover:border-white/20 transition-all">
             <div className="flex items-start justify-between mb-4">
@@ -179,24 +177,41 @@ export function DashboardTab({ authToken }: { authToken: string }) {
         </div>
       </div>
 
-      {/* Top Clips */}
       <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-            <UserCheck className="w-5 h-5 text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
+            <Trophy className="w-5 h-5 text-blue-500" />
           </div>
-          <h3 className="text-xl font-bold italic tracking-tight uppercase">Популярные нарезки <span className="text-purple-500">.</span></h3>
+          <h3 className="text-xl font-bold italic tracking-tight uppercase">Популярные нарезки <span className="text-blue-600">.</span></h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {stats.top_clips.slice(0, 6).map((clip) => (
-            <div key={clip.id} className="flex items-center gap-4 bg-black/40 p-3 rounded-2xl border border-white/5 hover:border-blue-600/20 transition-all">
-              <img src={clip.thumbnail} className="w-14 h-14 rounded-xl object-cover grayscale group-hover:grayscale-0 transition-all shrink-0" alt="" />
+        <div className="space-y-3">
+          {stats.top_clips.slice(0, 5).map((clip, i) => (
+            <div key={clip.id} className="flex items-center gap-6 bg-black/40 p-4 rounded-3xl border border-white/5 hover:border-blue-600/30 transition-all group overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-[40px] rounded-full -mr-16 -mt-16 pointer-events-none" />
+              
+              <div className="w-12 h-12 rounded-full bg-blue-600/20 flex items-center justify-center text-sm font-black text-blue-600 border border-blue-600/20 shrink-0">
+                {i + 1}
+              </div>
+
+              <div className="relative w-32 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-2xl">
+                <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt="" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              </div>
+
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-white truncate">{clip.title}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">{clip.publish_count} публикаций</p>
+                <p className="font-black text-white text-lg tracking-tight truncate group-hover:text-blue-400 transition-colors">{clip.title}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-600/10 border border-blue-600/20 rounded-full">
+                    <TrendingUp className="w-3 h-3 text-blue-500" />
+                    <span className="text-[10px] text-blue-500 font-black uppercase tracking-widest">{clip.publish_count} повторов</span>
+                  </div>
+                  <div className="w-1 h-1 rounded-full bg-white/10" />
+                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">ID: {clip.id.slice(0, 8)}</p>
                 </div>
+              </div>
+
+              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+                <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-blue-500 transition-colors" />
               </div>
             </div>
           ))}
