@@ -93,17 +93,18 @@ export function MonitoringTab({
               <option value="weekly">Каждую неделю</option>
               <option value="manual">Вручную</option>
             </select>
-            <div className="flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 focus-within:border-emerald-500">
+            <div className="flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 focus-within:border-emerald-500 items-center">
+              <span className="pl-4 text-white/40 text-[10px] uppercase font-bold whitespace-nowrap">Видео за:</span>
               <input
                 type="number"
                 min="0"
                 value={scrapeDays}
                 onChange={(e) => setScrapeDays(parseInt(e.target.value) || 0)}
-                className="w-full bg-transparent px-4 py-3 outline-none text-sm"
-                title="Дней назад (0 = все)"
-                placeholder="Дней"
+                className="w-full bg-transparent px-2 py-3 outline-none text-sm text-center font-bold"
+                title="Сканировать видео за последние X дней (0 = все)"
+                placeholder="0"
               />
-              <span className="text-white/40 text-xs px-3 py-3 bg-white/5 border-l border-white/10 flex items-center whitespace-nowrap">дн.</span>
+              <span className="text-white/40 text-[10px] uppercase font-bold px-3 py-3 bg-white/5 border-l border-white/10 flex items-center whitespace-nowrap">дн.</span>
             </div>
             <button
               onClick={handleAddChannel}
