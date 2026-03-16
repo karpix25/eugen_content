@@ -58,12 +58,12 @@ export function Sidebar({
           isOpen ? "justify-between px-2" : "justify-center"
         )}>
           <div className="flex items-center gap-4 group">
-            <div className="w-10 h-10 md:w-11 md:h-11 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] group-hover:rotate-12 transition-transform duration-500 shrink-0">
-              <RefreshCw className="w-5 h-5 md:w-6 md:h-6 text-black animate-spin-slow" />
+            <div className="w-10 h-10 md:w-11 md:h-11 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] group-hover:rotate-12 transition-transform duration-500 shrink-0 overflow-hidden">
+              <img src="/logo.png" className="w-6 h-6 md:w-7 md:h-7 object-contain brightness-0" alt="MineHash" />
             </div>
             {isOpen && (
               <div className="transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-                <h1 className="text-lg font-black tracking-tighter text-white">CONTENT<span className="text-emerald-500">MACHINE</span></h1>
+                <h1 className="text-lg font-black tracking-tighter text-white uppercase italic">MINE<span className="text-emerald-500">HASH</span></h1>
                 <p className="text-[9px] text-white/40 font-bold uppercase tracking-[0.2em]">Video Automation</p>
               </div>
             )}
