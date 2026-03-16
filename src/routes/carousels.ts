@@ -62,11 +62,21 @@ router.post("/styles", authenticateToken, requireAdmin, async (req: any, res) =>
   }
 });
 
+const SYSTEM_STYLE_IDS = ['ios-notes', 'dark-luxury', 'cyber-brutalist'];
+
 router.delete("/styles/:id", authenticateToken, requireAdmin, async (req: any, res) => {
   try {
-    await query("DELETE FROM carousel_styles WHERE id = $1", [req.params.id]);
+    const { id } = req.params;
+    
+    // Don't attempt to delete system styles from database
+    if (SYSTEM_STYLE_IDS.includes(id)) {
+      return res.json({ success: true, message: "System style preserved" });
+    }
+
+    await query("DELETE FROM carousel_styles WHERE id = $1", [id]);
     res.json({ success: true });
   } catch (err) {
+    console.error("Style deletion error:", err);
     res.status(500).json({ error: "Failed to delete style" });
   }
 });
