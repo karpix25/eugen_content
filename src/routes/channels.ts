@@ -89,14 +89,28 @@ router.post("/:id/sync", authenticateToken, async (req: any, res) => {
   }
 });
 
-router.delete("/:id", authenticateToken, requireAdmin, async (req: any, res) => {
-  if (!isAdmin(req.user.id)) return res.sendStatus(403);
+router.delete("/:id", authenticateToken, async (req: any, res) => {
   const { id } = req.params;
+  const userId = String(req.user.id);
+  
   try {
+    // Check if user is admin or owner
+    const channelRes = await query("SELECT user_id FROM channels WHERE id = $1", [id]);
+    const channel = channelRes.rows[0];
+    
+    if (!channel) return res.status(404).json({ error: "Channel not found" });
+    
+    if (!isAdmin(userId) && String(channel.user_id) !== userId) {
+      return res.status(403).json({ error: "Unauthorized to delete this channel" });
+    }
+
+    // Manual cascade deletion (though most have FK cascades, being explicit ensures cleanup)
     await query("DELETE FROM publications WHERE clip_id IN (SELECT id FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1))", [id]);
+    await query("DELETE FROM carousels WHERE clip_id IN (SELECT id FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1))", [id]);
     await query("DELETE FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)", [id]);
     await query("DELETE FROM videos WHERE channel_id = $1", [id]);
     await query("DELETE FROM channels WHERE id = $1", [id]);
+    
     res.json({ success: true });
   } catch (err) {
     console.error("Error deleting channel:", err);
