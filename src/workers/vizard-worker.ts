@@ -7,6 +7,7 @@ import { sendToVizard, getVizardProjectStatus } from "../services/vizard.js";
 import { processClip, generateThumbnail } from "../services/processor.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 import { detectLanguage, translateText } from "../services/gemini.js";
+import { videoProcessingQueue, renderingQueue } from "../lib/queues.js";
 
 const normalizeLang = (lang: string | null): string | null => {
   if (!lang) return null;
@@ -193,18 +194,14 @@ export const pollVizardStatus = async () => {
 
               try {
                 const folderName = sanitizeFolderName(v.title || "Unknown_Video");
-                await processClip(
-                  dubbedClipId,
-                  c.videoUrl || c.url || c.video_url,
-                  approverPlaqueUrl,
-                  finalLanguage,
-                  finalInsertLang,
-                  false,
-                  undefined,
-                  undefined,
-                  undefined,
-                  folderName
-                );
+                await renderingQueue.add(`render-dub-${dubbedClipId}`, {
+                  clipId: dubbedClipId,
+                  videoUrl: c.videoUrl || c.url || c.video_url,
+                  plaqueImageUrl: approverPlaqueUrl,
+                  targetLang: finalLanguage,
+                  sourceLang: finalInsertLang,
+                  videoFolderName: folderName
+                });
               } catch (err) {
                 console.error(`Error processing dubbed clip ${dubbedClipId}:`, err);
               }
@@ -220,6 +217,10 @@ export const pollVizardStatus = async () => {
 };
 
 export function initVizardWorker() {
-  cron.schedule('*/15 * * * *', autoSendToVizard);
-  cron.schedule('*/2 * * * *', pollVizardStatus);
+  cron.schedule('*/15 * * * *', async () => {
+    await videoProcessingQueue.add('auto-vizard', { type: 'auto-vizard' });
+  });
+  cron.schedule('*/2 * * * *', async () => {
+    await videoProcessingQueue.add('poll-vizard', { type: 'poll-vizard' });
+  });
 }

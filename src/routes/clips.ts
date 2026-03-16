@@ -11,6 +11,7 @@ import { sendCarouselToTelegram } from "../services/telegram.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 import { PreviewGenerator } from "../services/preview-generator.js";
 import { uploadToS3 } from "../lib/s3.js";
+import { renderingQueue } from "../lib/queues.js";
 
 const router = Router();
 // Removed hardcoded JWT_SECRET fallback
@@ -152,80 +153,25 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
     const videoRes = await query("SELECT title FROM videos WHERE id = $1", [clip.video_id]);
     const folderName = sanitizeFolderName(videoRes.rows[0]?.title || "Unknown_Video");
 
-    const localFilePath = await processClip(id, clip.url, plaqueImageUrl, clip.language, null, true, watermarkConfig as any, plaqueConfig, subtitleConfig, folderName);
+    // Add to BullMQ instead of direct execution
+    await renderingQueue.add(`render-${id}`, {
+      clipId: id,
+      videoUrl: clip.url,
+      plaqueImageUrl,
+      targetLang: clip.language,
+      sourceLang: null,
+      watermarkConfig,
+      plaqueConfig,
+      subtitleConfig,
+      videoFolderName: folderName,
+      telegramId: String(telegramId),
+      user: dbUser
+    });
 
-    if (telegramId !== 'dev') {
-      let videoPayload: any = { source: fs.createReadStream(localFilePath) };
-      let videoThumb: any = undefined;
-
-      // 1. Check file size
-      const stats = fs.statSync(localFilePath);
-      const fileSizeBytes = stats.size;
-      const fileSizeMB = fileSizeBytes / (1024 * 1024);
-      console.log(`[Telegram] Sending video ${id}, size: ${fileSizeMB.toFixed(2)}MB`);
-
-      // 2. If > 50MB, upload to S3 first and send via URL
-      if (fileSizeMB > 50) {
-        console.warn(`[Telegram] Video exceeds 50MB (${fileSizeMB.toFixed(2)}MB). Uploading to S3 fallback...`);
-        const fileBuffer = fs.readFileSync(localFilePath);
-        const s3Res = await uploadToS3(fileBuffer, `processed/${id}_branded.mp4`, 'video/mp4');
-        videoPayload = s3Res.Location;
-      }
-
-      // 3. Generate thumbnail
-      try {
-        const thumbBuffer = await PreviewGenerator.generateVideoThumbnail(localFilePath, clip.title);
-        if (thumbBuffer) {
-          videoThumb = { source: thumbBuffer };
-        }
-      } catch (thumbErr) {
-        console.warn(`[Telegram] Metadata-based thumb failed, trying font hook...`);
-        try {
-          const fontThumb = await PreviewGenerator.generateFontHook(clip.title);
-          if (fontThumb) videoThumb = { source: fontThumb };
-        } catch (e) {
-          console.warn(`[Telegram] All thumbnail attempts failed:`, e);
-        }
-      }
-
-      const message = await bot.telegram.sendVideo(telegramId, videoPayload, { 
-        caption: `⬜️ ${clip.title}`,
-        thumbnail: videoThumb,
-        width: 1080,
-        height: 1920,
-        supports_streaming: true,
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]
-          ]
-        }
-      });
-      
-      // Ensure user exists before inserting publication
-      await query(
-        "INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", 
-        [String(telegramId), user.username || '', user.first_name || 'Worker']
-      );
-
-      const pubRes = await query(
-        "INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status) VALUES ($1, $2, $3, $4, 'sent') RETURNING id", 
-        [id, String(telegramId), plaque_id || null, message.message_id]
-      );
-      const publicationId = pubRes.rows[0].id;
-
-      // Update the message with the correct publication ID in the callback
-      await bot.telegram.editMessageReplyMarkup(telegramId, message.message_id, undefined, {
-        inline_keyboard: [
-          [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
-        ]
-      });
-
-      fs.unlinkSync(localFilePath);
-    }
-    res.json({ success: true });
+    res.json({ success: true, message: "Задание добавлено в очередь обработки. Вы получите видео в Telegram, когда оно будет готово." });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to process video" });
+    res.status(500).json({ error: "Failed to queue video processing" });
   }
 });
 

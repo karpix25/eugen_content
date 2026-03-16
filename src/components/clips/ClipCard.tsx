@@ -149,14 +149,31 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
           )}
           
           <div className="absolute top-3 right-3 z-30 flex flex-col gap-2">
-            {clip.is_public ? (
-              <span className="px-2 py-1 bg-blue-500/90 backdrop-blur-md text-white rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
-                <Eye className="w-3 h-3" /> Публичный
-              </span>
+            {onTogglePublic ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePublic(clip.id, !clip.is_public);
+                }}
+                className={cn(
+                  "p-2 rounded-lg backdrop-blur-md border transition-all shadow-lg",
+                  clip.is_public 
+                    ? "bg-blue-600/20 border-blue-600/50 text-blue-500 hover:bg-blue-600/30" 
+                    : "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30"
+                )}
+                title={clip.is_public ? "Сделать приватным" : "Сделать публичным"}
+              >
+                {clip.is_public ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
             ) : (
-              <span className="px-2 py-1 bg-white/20 backdrop-blur-md text-white/70 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg border border-white/10">
-                <EyeOff className="w-3 h-3" /> Приватный
-              </span>
+              <div className={cn(
+                "p-2 rounded-lg backdrop-blur-md border shadow-lg",
+                clip.is_public 
+                  ? "bg-blue-600/20 border-blue-600/50 text-blue-500" 
+                  : "bg-amber-500/20 border-amber-500/50 text-amber-400"
+              )}>
+                {clip.is_public ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </div>
             )}
           </div>
         </div>

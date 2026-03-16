@@ -8,6 +8,7 @@ import { sendCarouselToTelegram } from "../services/telegram.js";
 import multer from "multer";
 import { uploadToS3 } from "../lib/s3.js";
 import { SettingsManager } from "../services/SettingsManager.js";
+import { carouselQueue } from "../lib/queues.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -90,18 +91,14 @@ router.post("/generate", authenticateToken, async (req: any, res) => {
     );
     const carouselId = carouselRes.rows[0].id;
 
-    const { CarouselService } = await import("../services/CarouselService.js");
-
-    // Start generation in background
-    CarouselService.generateCarousel({
+    // Add to BullMQ instead of direct execution
+    await carouselQueue.add(`carousel-${carouselId}`, {
         carouselId,
         clipId,
         userId: String(req.user.id),
         styleId,
         topic,
         targetAudience
-    }).catch(err => {
-        console.error("Async carousel generation error:", err);
     });
 
     res.json({ carouselId, status: 'generating' });

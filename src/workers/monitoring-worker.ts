@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { query } from "../lib/db.js";
 import { getTranscript, getLatestVideos } from "../services/apify.js";
 import { evaluateContent } from "../services/gemini.js";
+import { videoProcessingQueue } from "../lib/queues.js";
 
 export function calculateNextCheck(interval: string): Date {
   const now = new Date();
@@ -74,7 +75,16 @@ export const monitorChannels = async () => {
 
   for (const channel of channels.rows) {
     if (channel.monitoring_interval === 'manual') continue;
-    await syncChannel(channel.id, channel.name, channel.monitoring_interval, channel.scrape_days, channel.handle);
+    await videoProcessingQueue.add(`sync-${channel.id}`, {
+      type: 'sync-channel',
+      data: {
+        channelId: channel.id,
+        name: channel.name,
+        interval: channel.monitoring_interval,
+        scrapeDays: channel.scrape_days,
+        handle: channel.handle
+      }
+    });
   }
 };
 

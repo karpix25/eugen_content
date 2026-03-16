@@ -23,6 +23,7 @@ import globalSettingsRoutes from "./src/routes/globalSettings.js";
 import { initMonitoringWorker } from "./src/workers/monitoring-worker.js";
 import { initVizardWorker } from "./src/workers/vizard-worker.js";
 import { initPublishWorker } from "./src/workers/publish-worker.js";
+import "./src/workers/index.js"; // Import all workers to ensure they start
 
 const PORT = Number(process.env.PORT) || 3001;
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { Channel, VideoData, Clip, Publication, User, AdPlaque } from '../types';
 
@@ -13,13 +13,23 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
   const [loading, setLoading] = useState(false);
   const [targetAudience, setTargetAudience] = useState('Предприниматели, интересующиеся ИИ и автоматизацией');
 
+  const fetchVideos = useCallback(async () => {
+    if (!authToken) return;
+    try {
+      const data = await api.videos.list();
+      setVideos(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+    }
+  }, [authToken]);
+
   const fetchData = useCallback(async () => {
     if (!authToken) return;
     try {
       const results = await Promise.allSettled([
         api.channels.list(),
         api.videos.list(),
-        api.clips.list(),
+        api.clips.list(20, 0), // Explicitly fetch first page
         api.plaques.list(currentUser?.telegram_id),
         api.users.list(),
         currentUser?.is_admin ? api.admin.getStats() : Promise.resolve([])
@@ -29,7 +39,6 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
 
       if (chRes.status === 'fulfilled') {
         const data = chRes.value;
-        console.log('[fetchData] channels:', data);
         if (data && (data as any).error === 'Unauthorized') {
           onUnauthorized();
           return;
@@ -63,8 +72,6 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
         const data = userRes.value;
         setUsers(Array.isArray(data) ? data : []);
       }
-
-
     } catch (error) {
       console.error('Error in fetchData:', error);
     }
@@ -76,18 +83,18 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     }
   }, [authToken, fetchData]);
 
-  // Polling for AI evaluation
+  // Polling for AI evaluation - ONLY updates videos to prevent clips list jumping
   useEffect(() => {
     if (!authToken) return;
     const hasPending = videos.some(v => v.status === 'pending' && !v.ai_evaluation);
     if (!hasPending) return;
 
     const interval = setInterval(() => {
-      fetchData();
+      fetchVideos();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [videos, authToken, fetchData]);
+  }, [videos, authToken, fetchVideos]);
 
   const loadMoreClips = useCallback(async () => {
     if (loading || clips.length >= totalClips) return;
@@ -103,7 +110,7 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     }
   }, [loading, clips.length, totalClips]);
 
-  return {
+  return useMemo(() => ({
     channels,
     setChannels,
     videos,
@@ -121,5 +128,5 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     targetAudience,
     setTargetAudience,
     fetchData
-  };
+  }), [channels, videos, clips, totalClips, loadMoreClips, plaques, users, loading, targetAudience, fetchData]);
 }

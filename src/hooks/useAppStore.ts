@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { useAppData } from './useAppData';
 
@@ -236,7 +236,7 @@ export function useAppStore() {
     }
   };
 
-  return {
+  return useMemo(() => ({
     authToken,
     setAuthToken: handleLogin,
     currentUser,
@@ -263,5 +263,5 @@ export function useAppStore() {
     manualYoutubeUrl,
     setManualYoutubeUrl,
     processingId
-  };
+  }), [authToken, handleLogin, currentUser, activeTab, isSidebarOpen, data, handleLogout, addPlaque, deletePlaque, handleEvaluateVideo, handleApproveVideo, handleCompleteVideo, handleDeleteVideo, handleAddManualVideo, handleAddChannel, handleDeleteChannel, handleToggleChannelPublic, handleToggleClipPublic, handleToggleFolderPublic, manualYoutubeUrl, processingId]);
 }
