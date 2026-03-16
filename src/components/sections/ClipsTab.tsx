@@ -35,7 +35,7 @@ export function ClipsTab({
   onToggleFolderPublic,
   currentUserProfile
 }: ClipsTabProps) {
-  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [filterMode, setFilterMode] = useState<'all' | 'new' | 'published'>('new');
   const [languageFilter, setLanguageFilter] = useState<'all' | 'ru' | 'en'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'folder'>('folder');
@@ -61,7 +61,8 @@ export function ClipsTab({
   }, [clips.length, totalClips, loading, loadMoreClips, selectedFolderId]);
 
   const visibleClips = clips.filter(c => {
-    if (showAvailableOnly && c.is_available === false) return false;
+    if (filterMode === 'new' && c.is_available === false) return false;
+    if (filterMode === 'published' && c.is_available === true) return false;
     if (languageFilter !== 'all' && c.language !== languageFilter) return false;
     if (searchQuery && !c.title.toLowerCase().includes(searchQuery.toLowerCase()) && !c.transcript?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
@@ -94,8 +95,8 @@ export function ClipsTab({
         <ClipFilters 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          showAvailableOnly={showAvailableOnly}
-          onShowAvailableChange={setShowAvailableOnly}
+          filterMode={filterMode}
+          onFilterModeChange={setFilterMode}
           languageFilter={languageFilter}
           onLanguageChange={setLanguageFilter}
         />
