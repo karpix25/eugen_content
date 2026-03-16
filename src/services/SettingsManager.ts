@@ -20,4 +20,10 @@ export class SettingsManager {
   static async setCarouselLogo(url: string | null): Promise<void> {
     return this.setSetting('carousel_logo_url', url);
   }
+
+  static async getVizardSettings() {
+    const keys = ['vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll'];
+    const result = await query("SELECT key, value FROM global_settings WHERE key = ANY($1)", [keys]);
+    return result.rows.reduce((acc: any, row: any) => ({ ...acc, [row.key]: row.value }), {});
+  }
 }

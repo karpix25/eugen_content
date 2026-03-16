@@ -18,6 +18,7 @@ interface ClipsTabProps {
   loading?: boolean;
   onTogglePublic: (id: string, isPublic: boolean) => void;
   onToggleFolderPublic: (id: string, isPublic: boolean) => void;
+  onDeleteFolder?: (id: string) => void;
   currentUserProfile: any;
 }
 
@@ -33,6 +34,7 @@ export function ClipsTab({
   loading,
   onTogglePublic,
   onToggleFolderPublic,
+  onDeleteFolder,
   currentUserProfile
 }: ClipsTabProps) {
   const [filterMode, setFilterMode] = useState<'all' | 'new' | 'published'>('new');
@@ -151,6 +153,10 @@ export function ClipsTab({
               onTogglePublic={isAdmin ? (e) => {
                 e.stopPropagation();
                 onToggleFolderPublic(folder.id, !folder.isPublic);
+              } : undefined}
+              onDelete={isAdmin && onDeleteFolder ? (e) => {
+                e.stopPropagation();
+                onDeleteFolder(folder.id);
               } : undefined}
             />
           ))

@@ -16,7 +16,8 @@ import {
   TrendingUp, 
   Cpu, 
   Wand2,
-  Globe
+  Globe,
+  Scissors
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { User, AdPlaque } from '../../types';
@@ -27,6 +28,7 @@ import { AutoModeSettings } from '../settings/AutoModeSettings';
 import { AIGeneratorSettings } from '../settings/AIGeneratorSettings';
 import { PersonalBrandingSettings } from '../settings/PersonalBrandingSettings';
 import { GlobalSettings } from '../settings/GlobalSettings';
+import { VizardSettings } from '../settings/VizardSettings';
 
 interface SettingsTabProps {
   currentUser: User;
@@ -45,7 +47,7 @@ export function SettingsTab({
   onAddPlaque, 
   onDeletePlaque 
 }: SettingsTabProps) {
-  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'ai_gen' | 'brand' | 'global'>('subtitles');
+  const [settingsSection, setSettingsSection] = useState<'subtitles' | 'plaque' | 'watermark' | 'auto' | 'ai_gen' | 'brand' | 'global' | 'vizard'>('subtitles');
   
   // Settings State
   const [watermarkText, setWatermarkText] = useState('');
@@ -157,7 +159,8 @@ export function SettingsTab({
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
     ...(currentUser.is_admin ? [
-      { id: 'global' as const, label: 'Глобальные', icon: <Globe className="w-4 h-4" /> }
+      { id: 'global' as const, label: 'Глобальные', icon: <Globe className="w-4 h-4" /> },
+      { id: 'vizard' as const, label: 'Vizard AI', icon: <Scissors className="w-4 h-4" /> }
     ] : []),
   ];
 
@@ -332,6 +335,12 @@ export function SettingsTab({
 
                   {settingsSection === 'global' && currentUser.is_admin && (
                     <GlobalSettings 
+                      authToken={authToken}
+                    />
+                  )}
+
+                  {settingsSection === 'vizard' && currentUser.is_admin && (
+                    <VizardSettings 
                       authToken={authToken}
                     />
                   )}

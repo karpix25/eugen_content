@@ -118,6 +118,7 @@ function App() {
               loading={loading}
               onTogglePublic={handleToggleClipPublic}
               onToggleFolderPublic={handleToggleFolderPublic}
+              onDeleteFolder={handleDeleteVideo}
               currentUserProfile={currentUser}
             />
           )}

@@ -79,4 +79,15 @@ router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req, r
   }
 });
 
+router.delete("/:id", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await VideoManager.deleteVideo(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete video error:", err);
+    res.status(500).json({ error: "Failed to delete video" });
+  }
+});
+
 export default router;

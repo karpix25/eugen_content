@@ -75,7 +75,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
     await query(`
       CREATE TABLE IF NOT EXISTS clips (
         id TEXT PRIMARY KEY,
-        video_id TEXT REFERENCES videos(id),
+        video_id TEXT REFERENCES videos(id) ON DELETE CASCADE,
         url TEXT,
         thumbnail TEXT,
         title TEXT,
@@ -118,7 +118,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
     await query(`
       CREATE TABLE IF NOT EXISTS publications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        clip_id TEXT REFERENCES clips(id),
+        clip_id TEXT REFERENCES clips(id) ON DELETE CASCADE,
         user_id TEXT,
         plaque_id TEXT REFERENCES ad_plaques(id) ON DELETE SET NULL,
         message_id BIGINT,
@@ -145,7 +145,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
     await query(`
       CREATE TABLE IF NOT EXISTS carousels (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        clip_id TEXT REFERENCES clips(id),
+        clip_id TEXT REFERENCES clips(id) ON DELETE CASCADE,
         user_id TEXT,
         style_id TEXT,
         target_audience TEXT,
@@ -171,13 +171,24 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
     // Insert default values if not exists
     await query(`
       INSERT INTO global_settings (key, value)
-      VALUES ('carousel_logo_url', NULL)
+      VALUES 
+        ('carousel_logo_url', NULL),
+        ('vizard_prefer_length', '2'),
+        ('vizard_remove_silence', '0'),
+        ('vizard_auto_broll', '0')
       ON CONFLICT (key) DO NOTHING
     `);
 
 
     // 2. Robust Type Migrations (Run one by one)
     const migrationStatements = [
+      "ALTER TABLE clips DROP CONSTRAINT IF EXISTS clips_video_id_fkey",
+      "ALTER TABLE clips ADD CONSTRAINT clips_video_id_fkey FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE",
+      "ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_clip_id_fkey",
+      "ALTER TABLE publications ADD CONSTRAINT publications_clip_id_fkey FOREIGN KEY (clip_id) REFERENCES clips(id) ON DELETE CASCADE",
+      "ALTER TABLE carousels DROP CONSTRAINT IF EXISTS carousels_clip_id_fkey",
+      "ALTER TABLE carousels ADD CONSTRAINT carousels_clip_id_fkey FOREIGN KEY (clip_id) REFERENCES clips(id) ON DELETE CASCADE",
+
       "ALTER TABLE clips DROP CONSTRAINT IF EXISTS clips_downloaded_by_fkey",
       "ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_user_id_fkey",
       "ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_plaque_id_fkey",

@@ -1,4 +1,4 @@
-import { Folder, Film, Calendar, Globe, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
+import { Folder, Film, Calendar, Globe, Lock, Unlock, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { Clip } from '../../types';
 import { cn } from '../../lib/utils';
 
@@ -10,6 +10,7 @@ interface FolderCardProps {
   clips: Clip[];
   onClick: () => void;
   onTogglePublic?: (e: React.MouseEvent) => void;
+  onDelete?: (e: React.MouseEvent) => void;
 }
 
 export function FolderCard({
@@ -18,7 +19,8 @@ export function FolderCard({
   isPublic,
   clips,
   onClick,
-  onTogglePublic
+  onTogglePublic,
+  onDelete
 }: FolderCardProps) {
   const lastUpdate = clips.length > 0 
     ? new Date(Math.max(...clips.map(c => new Date(c.created_at || 0).getTime())))
@@ -76,6 +78,15 @@ export function FolderCard({
             <Film className="w-3 h-3" />
             {clips.length}
           </span>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1 px-2 rounded-lg bg-red-600/20 border border-red-600/50 text-red-500 hover:bg-red-600/30 backdrop-blur-md shadow-lg transition-all"
+              title="Удалить папку"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         {languages.length > 0 && (

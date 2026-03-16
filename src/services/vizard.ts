@@ -5,7 +5,25 @@ dotenv.config();
 
 const VIZARD_API_KEY = process.env.VIZARD_API_KEY;
 
-export const sendToVizard = async (videoUrl: string, videoId: string, videoType: number = 2, ext: string = 'mp4'): Promise<string | null> => {
+export const sendToVizard = async (
+    videoUrl: string, 
+    videoId: string, 
+    options: {
+        videoType?: number;
+        ext?: string;
+        preferLength?: number[];
+        removeSilenceSwitch?: number;
+        autoBrollSwitch?: number;
+    } = {}
+): Promise<string | null> => {
+    const { 
+        videoType = 2, 
+        ext = 'mp4',
+        preferLength = [2],
+        removeSilenceSwitch = 0,
+        autoBrollSwitch = 0
+    } = options;
+
     if (!VIZARD_API_KEY) {
         console.error('VIZARD_API_KEY is not set');
         return null;
@@ -16,7 +34,9 @@ export const sendToVizard = async (videoUrl: string, videoId: string, videoType:
             videoUrl: videoUrl,
             videoType: videoType, 
             lang: 'auto', // Auto detection
-            preferLength: [2], // 30-60s
+            preferLength: preferLength,
+            removeSilenceSwitch: removeSilenceSwitch,
+            autoBrollSwitch: autoBrollSwitch,
             ratioOfClip: 1, // Vertical 9:16
             ext: ext, 
             subtitleSwitch: 0, // Disable subtitles

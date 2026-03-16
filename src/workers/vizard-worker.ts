@@ -39,8 +39,17 @@ export const handleVizardFallback = async (videoId: string) => {
     console.log(`[Vizard Fallback] S3 URL: ${s3Url}`);
 
     console.log(`[Vizard Fallback] Resending to Vizard with Direct URL...`);
-    const newProjectId = await sendToVizard(s3Url, videoId, 1); 
+    
+    // Fetch global Vizard settings
+    const settingsRes = await query("SELECT key, value FROM global_settings WHERE key IN ('vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll')");
+    const settings = settingsRes.rows.reduce((acc: any, row: any) => ({ ...acc, [row.key]: row.value }), {});
 
+    const newProjectId = await sendToVizard(s3Url, videoId, {
+      videoType: 1,
+      preferLength: [Number(settings.vizard_prefer_length || 2)],
+      removeSilenceSwitch: Number(settings.vizard_remove_silence || 0),
+      autoBrollSwitch: Number(settings.vizard_auto_broll || 0)
+    });
     if (newProjectId) {
       await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard', error_message = 'Resent via S3 fallback' WHERE id = $2", [newProjectId, videoId]);
       console.log(`[Vizard Fallback] Success! New Project ID: ${newProjectId}`);
@@ -60,11 +69,19 @@ export const handleVizardFallback = async (videoId: string) => {
 export const autoSendToVizard = async () => {
   console.log("Checking for approved videos to send to Vizard...");
   try {
+    // Fetch global Vizard settings
+    const settingsRes = await query("SELECT key, value FROM global_settings WHERE key IN ('vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll')");
+    const settings = settingsRes.rows.reduce((acc: any, row: any) => ({ ...acc, [row.key]: row.value }), {});
+
     const approvedVideos = await query("SELECT id FROM videos WHERE status = 'approved' AND vizard_project_id IS NULL LIMIT 5");
     for (const video of approvedVideos.rows) {
       console.log(`[Auto] Sending approved video ${video.id} to Vizard...`);
       const videoUrl = `https://www.youtube.com/watch?v=${video.id}`;
-      const vizardId = await sendToVizard(videoUrl, video.id);
+      const vizardId = await sendToVizard(videoUrl, video.id, {
+        preferLength: [Number(settings.vizard_prefer_length || 2)],
+        removeSilenceSwitch: Number(settings.vizard_remove_silence || 0),
+        autoBrollSwitch: Number(settings.vizard_auto_broll || 0)
+      });
       if (vizardId) {
         await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, video.id]);
         console.log(`[Auto] Successfully sent ${video.id} to Vizard. ID: ${vizardId}`);

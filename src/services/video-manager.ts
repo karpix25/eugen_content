@@ -84,7 +84,14 @@ export class VideoManager {
   static async approveVideo(id: string, userId: string, targetLanguage?: string) {
     await query("UPDATE videos SET status = 'approved', target_language = $2, approved_by = $3 WHERE id = $1", [id, targetLanguage || null, userId]);
     const videoUrl = `https://www.youtube.com/watch?v=${id}`;
-    const vizardId = await sendToVizard(videoUrl, id);
+    const settingsRes = await query("SELECT key, value FROM global_settings WHERE key IN ('vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll')");
+    const settings = settingsRes.rows.reduce((acc: any, row: any) => ({ ...acc, [row.key]: row.value }), {});
+
+    const vizardId = await sendToVizard(videoUrl, id, {
+      preferLength: [Number(settings.vizard_prefer_length || 2)],
+      removeSilenceSwitch: Number(settings.vizard_remove_silence || 0),
+      autoBrollSwitch: Number(settings.vizard_auto_broll || 0)
+    });
     
     if (vizardId) {
       await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, id]);
@@ -149,5 +156,11 @@ export class VideoManager {
     this.monitorChannels().catch(console.error);
 
     return { id: info.id, name: info.name, status: 'channel_added' };
+  }
+
+  static async deleteVideo(id: string) {
+    // Delete from videos table. 
+    // Dependent data (clips, publications, carousels) will be deleted via ON DELETE CASCADE in DB.
+    await query("DELETE FROM videos WHERE id = $1", [id]);
   }
 }

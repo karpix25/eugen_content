@@ -39,4 +39,27 @@ router.post("/logo", authenticateToken, requireAdmin, upload.single('logo'), asy
   }
 });
 
+router.get("/vizard", authenticateToken, async (req, res) => {
+  try {
+    const settings = await SettingsManager.getVizardSettings();
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch Vizard settings" });
+  }
+});
+
+router.post("/vizard", authenticateToken, requireAdmin, async (req, res) => {
+  const settings = req.body;
+  try {
+    for (const [key, value] of Object.entries(settings)) {
+      if (['vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll'].includes(key)) {
+        await SettingsManager.setSetting(key, String(value));
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update Vizard settings" });
+  }
+});
+
 export default router;
