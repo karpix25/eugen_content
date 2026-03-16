@@ -71,19 +71,30 @@ export function UsersTab({ users, onUpdate, authToken }: UsersTabProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={() => toggleAdmin(user)}
                 disabled={loading === user.telegram_id}
-                className={`p-2 rounded-xl transition-all ${user.is_admin ? 'bg-blue-600/10 text-blue-600' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
-                title={user.is_admin ? "Убрать админа" : "Сделать админом"}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                  user.is_admin 
+                    ? 'bg-blue-600/10 text-blue-600 border-blue-600/20 hover:bg-blue-600/20' 
+                    : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white'
+                }`}
               >
-                {loading === user.telegram_id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
+                {loading === user.telegram_id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Shield className="w-4 h-4" />
+                )}
+                <span className="font-bold text-xs">
+                  {user.is_admin ? "Убрать из админов" : "Назначить админом"}
+                </span>
               </button>
+              
               <button 
                 onClick={() => deleteUser(user)}
                 disabled={loading === user.telegram_id}
-                className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-all"
+                className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 border border-red-500/10 transition-all"
                 title="Удалить"
               >
                 <Trash2 className="w-5 h-5" />

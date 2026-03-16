@@ -55,4 +55,12 @@ export class UserManager {
   static async updateFaceImageUrl(telegramId: string, imageUrl: string) {
     return query("UPDATE users SET face_image_url = $1 WHERE telegram_id = $2", [imageUrl, telegramId]);
   }
+
+  static async toggleAdmin(telegramId: string) {
+    return query("UPDATE users SET is_admin = NOT COALESCE(is_admin, FALSE) WHERE telegram_id = $1", [telegramId]);
+  }
+
+  static async deleteUser(telegramId: string) {
+    return query("DELETE FROM users WHERE telegram_id = $1", [telegramId]);
+  }
 }

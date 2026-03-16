@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { query } from "../lib/db.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
+import { UserManager } from "../services/UserManager.js";
 
 const router = Router();
 
@@ -106,6 +107,30 @@ router.get("/stats", authenticateToken, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("Error fetching admin stats:", err);
     res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+
+// Toggle Admin Status
+router.post("/users/:id/toggle-admin", authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await UserManager.toggleAdmin(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error toggling admin status:", err);
+    res.status(500).json({ error: "Failed to toggle admin status" });
+  }
+});
+
+// Delete User
+router.delete("/users/:id", authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await UserManager.deleteUser(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    res.status(500).json({ error: "Failed to delete user" });
   }
 });
 
