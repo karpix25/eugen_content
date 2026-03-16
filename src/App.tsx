@@ -7,7 +7,6 @@ import { MonitoringTab } from './components/sections/MonitoringTab';
 import { ClipsTab } from './components/sections/ClipsTab';
 import { UsersTab } from './components/sections/UsersTab';
 import { WorkersTab } from './components/sections/WorkersTab';
-import { PublicationsTab } from './components/sections/PublicationsTab';
 import { DashboardTab } from './components/sections/DashboardTab';
 import { SettingsTab } from './components/sections/SettingsTab';
 import CarouselWizard from './components/CarouselWizard';
@@ -40,7 +39,6 @@ function App() {
     totalClips,
     loadMoreClips,
     users,
-    publications,
     plaques,
     handleLogout,
     updateData,
@@ -132,13 +130,6 @@ function App() {
             />
           )}
 
-          {activeTab === 'publications' && (
-            <PublicationsTab 
-              publications={publications} 
-              authToken={authToken} 
-              isAdmin={currentUser.is_admin} 
-            />
-          )}
 
           {activeTab === 'styles' && currentUser.is_admin && (
             <StyleManager 

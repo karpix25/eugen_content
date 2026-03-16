@@ -68,6 +68,20 @@ router.get("/stats", authenticateToken, requireAdmin, async (req, res) => {
       GROUP BY date_trunc('day', created_at) 
       ORDER BY date_trunc('day', created_at)
     `);
+
+    const recent_publications = await query(`
+      SELECT 
+        p.*, 
+        u.username, 
+        u.first_name,
+        c.title as clip_title,
+        c.thumbnail as clip_thumbnail
+      FROM publications p
+      JOIN users u ON p.user_id = u.telegram_id
+      JOIN clips c ON p.clip_id = c.id
+      ORDER BY p.created_at DESC
+      LIMIT 10
+    `);
     
     res.json({
       total: {
@@ -86,7 +100,8 @@ router.get("/stats", authenticateToken, requireAdmin, async (req, res) => {
       },
       top_users: top_users.rows,
       top_clips: top_clips.rows,
-      daily_trend: daily_trend.rows
+      daily_trend: daily_trend.rows,
+      recent_publications: recent_publications.rows
     });
   } catch (err) {
     console.error("Error fetching admin stats:", err);

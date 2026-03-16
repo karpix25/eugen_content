@@ -7,7 +7,10 @@ import {
   Calendar,
   UserCheck,
   Trophy,
-  ArrowUpRight
+  ArrowUpRight,
+  RefreshCcw,
+  LayoutGrid,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -41,6 +44,17 @@ interface StatsData {
   daily_trend: Array<{
     date: string;
     count: number;
+  }>;
+  recent_publications: Array<{
+    id: string;
+    clip_title: string;
+    clip_thumbnail: string;
+    username: string;
+    first_name: string;
+    type: 'video' | 'carousel';
+    status: string;
+    social_links: string[];
+    created_at: string;
   }>;
 }
 
@@ -178,52 +192,99 @@ export function DashboardTab({ authToken }: { authToken: string }) {
         </div>
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
-            <Trophy className="w-5 h-5 text-blue-500" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Popular Clips */}
+        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-blue-500" />
+            </div>
+            <h3 className="text-xl font-bold italic tracking-tight uppercase">Топ нарезок <span className="text-blue-600">.</span></h3>
           </div>
-          <h3 className="text-xl font-bold italic tracking-tight uppercase">Популярные нарезки <span className="text-blue-600">.</span></h3>
-        </div>
-        <div className="space-y-3">
-          {stats.top_clips.slice(0, 5).map((clip, i) => (
-            <div key={clip.id} className="flex items-center gap-6 bg-black/40 p-4 rounded-3xl border border-white/5 hover:border-blue-600/30 transition-all group overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-[40px] rounded-full -mr-16 -mt-16 pointer-events-none" />
-              
-              <div className="w-12 h-12 rounded-full bg-blue-600/20 flex items-center justify-center text-sm font-black text-blue-600 border border-blue-600/20 shrink-0">
-                {i + 1}
-              </div>
-
-              <div className="relative w-32 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-2xl bg-black">
-                {clip.thumbnail ? (
-                  <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt="" />
-                ) : clip.url ? (
-                  <video src={clip.url + '#t=0.1'} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                ) : (
-                  <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                    <Video className="w-6 h-6 text-white/10" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="font-black text-white text-lg tracking-tight truncate group-hover:text-blue-400 transition-colors">{clip.title}</p>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-600/10 border border-blue-600/20 rounded-full">
-                    <TrendingUp className="w-3 h-3 text-blue-500" />
-                    <span className="text-[10px] text-blue-500 font-black uppercase tracking-widest">{clip.publish_count} повторов</span>
-                  </div>
-                  <div className="w-1 h-1 rounded-full bg-white/10" />
-                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">ID: {clip.id.slice(0, 8)}</p>
+          <div className="space-y-3">
+            {stats.top_clips.slice(0, 5).map((clip, i) => (
+              <div key={clip.id} className="flex items-center gap-4 bg-black/40 p-3 rounded-2xl border border-white/5 hover:border-blue-600/30 transition-all group relative overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center text-[10px] font-black text-blue-600 border border-blue-600/20 shrink-0">
+                  {i + 1}
+                </div>
+                <div className="relative w-20 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black">
+                  {clip.thumbnail ? (
+                    <img src={clip.thumbnail} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                      <Video className="w-4 h-4 text-white/10" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white text-sm truncate">{clip.title}</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">{clip.publish_count} повторов</p>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
-                <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-blue-500 transition-colors" />
+        {/* Recent Activity Feed (Consolidated Publications) */}
+        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <RefreshCcw className="w-5 h-5 text-blue-400" />
               </div>
+              <h3 className="text-xl font-bold italic tracking-tight uppercase">Свежая активность <span className="text-blue-500">.</span></h3>
             </div>
-          ))}
+          </div>
+
+          <div className="space-y-3">
+            {stats.recent_publications.length > 0 ? (
+              stats.recent_publications.map((row) => (
+                <div key={row.id} className="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-all group">
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                    row.type === 'carousel' 
+                      ? "bg-purple-500/10 border-purple-500/20 text-purple-400" 
+                      : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                  )}>
+                    {row.type === 'carousel' ? <LayoutGrid className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-bold text-white text-sm truncate">{row.first_name}</span>
+                      <span className="text-[10px] text-white/40 font-medium">@{row.username}</span>
+                    </div>
+                    <p className="text-xs text-white/60 truncate italic">«{row.clip_title}»</p>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                        {new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="text-[9px] font-bold text-blue-500/60 uppercase">
+                        {row.type === 'carousel' ? 'Карусель' : 'Видео'}
+                      </p>
+                    </div>
+                    {row.social_links && row.social_links.length > 0 && (
+                      <a 
+                        href={row.social_links[0]} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-blue-600/20 hover:text-blue-400 transition-all border border-white/5"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center">
+                <p className="text-white/20 font-bold italic uppercase tracking-widest text-sm">Активности пока нет</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

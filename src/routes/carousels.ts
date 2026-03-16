@@ -84,42 +84,29 @@ router.delete("/styles/:id", authenticateToken, requireAdmin, async (req: any, r
 router.post("/generate", authenticateToken, async (req: any, res) => {
   const { clipId, styleId, topic, targetAudience } = req.body;
   try {
-    const clipRes = await query("SELECT transcript, title FROM clips WHERE id = $1", [clipId]);
-    const { transcript, title } = clipRes.rows[0];
-
-    let analysis: any;
-    if (['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(styleId)) {
-        // ... (template prompts)
-    } else {
-      const styleRes = await query("SELECT analysis FROM carousel_styles WHERE id = $1", [styleId]);
-      analysis = styleRes.rows[0].analysis;
-    }
-
-    const carouselRes = await query("INSERT INTO carousels (clip_id, user_id, status) VALUES ($1, $2, 'generating') RETURNING id", [clipId, String(req.user.id)]);
+    const carouselRes = await query(
+      "INSERT INTO carousels (clip_id, user_id, status, style_id, target_audience, topic) VALUES ($1, $2, 'pending', $3, $4, $5) RETURNING id", 
+      [clipId, String(req.user.id), styleId, targetAudience, topic]
+    );
     const carouselId = carouselRes.rows[0].id;
 
-    (async () => {
-      try {
-        const userRes = await query("SELECT face_image_url, use_face_in_carousels FROM users WHERE telegram_id = $1", [String(req.user.id)]);
-        const user = userRes.rows[0];
-        const faceRef = user?.use_face_in_carousels ? user.face_image_url : undefined;
+    const { CarouselService } = await import("../services/CarouselService.js");
 
-        const detectedLang = await detectLanguage(transcript) || 'ru';
-        const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
-        const gridUrl = await generateGridImage(script, analysis, faceRef);
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
-        
-        // Fetch logo for programmatic overlay in slicer
-        const logoUrl = await SettingsManager.getCarouselLogo();
-        const slices = await sliceCarouselGrid(gridUrl, uploadsDir, logoUrl);
-        await query("UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4", [JSON.stringify(script), gridUrl, slices, carouselId]);
-        await sendCarouselToTelegram(String(req.user.id), slices.map(s => path.join(process.cwd(), 'public', s)), clipId);
-      } catch (err: any) {
-        await query("UPDATE carousels SET status = 'error', error_message = $1 WHERE id = $2", [err.message, carouselId]);
-      }
-    })();
+    // Start generation in background
+    CarouselService.generateCarousel({
+        carouselId,
+        clipId,
+        userId: String(req.user.id),
+        styleId,
+        topic,
+        targetAudience
+    }).catch(err => {
+        console.error("Async carousel generation error:", err);
+    });
+
     res.json({ carouselId, status: 'generating' });
   } catch (err) {
+    console.error("Carousel generation trigger error:", err);
     res.status(500).json({ error: "Failed to start generation" });
   }
 });

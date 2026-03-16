@@ -120,10 +120,11 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         clip_id TEXT REFERENCES clips(id),
         user_id TEXT,
-        plaque_id TEXT REFERENCES ad_plaques(id) ON DELETE SET NULL,
+        plaque_id TEXT REFERENCES ad_plaques(id) ON CONFLICT SET NULL,
         message_id BIGINT,
         social_links TEXT[] DEFAULT '{}',
         status TEXT DEFAULT 'sent',
+        type TEXT DEFAULT 'video',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -146,6 +147,9 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         clip_id TEXT REFERENCES clips(id),
         user_id TEXT,
+        style_id TEXT,
+        target_audience TEXT,
+        topic TEXT,
         script JSONB,
         image_url TEXT,
         slides TEXT[],
@@ -242,7 +246,10 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(telegram_id)",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE",
-      "ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE"
+      "ALTER TABLE videos ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE",
+      "ALTER TABLE carousels ADD COLUMN IF NOT EXISTS style_id TEXT",
+      "ALTER TABLE carousels ADD COLUMN IF NOT EXISTS target_audience TEXT",
+      "ALTER TABLE carousels ADD COLUMN IF NOT EXISTS topic TEXT"
     ];
 
     for (const stmt of columnAdditions) {

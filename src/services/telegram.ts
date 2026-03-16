@@ -173,7 +173,7 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
 
     // Create publication record
     const pubRes = await query(
-        "INSERT INTO publications (clip_id, user_id, message_id, status) VALUES ($1, $2, $3, 'sent') RETURNING id",
+        "INSERT INTO publications (clip_id, user_id, message_id, type, status) VALUES ($1, $2, $3, 'video', 'sent') RETURNING id",
         [clipId, String(from.id), message.message_id]
     );
     const publicationId = pubRes.rows[0].id;
@@ -262,7 +262,49 @@ bot.action(/^report_link_(.+)$/, async (ctx) => {
     });
 });
 
-export const sendCarouselToTelegram = async (telegramId: string, slicePaths: string[], clipId?: string) => {
+// Action for re-generating carousels
+bot.action(/^regen_carousel_(.+)$/, async (ctx) => {
+    const carouselId = ctx.match[1];
+    const from = ctx.from!;
+    
+    await ctx.answerCbQuery('Запускаю перегенерацию... ⏳');
+    
+    try {
+        const { CarouselService } = await import('./CarouselService.js');
+        
+        // Fetch original params
+        const res = await query(
+            "SELECT clip_id, style_id, topic, target_audience FROM carousels WHERE id = $1",
+            [carouselId]
+        );
+        
+        if (res.rows.length === 0) {
+            return ctx.reply('❌ Ошибка: карусель не найдена в базе.');
+        }
+        
+        const { clip_id, style_id, topic, target_audience } = res.rows[0];
+        
+        await ctx.reply('🔄 Начинаю повторную генерацию карусели. Это займет около минуты...');
+        
+        // Start generation in background
+        CarouselService.generateCarousel({
+            carouselId,
+            clipId: clip_id,
+            userId: String(from.id),
+            styleId: style_id,
+            topic,
+            targetAudience: target_audience
+        }).catch(err => {
+             bot.telegram.sendMessage(from.id, `❌ Ошибка при пересоздании карусели: ${err.message}`);
+        });
+
+    } catch (err: any) {
+        console.error('Regen action error:', err);
+        await ctx.reply(`❌ Произошла ошибка: ${err.message}`);
+    }
+});
+
+export const sendCarouselToTelegram = async (telegramId: string, slicePaths: string[], clipId?: string, carouselId?: string) => {
     try {
         const media = slicePaths.map((filePath, index) => ({
             type: 'photo' as const,
@@ -277,15 +319,16 @@ export const sendCarouselToTelegram = async (telegramId: string, slicePaths: str
         if (clipId) {
             const lastMessageId = messages[messages.length - 1].message_id;
             const pubRes = await query(
-                "INSERT INTO publications (clip_id, user_id, message_id, status) VALUES ($1, $2, $3, 'sent') RETURNING id",
+                "INSERT INTO publications (clip_id, user_id, message_id, type, status) VALUES ($1, $2, $3, 'carousel', 'sent') RETURNING id",
                 [clipId, String(telegramId), lastMessageId]
             );
             const pubId = pubRes.rows[0].id;
 
-            await bot.telegram.sendMessage(telegramId, 'Используйте кнопку ниже, чтобы прислать ссылку на опубликованную карусель:', {
+            await bot.telegram.sendMessage(telegramId, 'Используйте кнопки ниже для управления каруселью:', {
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${pubId}` }]
+                        [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${pubId}` }],
+                        ...(carouselId ? [[{ text: "🔄 Пересоздать", callback_data: `regen_carousel_${carouselId}` }]] : [])
                     ]
                 }
             });

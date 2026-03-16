@@ -10,7 +10,6 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
   const [clipsOffset, setClipsOffset] = useState(0);
   const [plaques, setPlaques] = useState<AdPlaque[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(false);
   const [targetAudience, setTargetAudience] = useState('Предприниматели, интересующиеся ИИ и автоматизацией');
 
@@ -23,10 +22,10 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
         api.clips.list(),
         api.plaques.list(currentUser?.telegram_id),
         api.users.list(),
-        currentUser?.is_admin ? api.admin.getPublications() : Promise.resolve([])
+        currentUser?.is_admin ? api.admin.getStats() : Promise.resolve([])
       ]);
 
-      const [chRes, vidRes, clipRes, adRes, userRes, pubRes] = results;
+      const [chRes, vidRes, clipRes, adRes, userRes] = results;
 
       if (chRes.status === 'fulfilled') {
         const data = chRes.value;
@@ -65,10 +64,6 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
         setUsers(Array.isArray(data) ? data : []);
       }
 
-      if (pubRes.status === 'fulfilled') {
-        const data = pubRes.value;
-        setPublications(Array.isArray(data) ? data : []);
-      }
 
     } catch (error) {
       console.error('Error in fetchData:', error);
@@ -121,8 +116,6 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     setPlaques,
     users,
     setUsers,
-    publications,
-    setPublications,
     loading,
     setLoading,
     targetAudience,

@@ -159,10 +159,6 @@ export const api = {
   },
 
   admin: {
-    async getPublications(): Promise<Publication[]> {
-      const res = await fetch('/api/admin/publications', { headers: getHeaders() });
-      return handleResponse(res);
-    },
     async getStats() {
       const res = await fetch('/api/admin/stats', { headers: getHeaders() });
       return handleResponse(res);

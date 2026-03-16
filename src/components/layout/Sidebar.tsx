@@ -135,15 +135,6 @@ export function Sidebar({
               collapsed={!isOpen}
             />
           )}
-          {isAdmin && (
-            <NavButton 
-              active={activeTab === 'publications'} 
-              onClick={() => setActiveTab('publications')} 
-              icon={<ClipboardList className="w-5 h-5" />} 
-              label="Публикации"
-              collapsed={!isOpen}
-            />
-          )}
           
           {isOpen && <div className="px-4 py-2 mt-4 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Настройки</div>}
           <NavButton 
