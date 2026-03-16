@@ -271,7 +271,7 @@ export function SettingsTab({
             </div>
 
             <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-right-4 duration-1000">
-              <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] lg:grid-cols-2 gap-8 lg:gap-12">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   {settingsSection === 'subtitles' && (
                     <SubtitleSettings 
