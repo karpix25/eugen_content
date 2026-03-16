@@ -60,13 +60,14 @@ bot.start(async (ctx) => {
             );
 
             // ENSURE USER EXISTS IN users TABLE (Fixes FK violation in publications)
+            // AND mark them as authorized since they are logging in via a valid site link
             await query(
-                `INSERT INTO users (telegram_id, username, first_name) 
-                 VALUES ($1, $2, $3) 
+                `INSERT INTO users (telegram_id, username, first_name, is_authorized) 
+                 VALUES ($1, $2, $3, TRUE) 
                  ON CONFLICT (telegram_id) DO UPDATE SET 
                     username = EXCLUDED.username, 
                     first_name = EXCLUDED.first_name,
-                    is_authorized = CASE WHEN users.is_authorized = TRUE THEN TRUE ELSE EXCLUDED.is_authorized END`,
+                    is_authorized = TRUE`,
                 [String(from.id), from.username, from.first_name]
             );
 
