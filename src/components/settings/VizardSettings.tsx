@@ -87,7 +87,7 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Preferred Length */}
             <div className="p-8 bg-black/40 border border-white/5 rounded-[2rem] space-y-5 flex flex-col justify-between group/card hover:border-purple-500/30 transition-all duration-500">
                 <div className="space-y-5">
@@ -115,7 +115,7 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
                     </div>
                 </div>
 
-                <div className="flex items-start gap-4 px-2">
+                <div className="flex items-start gap-4 px-2 mt-4">
                     <Info className="w-3.5 h-3.5 text-purple-500/50 flex-shrink-0 mt-0.5" />
                     <p className="text-[13px] text-white/50 font-medium leading-relaxed">
                         Определяет предпочтительный временной интервал для автоматически создаваемых клипов AI-ассистентом.
@@ -181,7 +181,7 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
             </div>
 
             {/* Save Button */}
-            <div className="flex flex-col justify-end px-2">
+            <div className="flex flex-col justify-end lg:col-span-3">
                 <button
                     onClick={handleSave}
                     disabled={saving}
