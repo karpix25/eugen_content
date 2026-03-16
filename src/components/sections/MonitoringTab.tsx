@@ -142,41 +142,46 @@ export function MonitoringTab({
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
-                  <button
-                    onClick={() => onDeleteChannel(channel.id)}
-                    className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <div className="absolute top-2 right-2 flex gap-1 items-center">
+                <div className="absolute top-2 right-2 flex flex-col gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
                   {currentUserProfile?.is_admin && onToggleChannelPublic ? (
                     <button
                       onClick={() => onToggleChannelPublic(channel.id, !channel.is_public)}
-                      className={`p-1 rounded-md border transition-all ${
+                      className={`p-1.5 rounded-lg border transition-all ${
                         channel.is_public 
                           ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/30" 
                           : "bg-white/5 text-white/20 border-white/10 hover:bg-white/10"
                       }`}
                       title={channel.is_public ? "Сделать приватным" : "Сделать публичным"}
                     >
-                      {channel.is_public ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                      {channel.is_public ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </button>
                   ) : (
                     <span 
-                      className={`p-1 rounded-md border ${
+                      className={`p-1.5 rounded-lg border ${
                         channel.is_public 
                           ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/20" 
                           : "bg-white/5 text-white/20 border-white/10"
                       }`}
                       title={channel.is_public ? "Публичный" : "Приватный"}
                     >
-                      {channel.is_public ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                      {channel.is_public ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </span>
                   )}
+                  <button
+                    onClick={() => onDeleteChannel(channel.id)}
+                    className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                    title="Удалить канал"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
+
+                {/* Always visible status dot/icon when not hovered if needed, but for now we follow the user's focus on "fixing placement" */}
+                {!currentUserProfile?.is_admin && (
+                   <div className="absolute top-2 right-2 group-hover:hidden transition-all">
+                      <span className={`w-2 h-2 rounded-full block ${channel.is_public ? 'bg-emerald-500' : 'bg-white/20'}`} />
+                   </div>
+                )}
               </div>
             ))}
           </div>
