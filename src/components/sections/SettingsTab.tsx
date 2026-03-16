@@ -243,7 +243,7 @@ export function SettingsTab({
                     )}>
                       {tab.icon}
                     </div>
-                    <span className="text-xs font-black uppercase tracking-widest">{tab.label}</span>
+                    <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap text-left flex-1">{tab.label}</span>
                     {settingsSection === tab.id && (
                       <div className="absolute right-4">
                         <ChevronRight className="w-4 h-4" />
