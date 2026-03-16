@@ -20,10 +20,12 @@ export const evaluateContent = async (title: string, transcript: string, targetA
     Транскрипт: ${transcript}
     Целевая аудитория: ${targetAudience}
 
+    ОБЯЗАТЕЛЬНО: Напиши разбор (evaluation) СТРОГО на русском языке.
+
     Ответь ТОЛЬКО в формате JSON:
     {
       "score": число от 1 до 100,
-      "evaluation": "краткий разбор почему такая оценка",
+      "evaluation": "краткий разбор на русском языке, почему такая оценка",
       "detected_language": "ru" или "en"
     }
   `;
