@@ -128,7 +128,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this style?")) return;
+    if (!confirm("Вы уверены, что хотите удалить этот стиль?")) return;
     try {
       const res = await fetch(`/api/carousel/styles/${id}`, {
         method: 'DELETE',
@@ -144,8 +144,8 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
     <div className="space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-black tracking-tighter uppercase italic">Style Manager</h2>
-          <p className="text-white/40">Manage global and personal carousel design styles.</p>
+          <h2 className="text-3xl font-black tracking-tighter uppercase italic">Управление Стилями</h2>
+          <p className="text-white/40">Управление глобальными и персональными стилями дизайна для каруселей.</p>
         </div>
       </div>
 
@@ -157,7 +157,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
               <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
                 <Sparkles className="w-6 h-6 text-black" />
               </div>
-              <h3 className="text-xl font-bold">Analyze Reference</h3>
+              <h3 className="text-xl font-bold">Анализ Референса</h3>
             </div>
 
             <div className="space-y-4">
@@ -177,7 +177,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                 <label className="flex flex-col items-center justify-center aspect-video bg-white/5 border-2 border-dashed border-white/10 rounded-2xl hover:border-blue-600/50 transition-all cursor-pointer group">
                   <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                   <Plus className="w-8 h-8 text-white/20 group-hover:text-blue-600 transition-colors" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mt-2">Add Reference</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mt-2">Добавить референс</p>
                 </label>
               </div>
 
@@ -188,7 +188,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                   className="w-full h-14 bg-blue-600 text-black rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-500 transition-all disabled:opacity-50"
                 >
                   {analyzing ? <Loader2 className="w-6 h-6 animate-spin" /> : <RefreshCw className="w-6 h-6" />}
-                  {analyzing ? 'Analyzing Design DNA...' : `Analyze ${referenceImages.length} References`}
+                  {analyzing ? 'Анализируем ДНК дизайна...' : `Анализировать ${referenceImages.length} референса(ов)`}
                 </button>
               )}
             </div>
@@ -202,14 +202,14 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                   <div className="w-12 h-12 bg-blue-600/10 rounded-2xl flex items-center justify-center">
                     <CheckCircle className="w-6 h-6 text-blue-600" />
                   </div>
-                  <h3 className="text-xl font-bold">Analysis Result</h3>
+                  <h3 className="text-xl font-bold">Результат Анализа</h3>
                 </div>
 
                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   <div className="p-6 bg-white/5 rounded-3xl space-y-6">
                     {/* Design DNA */}
                     <div>
-                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Brand DNA</h4>
+                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">ДНК Бренда</h4>
                       <p className="text-base font-bold text-white mb-1">{analysisResult.design_dna?.vibe}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {analysisResult.design_dna?.core_principles?.map((p: string) => (
@@ -220,14 +220,14 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
 
                     {/* Typography */}
                     <div className="pt-4 border-t border-white/5">
-                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Typography System</h4>
+                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Типографика</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-[10px] text-white/40 uppercase font-black mb-1">Primary</p>
+                          <p className="text-[10px] text-white/40 uppercase font-black mb-1">Основной</p>
                           <p className="text-sm font-bold">{analysisResult.typography?.primary_family}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] text-white/40 uppercase font-black mb-1">Pairing</p>
+                          <p className="text-[10px] text-white/40 uppercase font-black mb-1">Вторичный</p>
                           <p className="text-sm font-bold">{analysisResult.typography?.secondary_family}</p>
                         </div>
                       </div>
@@ -236,7 +236,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
 
                     {/* Palette */}
                     <div className="pt-4 border-t border-white/5">
-                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Color System</h4>
+                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Цветовая Система</h4>
                       <div className="flex flex-wrap gap-3">
                         {analysisResult.color_system?.primary_hex?.map((c: string) => (
                           <div key={c} className="group relative">
@@ -254,18 +254,18 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
 
                     {/* Design Code */}
                     <div className="pt-4 border-t border-white/5">
-                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Design Code</h4>
+                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Код Дизайна</h4>
                       <div className="grid grid-cols-2 gap-y-4 text-[11px]">
                         <div>
-                          <p className="text-white/40">Corner Radii</p>
+                          <p className="text-white/40">Закругления</p>
                           <p className="font-bold">{analysisResult.visual_elements?.corner_radii}</p>
                         </div>
                         <div>
-                          <p className="text-white/40">Weights</p>
+                          <p className="text-white/40">Толщина линий</p>
                           <p className="font-bold">{analysisResult.visual_elements?.stroke_weights}</p>
                         </div>
                         <div className="col-span-2">
-                          <p className="text-white/40 mb-1">Connectors</p>
+                          <p className="text-white/40 mb-1">Визуальные коннекторы</p>
                           <p className="font-bold italic text-white/80">"{analysisResult.layout_logic?.visual_connectors}"</p>
                         </div>
                       </div>
@@ -274,7 +274,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                     {/* AI Prompt */}
                     {analysisResult.prompts?.midjourney_base && (
                       <div className="pt-4 border-t border-blue-600/20">
-                        <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">AI Synthesis Prompt</h4>
+                        <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em] mb-3">Промпт для AI Синтеза</h4>
                         <div className="p-3 bg-blue-600/5 border border-blue-600/10 rounded-xl">
                           <p className="text-[10px] text-blue-600/60 leading-relaxed font-mono italic">
                             {analysisResult.prompts.midjourney_base}
@@ -288,7 +288,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                 <div className="pt-4 border-t border-white/5 space-y-4">
                   <input
                     type="text"
-                    placeholder="Style Name (e.g. Neo-Brutalist White)"
+                    placeholder="Название стиля (например, Нео-брутализм)"
                     value={newStyleName}
                     onChange={(e) => setNewStyleName(e.target.value)}
                     className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 focus:border-blue-600/50 outline-none transition-all"
@@ -306,20 +306,20 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
                         isGlobal ? "left-7" : "left-1"
                       )} />
                     </button>
-                    <span className="text-sm font-bold uppercase tracking-widest text-white/40">Make Global Template</span>
+                    <span className="text-sm font-bold uppercase tracking-widest text-white/40">Сделать глобальным шаблоном</span>
                   </div>
                   <button
                     onClick={handleSave}
                     className="w-full h-14 bg-white text-black rounded-2xl font-bold hover:bg-blue-600 transition-all"
                   >
-                    Save Style
+                    Сохранить стиль
                   </button>
                 </div>
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
                 <Layout className="w-16 h-16 text-white/10" />
-                <p className="text-white/20 font-bold uppercase tracking-widest">Results will appear here</p>
+                <p className="text-white/20 font-bold uppercase tracking-widest">Результаты появятся здесь</p>
               </div>
             )}
           </div>
@@ -330,7 +330,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
       <div className="space-y-6">
         <h3 className="text-xl font-bold flex items-center gap-3">
           <Layout className="w-6 h-6 text-blue-600" />
-          Existing Styles
+          Существующие Стили
         </h3>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
@@ -340,7 +340,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
               <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black to-transparent">
                 <p className="font-bold text-sm truncate">{style.name}</p>
                 <p className="text-[10px] text-white/40 uppercase font-black tracking-widest mt-1">
-                  {style.user_id ? 'Personal' : 'Global Template'}
+                  {style.user_id ? 'Личный' : 'Глобальный шаблон'}
                 </p>
               </div>
               

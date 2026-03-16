@@ -16,9 +16,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.get("/styles", authenticateToken, async (req: any, res) => {
   try {
     const templates = [
-      { id: 'ios-notes', name: 'iOS Notes', image_url: '...', analysis: { prompt: "..." } },
-      { id: 'dark-luxury', name: 'Dark Luxury', image_url: '...', analysis: { prompt: "..." } },
-      { id: 'cyber-brutalist', name: 'Cyber Brutalist', image_url: '...', analysis: { prompt: "..." } }
+      { id: 'ios-notes', name: 'Заметки iOS', image_url: '/templates/ios-notes.png', analysis: { design_dna: { vibe: "Minimalist, Clean, Apple-style", core_principles: ["Clarity", "Negative Space", "San Francisco Type"] } } },
+      { id: 'dark-luxury', name: 'Темная Роскошь', image_url: '/templates/dark-luxury.png', analysis: { design_dna: { vibe: "Elegant, Premium, High-end", core_principles: ["Contrast", "Gold Accents", "Serif Typography"] } } },
+      { id: 'cyber-brutalist', name: 'Кибер-Брутализм', image_url: '/templates/cyber-brutalist.png', analysis: { design_dna: { vibe: "Bold, Raw, Experimental", core_principles: ["High Contrast", "Grid System", "Neon Accents"] } } }
     ];
     const result = await query("SELECT * FROM carousel_styles WHERE user_id = $1 OR user_id IS NULL ORDER BY created_at DESC", [String(req.user.id)]);
     res.json([...templates, ...result.rows]);
