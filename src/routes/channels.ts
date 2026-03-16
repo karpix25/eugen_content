@@ -94,23 +94,59 @@ router.delete("/:id", authenticateToken, async (req: any, res) => {
   const userId = String(req.user.id);
   
   try {
+    console.log(`Channel delete request. ID: ${id}, request by User: ${userId}`);
+    
     // Check if user is admin or owner
-    const channelRes = await query("SELECT user_id FROM channels WHERE id = $1", [id]);
+    const channelRes = await query("SELECT user_id, name FROM channels WHERE id = $1", [id]);
     const channel = channelRes.rows[0];
     
-    if (!channel) return res.status(404).json({ error: "Channel not found" });
+    if (!channel) {
+      console.warn(`Attempted to delete non-existent channel ID: ${id}`);
+      return res.status(404).json({ error: "Channel not found" });
+    }
     
-    if (!isAdmin(userId) && String(channel.user_id) !== userId) {
+    const isUserAdmin = isAdmin(userId);
+    const isOwner = channel.user_id ? String(channel.user_id) === userId : false;
+
+    console.log(`Delete check - Channel: ${channel.name}, Owner: ${channel.user_id}, IsAdmin: ${isUserAdmin}, IsOwner: ${isOwner}`);
+
+    // If channel has no user_id (older channels), allow admin to delete
+    // If user is owner or admin, allow
+    if (!isUserAdmin && !isOwner) {
+      console.error(`Unauthorized delete attempt for channel ${id} by user ${userId}`);
       return res.status(403).json({ error: "Unauthorized to delete this channel" });
     }
 
-    // Manual cascade deletion (though most have FK cascades, being explicit ensures cleanup)
-    await query("DELETE FROM publications WHERE clip_id IN (SELECT id FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1))", [id]);
-    await query("DELETE FROM carousels WHERE clip_id IN (SELECT id FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1))", [id]);
+    console.log(`Proceeding with deletion of channel: ${channel.name} (${id})`);
+
+    // Manual cascade deletion to ensure cleanup across all related tables
+    // 1. Publications and Carousels (nested deep)
+    await query(`
+      DELETE FROM publications 
+      WHERE clip_id IN (
+        SELECT id FROM clips 
+        WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
+      )
+    `, [id]);
+    
+    await query(`
+      DELETE FROM carousels 
+      WHERE clip_id IN (
+        SELECT id FROM clips 
+        WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
+      )
+    `, [id]);
+
+    // 2. Clips
     await query("DELETE FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)", [id]);
+
+    // 3. Videos
     await query("DELETE FROM videos WHERE channel_id = $1", [id]);
+
+    // 4. Channel itself
     await query("DELETE FROM channels WHERE id = $1", [id]);
     
+    console.log(`Successfully deleted channel ${id} and all its data.`);
     res.json({ success: true });
   } catch (err) {
     console.error("Error deleting channel:", err);

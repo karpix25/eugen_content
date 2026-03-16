@@ -161,7 +161,21 @@ export function useAppStore() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` }
       });
-      if (res.ok) data.fetchData();
+      
+      if (res.ok) {
+        data.fetchData();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error(`Failed to delete channel. Status: ${res.status}`, errData);
+        
+        if (res.status === 403) {
+          alert('У вас нет прав на удаление этого канала.');
+        } else if (res.status === 404) {
+          alert('Канал не найден.');
+        } else {
+          alert(`Ошибка при удалении канала: ${errData.error || 'Неизвестная ошибка'}`);
+        }
+      }
     } catch (err) {
       console.error(err);
     }

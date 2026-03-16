@@ -19,154 +19,185 @@ pool.on('connect', () => {
 export const query = (text: string, params?: any[]) => pool.query(text, params);export const initDb = async () => {
   try {
     // 1. Core tables
-    await query(`
-      CREATE TABLE IF NOT EXISTS users (
-        telegram_id TEXT PRIMARY KEY,
-        username TEXT,
-        first_name TEXT,
-        is_authorized BOOLEAN DEFAULT FALSE,
-        watermark_text TEXT,
-        watermark_opacity NUMERIC DEFAULT 0.08,
-        watermark_position TEXT DEFAULT 'center',
-        subtitle_enabled BOOLEAN DEFAULT true,
-        subtitle_font_size NUMERIC DEFAULT 16,
-        subtitle_font_color TEXT DEFAULT '&H00FFFFFF',
-        subtitle_position TEXT DEFAULT 'Bottom',
-        subtitle_style TEXT DEFAULT 'ali',
-        subtitle_outline_color TEXT DEFAULT '#000000',
-        is_admin BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    const coreTables = [
+      {
+        name: 'users',
+        query: `
+          CREATE TABLE IF NOT EXISTS users (
+            telegram_id TEXT PRIMARY KEY,
+            username TEXT,
+            first_name TEXT,
+            is_authorized BOOLEAN DEFAULT FALSE,
+            watermark_text TEXT,
+            watermark_opacity NUMERIC DEFAULT 0.08,
+            watermark_position TEXT DEFAULT 'center',
+            subtitle_enabled BOOLEAN DEFAULT true,
+            subtitle_font_size NUMERIC DEFAULT 16,
+            subtitle_font_color TEXT DEFAULT '&H00FFFFFF',
+            subtitle_position TEXT DEFAULT 'Bottom',
+            subtitle_style TEXT DEFAULT 'ali',
+            subtitle_outline_color TEXT DEFAULT '#000000',
+            is_admin BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'channels',
+        query: `
+          CREATE TABLE IF NOT EXISTS channels (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            handle TEXT,
+            thumbnail TEXT,
+            subscribers BIGINT,
+            is_public BOOLEAN DEFAULT FALSE,
+            user_id TEXT REFERENCES users(telegram_id),
+            last_checked TIMESTAMP,
+            monitoring_interval TEXT DEFAULT 'daily',
+            next_check TIMESTAMP,
+            scrape_days INTEGER DEFAULT 7
+          )
+        `
+      },
+      {
+        name: 'videos',
+        query: `
+          CREATE TABLE IF NOT EXISTS videos (
+            id TEXT PRIMARY KEY,
+            channel_id TEXT REFERENCES channels(id),
+            title TEXT,
+            description TEXT,
+            published_at TIMESTAMP,
+            thumbnail TEXT,
+            transcript TEXT,
+            ai_score INTEGER,
+            ai_evaluation TEXT,
+            status TEXT DEFAULT 'pending',
+            vizard_project_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'clips',
+        query: `
+          CREATE TABLE IF NOT EXISTS clips (
+            id TEXT PRIMARY KEY,
+            video_id TEXT REFERENCES videos(id) ON DELETE CASCADE,
+            url TEXT,
+            thumbnail TEXT,
+            title TEXT,
+            hook TEXT,
+            status TEXT DEFAULT 'raw',
+            is_available BOOLEAN DEFAULT TRUE,
+            is_public BOOLEAN DEFAULT FALSE,
+            downloaded_by TEXT,
+            downloaded_at TIMESTAMP,
+            ad_plaque_id TEXT,
+            transcript TEXT,
+            srt_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'ad_plaques',
+        query: `
+          CREATE TABLE IF NOT EXISTS ad_plaques (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            name TEXT,
+            image_url TEXT,
+            text TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'auth_sessions',
+        query: `
+          CREATE TABLE IF NOT EXISTS auth_sessions (
+            id UUID PRIMARY KEY,
+            status TEXT DEFAULT 'pending',
+            telegram_id TEXT,
+            username TEXT,
+            first_name TEXT,
+            jwt TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'publications',
+        query: `
+          CREATE TABLE IF NOT EXISTS publications (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            clip_id TEXT REFERENCES clips(id) ON DELETE CASCADE,
+            user_id TEXT,
+            plaque_id TEXT REFERENCES ad_plaques(id) ON DELETE SET NULL,
+            message_id BIGINT,
+            social_links TEXT[] DEFAULT '{}',
+            status TEXT DEFAULT 'sent',
+            type TEXT DEFAULT 'video',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'carousel_styles',
+        query: `
+          CREATE TABLE IF NOT EXISTS carousel_styles (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id TEXT,
+            name TEXT,
+            image_url TEXT,
+            analysis JSONB,
+            is_default BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'carousels',
+        query: `
+          CREATE TABLE IF NOT EXISTS carousels (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            clip_id TEXT REFERENCES clips(id) ON DELETE CASCADE,
+            user_id TEXT,
+            style_id TEXT,
+            target_audience TEXT,
+            topic TEXT,
+            script JSONB,
+            image_url TEXT,
+            slides TEXT[],
+            status TEXT DEFAULT 'pending',
+            error_message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      },
+      {
+        name: 'global_settings',
+        query: `
+          CREATE TABLE IF NOT EXISTS global_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `
+      }
+    ];
 
-    await query(`
-      CREATE TABLE IF NOT EXISTS channels (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        handle TEXT,
-        thumbnail TEXT,
-        subscribers BIGINT,
-        is_public BOOLEAN DEFAULT FALSE,
-        user_id TEXT REFERENCES users(telegram_id),
-        last_checked TIMESTAMP,
-        monitoring_interval TEXT DEFAULT 'daily',
-        next_check TIMESTAMP,
-        scrape_days INTEGER DEFAULT 7
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS videos (
-        id TEXT PRIMARY KEY,
-        channel_id TEXT REFERENCES channels(id),
-        title TEXT,
-        description TEXT,
-        published_at TIMESTAMP,
-        thumbnail TEXT,
-        transcript TEXT,
-        ai_score INTEGER,
-        ai_evaluation TEXT,
-        status TEXT DEFAULT 'pending',
-        vizard_project_id TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS clips (
-        id TEXT PRIMARY KEY,
-        video_id TEXT REFERENCES videos(id) ON DELETE CASCADE,
-        url TEXT,
-        thumbnail TEXT,
-        title TEXT,
-        hook TEXT,
-        status TEXT DEFAULT 'raw',
-        is_available BOOLEAN DEFAULT TRUE,
-        is_public BOOLEAN DEFAULT FALSE,
-        downloaded_by TEXT,
-        downloaded_at TIMESTAMP,
-        ad_plaque_id TEXT,
-        transcript TEXT,
-        srt_url TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS ad_plaques (
-        id TEXT PRIMARY KEY,
-        user_id TEXT,
-        name TEXT,
-        image_url TEXT,
-        text TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS auth_sessions (
-        id UUID PRIMARY KEY,
-        status TEXT DEFAULT 'pending',
-        telegram_id TEXT,
-        username TEXT,
-        first_name TEXT,
-        jwt TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS publications (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        clip_id TEXT REFERENCES clips(id) ON DELETE CASCADE,
-        user_id TEXT,
-        plaque_id TEXT REFERENCES ad_plaques(id) ON DELETE SET NULL,
-        message_id BIGINT,
-        social_links TEXT[] DEFAULT '{}',
-        status TEXT DEFAULT 'sent',
-        type TEXT DEFAULT 'video',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS carousel_styles (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id TEXT,
-        name TEXT,
-        image_url TEXT,
-        analysis JSONB,
-        is_default BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS carousels (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        clip_id TEXT REFERENCES clips(id) ON DELETE CASCADE,
-        user_id TEXT,
-        style_id TEXT,
-        target_audience TEXT,
-        topic TEXT,
-        script JSONB,
-        image_url TEXT,
-        slides TEXT[],
-        status TEXT DEFAULT 'pending',
-        error_message TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await query(`
-      CREATE TABLE IF NOT EXISTS global_settings (
-        key TEXT PRIMARY KEY,
-        value TEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    for (const table of coreTables) {
+      try {
+        await query(table.query);
+      } catch (e: any) {
+        console.warn(`Error creating/verifying table [${table.name}]:`, e.message);
+      }
+    }
 
     // Insert default values if not exists
     await query(`
