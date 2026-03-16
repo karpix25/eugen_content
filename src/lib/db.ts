@@ -46,6 +46,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
         handle TEXT,
         thumbnail TEXT,
         subscribers BIGINT,
+        is_public BOOLEAN DEFAULT FALSE,
+        user_id TEXT REFERENCES users(telegram_id),
         last_checked TIMESTAMP,
         monitoring_interval TEXT DEFAULT 'daily',
         next_check TIMESTAMP,
@@ -80,6 +82,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
         hook TEXT,
         status TEXT DEFAULT 'raw',
         is_available BOOLEAN DEFAULT TRUE,
+        is_public BOOLEAN DEFAULT FALSE,
         downloaded_by TEXT,
         downloaded_at TIMESTAMP,
         ad_plaque_id TEXT,
@@ -235,7 +238,10 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_auto_post TIMESTAMP",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS face_image_url TEXT",
-      "ALTER TABLE users ADD COLUMN IF NOT EXISTS use_face_in_carousels BOOLEAN DEFAULT FALSE"
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS use_face_in_carousels BOOLEAN DEFAULT FALSE",
+      "ALTER TABLE channels ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE",
+      "ALTER TABLE channels ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(telegram_id)",
+      "ALTER TABLE clips ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE"
     ];
 
     for (const stmt of columnAdditions) {
