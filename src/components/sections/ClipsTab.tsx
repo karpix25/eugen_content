@@ -39,7 +39,6 @@ export function ClipsTab({
 }: ClipsTabProps) {
   const [filterMode, setFilterMode] = useState<'all' | 'new' | 'published'>('new');
   const [languageFilter, setLanguageFilter] = useState<'all' | 'ru' | 'en'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'folder'>('folder');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   
@@ -66,7 +65,6 @@ export function ClipsTab({
     if (filterMode === 'new' && c.is_available === false) return false;
     if (filterMode === 'published' && c.is_available === true) return false;
     if (languageFilter !== 'all' && c.language !== languageFilter) return false;
-    if (searchQuery && !c.title.toLowerCase().includes(searchQuery.toLowerCase()) && !c.transcript?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
@@ -95,8 +93,6 @@ export function ClipsTab({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <ClipFilters 
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
           filterMode={filterMode}
           onFilterModeChange={setFilterMode}
           languageFilter={languageFilter}

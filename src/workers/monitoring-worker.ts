@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { query } from "../lib/db.js";
-import { getTranscript, getLatestVideos } from "../services/apify.js";
+import { getTranscript, getLatestVideos, getChannelInfo } from "../services/apify.js";
 import { evaluateContent } from "../services/gemini.js";
 import { videoProcessingQueue } from "../lib/queues.js";
 
@@ -21,7 +21,24 @@ export const syncChannel = async (channelId: string, name: string, monitoringInt
   try {
     await query("UPDATE channels SET sync_status = 'syncing', sync_error = NULL WHERE id = $1", [channelId]);
     
+    // Refresh channel metadata (name, thumbnail, subscribers)
     const searchUrl = handle ? `https://www.youtube.com/${handle.startsWith('@') ? handle : '@' + handle}` : `https://www.youtube.com/channel/${channelId}`;
+    try {
+      const channelInfo = await getChannelInfo(searchUrl);
+      if (channelInfo) {
+        await query(`
+          UPDATE channels SET 
+            name = $1, 
+            thumbnail = $2, 
+            subscribers = $3,
+            handle = $4
+          WHERE id = $5
+        `, [channelInfo.name, channelInfo.thumbnail, channelInfo.subscribers, channelInfo.handle || handle, channelId]);
+      }
+    } catch (metaErr) {
+      console.warn(`Failed to refresh metadata for ${channelId}:`, metaErr);
+    }
+
     const discoveredVideos = await getLatestVideos(searchUrl, 20, scrapeDays);
     for (const item of discoveredVideos) {
       const videoId = item.id;

@@ -3,6 +3,8 @@ import { query } from "../lib/db.js";
 import { authenticateToken, isAdmin, requireAdmin } from "../middleware/auth.js";
 import { syncChannel } from "../workers/monitoring-worker.js";
 
+import { getChannelInfo } from "../services/apify.js";
+
 const router = Router();
 
 router.get("/", authenticateToken, async (req: any, res) => {
@@ -21,24 +23,35 @@ router.get("/", authenticateToken, async (req: any, res) => {
 });
 
 router.post("/", authenticateToken, async (req: any, res) => {
-  const { id, name, handle, scrape_days, monitoring_interval } = req.body;
+  const { id: inputUrl, scrape_days, monitoring_interval } = req.body;
   const userId = String(req.user.id);
   
   try {
+    console.log(`Adding new channel. Input: ${inputUrl}`);
+    const channelInfo = await getChannelInfo(inputUrl);
+    
+    if (!channelInfo) {
+      return res.status(400).json({ error: "Failed to fetch channel info. Please check the URL/ID." });
+    }
+
+    const { id: channelId, name, handle, thumbnail, subscribers } = channelInfo;
+
     await query(`
-      INSERT INTO channels (id, name, handle, scrape_days, monitoring_interval, user_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO channels (id, name, handle, scrape_days, monitoring_interval, user_id, thumbnail, subscribers)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (id) DO UPDATE SET 
         name = EXCLUDED.name,
         handle = EXCLUDED.handle,
         scrape_days = EXCLUDED.scrape_days,
-        monitoring_interval = EXCLUDED.monitoring_interval
-    `, [id, name, handle, scrape_days || 7, monitoring_interval || 'daily', userId]);
+        monitoring_interval = EXCLUDED.monitoring_interval,
+        thumbnail = EXCLUDED.thumbnail,
+        subscribers = EXCLUDED.subscribers
+    `, [channelId, name, handle, scrape_days || 7, monitoring_interval || 'daily', userId, thumbnail, subscribers]);
     
     // Trigger initial sync
-    syncChannel(id, name, monitoring_interval || 'daily', scrape_days || 7, handle).catch(console.error);
+    syncChannel(channelId, name, monitoring_interval || 'daily', scrape_days || 7, handle).catch(console.error);
     
-    res.json({ success: true });
+    res.json({ success: true, channelId });
   } catch (err) {
     console.error("Channel add error:", err);
     res.status(500).json({ error: "Failed to add channel" });

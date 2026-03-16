@@ -57,9 +57,20 @@ export const getDatasetItems = async (datasetId: string): Promise<any[]> => {
 export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, name: string, handle?: string, thumbnail: string, subscribers: number } | null> => {
     if (!APIFY_TOKEN) return null;
     try {
-        console.log(`Fetching channel info via Apify for: ${channelUrl}`);
+        let normalizedUrl = channelUrl.trim();
+        // If it looks like a handle or ID but not a URL
+        if (!normalizedUrl.startsWith('http')) {
+            if (normalizedUrl.startsWith('@') || !normalizedUrl.includes('/')) {
+                const handle = normalizedUrl.startsWith('@') ? normalizedUrl : '@' + normalizedUrl;
+                normalizedUrl = `https://www.youtube.com/${handle}`;
+            } else if (normalizedUrl.length === 24 && normalizedUrl.startsWith('UC')) {
+                normalizedUrl = `https://www.youtube.com/channel/${normalizedUrl}`;
+            }
+        }
+
+        console.log(`Fetching channel info via Apify for: ${normalizedUrl}`);
         const runResponse = await apifyRequest('post', `https://api.apify.com/v2/acts/${ACTOR_ID}/runs?token=${APIFY_TOKEN}`, {
-            startUrls: [{ url: channelUrl }],
+            startUrls: [{ url: normalizedUrl }],
             maxResultDeserializationLimit: 1
         });
         const runId = runResponse.data.data.id;
@@ -72,10 +83,17 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
         console.log(`Apify Dataset Items Count: ${items.length}`);
         const item = items[0];
         if (item) {
+            let handle = item.channelUsername || item.handle;
+            // Extract from URL if still missing
+            if (!handle && item.channelUrl) {
+                const handleMatch = item.channelUrl.match(/youtube\.com\/(@[\w.-]+)/);
+                if (handleMatch) handle = handleMatch[1];
+            }
+
             return {
                 id: item.channelId || item.id,
                 name: item.channelName || item.title,
-                handle: item.channelUsername || item.handle, // Apify usually calls it channelUsername
+                handle: handle,
                 thumbnail: item.channelAvatarUrl || item.channelThumbnail || item.thumbnailUrl,
                 subscribers: item.numberOfSubscribers || 0
             };
