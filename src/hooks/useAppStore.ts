@@ -184,6 +184,10 @@ export function useAppStore() {
   };
 
   const handleToggleClipPublic = async (id: string, isPublic: boolean) => {
+    // Optimistic update
+    const previousClips = [...data.clips];
+    data.setClips(prev => prev.map(c => c.id === id ? { ...c, is_public: isPublic } : c));
+
     try {
       const res = await fetch(`/api/clips/${id}/toggle-public`, {
         method: 'POST',
@@ -193,9 +197,42 @@ export function useAppStore() {
         },
         body: JSON.stringify({ is_public: isPublic })
       });
-      if (res.ok) data.fetchData();
+      if (!res.ok) {
+        // Rollback on error
+        data.setClips(previousClips);
+        const err = await res.json();
+        alert(err.error || "Ошибка при изменении приватности");
+      }
     } catch (err) {
       console.error(err);
+      data.setClips(previousClips);
+    }
+  };
+
+  const handleToggleFolderPublic = async (videoId: string, isPublic: boolean) => {
+    // Optimistic update
+    const previousClips = [...data.clips];
+    data.setClips(prev => prev.map(c => c.video_id === videoId ? { ...c, video_is_public: isPublic } : c));
+
+    try {
+      const res = await fetch(`/api/videos/${videoId}/toggle-public`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ isPublic: isPublic })
+      });
+
+      if (!res.ok) {
+        // Rollback
+        data.setClips(previousClips);
+        const err = await res.json();
+        alert(err.error || "Ошибка при изменении приватности");
+      }
+    } catch (err) {
+      console.error(err);
+      data.setClips(previousClips);
     }
   };
 
@@ -222,6 +259,7 @@ export function useAppStore() {
     handleDeleteChannel,
     handleToggleChannelPublic,
     handleToggleClipPublic,
+    handleToggleFolderPublic,
     manualYoutubeUrl,
     setManualYoutubeUrl,
     processingId

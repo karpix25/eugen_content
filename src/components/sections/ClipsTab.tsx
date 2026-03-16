@@ -17,6 +17,7 @@ interface ClipsTabProps {
   onOpenCarouselWizard: (clip: Clip) => void;
   loading?: boolean;
   onTogglePublic: (id: string, isPublic: boolean) => void;
+  onToggleFolderPublic: (id: string, isPublic: boolean) => void;
   currentUserProfile: any;
 }
 
@@ -31,6 +32,7 @@ export function ClipsTab({
   onOpenCarouselWizard,
   loading,
   onTogglePublic,
+  onToggleFolderPublic,
   currentUserProfile
 }: ClipsTabProps) {
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
@@ -81,27 +83,6 @@ export function ClipsTab({
     return acc;
   }, {});
 
-  const handleToggleFolderPublic = async (videoId: string, isPublic: boolean) => {
-    try {
-      const res = await fetch(`/api/videos/${videoId}/toggle-public`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ isPublic })
-      });
-
-      if (res.ok) {
-        onUpdate();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Ошибка при изменении приватности");
-      }
-    } catch (error) {
-      console.error("Error toggling folder public:", error);
-    }
-  };
 
   const displayedClips = selectedFolderId 
     ? visibleClips.filter(c => c.video_id === selectedFolderId)
@@ -168,7 +149,7 @@ export function ClipsTab({
               onClick={() => setSelectedFolderId(folder.id)}
               onTogglePublic={isAdmin ? (e) => {
                 e.stopPropagation();
-                handleToggleFolderPublic(folder.id, !folder.isPublic);
+                onToggleFolderPublic(folder.id, !folder.isPublic);
               } : undefined}
             />
           ))

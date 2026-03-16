@@ -47,6 +47,7 @@ function App() {
     deletePlaque,
     handleToggleChannelPublic,
     handleToggleClipPublic,
+    handleToggleFolderPublic,
     targetAudience
   } = useAppStore();
 
@@ -109,11 +110,13 @@ function App() {
               plaques={plaques}
               onUpdate={updateData} 
               authToken={authToken} 
-              isAdmin={currentUser.is_admin}               onOpenCarouselWizard={setSelectedCarouselClip}
-               loading={loading}
-               onTogglePublic={handleToggleClipPublic}
-               currentUserProfile={currentUser}
-             />
+              isAdmin={currentUser.is_admin}
+              onOpenCarouselWizard={setSelectedCarouselClip}
+              loading={loading}
+              onTogglePublic={handleToggleClipPublic}
+              onToggleFolderPublic={handleToggleFolderPublic}
+              currentUserProfile={currentUser}
+            />
           )}
 
           {activeTab === 'workers' && currentUser.is_admin && (
