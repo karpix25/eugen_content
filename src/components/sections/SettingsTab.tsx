@@ -151,10 +151,12 @@ export function SettingsTab({
     { id: 'subtitles' as const, label: 'Субтитры', icon: <Layers className="w-4 h-4" /> },
     { id: 'brand' as const, label: 'Бренд', icon: <UserIcon className="w-4 h-4" /> },
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
+    ...(currentUser.is_admin ? [
+      { id: 'ai_gen' as const, label: 'Генератор плашек', icon: <Wand2 className="w-4 h-4" /> }
+    ] : []),
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
     { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
     ...(currentUser.is_admin ? [
-      { id: 'ai_gen' as const, label: 'AI Генератор', icon: <Wand2 className="w-4 h-4" /> },
       { id: 'global' as const, label: 'Глобальные', icon: <Globe className="w-4 h-4" /> }
     ] : []),
   ];
@@ -261,7 +263,7 @@ export function SettingsTab({
                 ) : (
                   <CheckCircle className="w-4 h-4 transition-transform group-hover:scale-125" />
                 )}
-                {saving ? 'СОХРАНЯЕМ...' : 'ПРИМЕНИТЬ ХУКИ'}
+                {saving ? 'СОХРАНЯЕМ...' : 'СОХРАНИТЬ'}
               </button>
             </div>
 
@@ -428,16 +430,6 @@ export function SettingsTab({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 bg-white/5 px-6 py-3 rounded-full border border-white/10 shadow-lg">
-                    <div className="flex -space-x-1.5">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="w-5 h-5 rounded-full border-2 border-[#0A0A0A] bg-emerald-500/20 flex items-center justify-center">
-                          <Zap className="w-2.5 h-2.5 text-emerald-500 fill-emerald-500" />
-                        </div>
-                      ))}
-                    </div>
-                    <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] pt-0.5">Live Preview Ready</span>
-                  </div>
                 </div>
               </div>
             </div>

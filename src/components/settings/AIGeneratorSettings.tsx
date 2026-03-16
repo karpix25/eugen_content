@@ -60,7 +60,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
             <Bot className="w-5 h-5 text-emerald-500" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">AI Генератор Плашек</h3>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">Генератор плашек</h3>
             <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Создавайте уникальный дизайн с помощью ИИ</p>
           </div>
         </div>
