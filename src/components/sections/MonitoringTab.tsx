@@ -4,7 +4,9 @@ import {
   Trash2, 
   Plus, 
   RefreshCw,
-  Tv
+  Tv,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { VideoData, Channel } from '../../types';
 import { VideoCard } from '../videos/VideoCard';
@@ -20,7 +22,9 @@ interface MonitoringTabProps {
   onDeleteChannel: (id: string) => void;
   onRefresh: () => void;
   onAddChannel: (url: string, interval: string, scrapeDays: number) => void;
+  onToggleChannelPublic?: (id: string, isPublic: boolean) => void;
   processingId: string | null;
+  currentUserProfile?: any;
 }
 
 function formatNumber(n: number | string | undefined): string {
@@ -42,7 +46,9 @@ export function MonitoringTab({
   onDeleteChannel,
   onRefresh,
   onAddChannel,
-  processingId
+  onToggleChannelPublic,
+  processingId,
+  currentUserProfile
 }: MonitoringTabProps) {
   const [newChannelUrl, setNewChannelUrl] = useState('');
   const [monitoringInterval, setMonitoringInterval] = useState('daily');
@@ -135,12 +141,35 @@ export function MonitoringTab({
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => onDeleteChannel(channel.id)}
-                  className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex flex-col gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                  {currentUserProfile?.is_admin && onToggleChannelPublic && (
+                    <button
+                      onClick={() => onToggleChannelPublic(channel.id, !channel.is_public)}
+                      className="p-1.5 text-white/20 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
+                      title={channel.is_public ? "Сделать приватным" : "Сделать публичным"}
+                    >
+                      {channel.is_public ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onDeleteChannel(channel.id)}
+                    className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="absolute top-2 right-2 flex gap-1 pointer-events-none">
+                  {channel.is_public ? (
+                    <span className="p-1 bg-blue-500/20 text-blue-400 rounded-md border border-blue-500/20" title="Публичный">
+                      <Eye className="w-3 h-3" />
+                    </span>
+                  ) : (
+                    <span className="p-1 bg-white/5 text-white/20 rounded-md border border-white/10" title="Приватный">
+                      <EyeOff className="w-3 h-3" />
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

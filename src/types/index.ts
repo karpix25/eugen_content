@@ -6,6 +6,8 @@ export interface Channel {
   monitoring_interval?: string;
   scrape_days?: number;
   next_check?: string;
+  user_id?: string;
+  is_public?: boolean;
 }
 
 export interface VideoData {
@@ -31,6 +33,7 @@ export interface Clip {
   status: 'raw' | 'processed';
   ad_plaque_id: string | null;
   is_available: boolean;
+  is_public?: boolean;
   downloaded_by?: string;
   downloaded_at?: string;
   transcript: string;

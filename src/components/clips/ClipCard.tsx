@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, XCircle, Loader2, Send, Layout, CheckCircle, X } from 'lucide-react';
+import { Play, XCircle, Loader2, Send, Layout, CheckCircle, X, Eye, EyeOff } from 'lucide-react';
 import { Clip, AdPlaque } from '../../types';
 import { cn } from '../../lib/utils';
 import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
@@ -11,9 +11,10 @@ interface ClipCardProps {
   onSendToTelegram?: (clipId: string, plaqueId: string | null) => void;
   onSendCarousel?: (clipId: string) => void;
   currentUserProfile?: any;
+  onTogglePublic?: (clipId: string, isPublic: boolean) => void;
 }
 
-export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, currentUserProfile }: ClipCardProps) {
+export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, currentUserProfile, onTogglePublic }: ClipCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlaqueSelector, setShowPlaqueSelector] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -146,6 +147,31 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
               <p className="text-xs font-bold uppercase tracking-widest text-[#229ED9]">Создание карусели...</p>
             </div>
           )}
+          
+          <div className="absolute top-3 right-3 z-30 flex flex-col gap-2">
+            {clip.is_public ? (
+              <span className="px-2 py-1 bg-blue-500/90 backdrop-blur-md text-white rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+                <Eye className="w-3 h-3" /> Публичный
+              </span>
+            ) : (
+              <span className="px-2 py-1 bg-white/20 backdrop-blur-md text-white/70 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg border border-white/10">
+                <EyeOff className="w-3 h-3" /> Приватный
+              </span>
+            )}
+            
+            {currentUserProfile?.is_admin && onTogglePublic && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePublic(clip.id, !clip.is_public);
+                }}
+                className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md transition-all border border-white/10"
+                title={clip.is_public ? "Сделать приватным" : "Сделать публичным"}
+              >
+                {clip.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="p-4">

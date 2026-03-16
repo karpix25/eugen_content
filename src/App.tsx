@@ -45,6 +45,8 @@ function App() {
     updateData,
     addPlaque,
     deletePlaque,
+    handleToggleChannelPublic,
+    handleToggleClipPublic,
     targetAudience
   } = useAppStore();
 
@@ -91,9 +93,11 @@ function App() {
               onComplete={handleCompleteVideo}
               onDelete={handleDeleteVideo}
               onDeleteChannel={handleDeleteChannel}
+              onToggleChannelPublic={handleToggleChannelPublic}
               onRefresh={updateData}
               onAddChannel={handleAddChannel}
               processingId={processingId}
+              currentUserProfile={currentUser}
             />
           )}
 
@@ -105,10 +109,11 @@ function App() {
               plaques={plaques}
               onUpdate={updateData} 
               authToken={authToken} 
-              isAdmin={currentUser.is_admin} 
-              onOpenCarouselWizard={setSelectedCarouselClip}
-              loading={loading}
-            />
+              isAdmin={currentUser.is_admin}               onOpenCarouselWizard={setSelectedCarouselClip}
+               loading={loading}
+               onTogglePublic={handleToggleClipPublic}
+               currentUserProfile={currentUser}
+             />
           )}
 
           {activeTab === 'workers' && currentUser.is_admin && (

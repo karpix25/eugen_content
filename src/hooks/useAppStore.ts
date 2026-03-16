@@ -167,6 +167,38 @@ export function useAppStore() {
     }
   };
 
+  const handleToggleChannelPublic = async (id: string, isPublic: boolean) => {
+    try {
+      const res = await fetch(`/api/channels/${id}/toggle-public`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ is_public: isPublic })
+      });
+      if (res.ok) data.fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleClipPublic = async (id: string, isPublic: boolean) => {
+    try {
+      const res = await fetch(`/api/clips/${id}/toggle-public`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ is_public: isPublic })
+      });
+      if (res.ok) data.fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return {
     authToken,
     setAuthToken: handleLogin,
@@ -188,6 +220,8 @@ export function useAppStore() {
     handleAddManualVideo,
     handleAddChannel,
     handleDeleteChannel,
+    handleToggleChannelPublic,
+    handleToggleClipPublic,
     manualYoutubeUrl,
     setManualYoutubeUrl,
     processingId

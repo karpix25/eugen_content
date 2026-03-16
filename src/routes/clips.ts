@@ -18,18 +18,38 @@ const router = Router();
 router.get("/", authenticateToken, async (req: any, res) => {
   try {
     const userId = String(req.user.id);
+    const isUserAdmin = isAdmin(userId);
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const result = await query(`
+    let queryText = `
       SELECT c.*, 
              EXISTS(SELECT 1 FROM publications WHERE clip_id = c.id AND user_id = $1) as published_by_me
       FROM clips c 
-      ORDER BY created_at DESC
-      LIMIT $2 OFFSET $3
-    `, [userId, limit, offset]);
+      JOIN videos v ON c.video_id = v.id
+      JOIN channels ch ON v.channel_id = ch.id
+    `;
+    
+    let countQueryText = `
+      SELECT COUNT(*) as total 
+      FROM clips c 
+      JOIN videos v ON c.video_id = v.id
+      JOIN channels ch ON v.channel_id = ch.id
+    `;
 
-    const countResult = await query(`SELECT COUNT(*) as total FROM clips`);
+    const queryParams: any[] = [userId];
+
+    if (!isUserAdmin) {
+      const filter = " WHERE c.is_public = true OR ch.is_public = true OR ch.user_id = $1";
+      queryText += filter;
+      countQueryText += filter;
+    }
+
+    queryText += " ORDER BY c.created_at DESC LIMIT $2 OFFSET $3";
+    queryParams.push(limit, offset);
+
+    const result = await query(queryText, queryParams);
+    const countResult = await query(countQueryText, isUserAdmin ? [] : [userId]);
     const total = parseInt(countResult.rows[0].total);
 
     res.json({
@@ -41,6 +61,20 @@ router.get("/", authenticateToken, async (req: any, res) => {
   } catch (err) {
     console.error("Clips fetch error:", err);
     res.status(500).json({ error: "Failed to fetch clips" });
+  }
+});
+
+router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req: any, res) => {
+  if (!isAdmin(req.user.id)) return res.sendStatus(403);
+  const { id } = req.params;
+  const { is_public } = req.body;
+  
+  try {
+    await query("UPDATE clips SET is_public = $1 WHERE id = $2", [is_public, id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error toggling clip visibility:", err);
+    res.status(500).json({ error: "Failed to update visibility" });
   }
 });
 

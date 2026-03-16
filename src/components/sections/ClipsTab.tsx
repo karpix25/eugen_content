@@ -15,6 +15,8 @@ interface ClipsTabProps {
   isAdmin: boolean;
   onOpenCarouselWizard: (clip: Clip) => void;
   loading?: boolean;
+  onTogglePublic: (id: string, isPublic: boolean) => void;
+  currentUserProfile: any;
 }
 
 export function ClipsTab({ 
@@ -26,7 +28,9 @@ export function ClipsTab({
   onUpdate, 
   isAdmin,
   onOpenCarouselWizard,
-  loading
+  loading,
+  onTogglePublic,
+  currentUserProfile
 }: ClipsTabProps) {
   const [showAvailableOnly, setShowAvailableOnly] = useState(true);
   const [languageFilter, setLanguageFilter] = useState<'all' | 'ru' | 'en'>('all');
@@ -74,6 +78,8 @@ export function ClipsTab({
               }
             }}
             onSendCarousel={() => onOpenCarouselWizard(clip)}
+            onTogglePublic={onTogglePublic}
+            currentUserProfile={currentUserProfile}
           />
         ))}
         {visibleClips.length === 0 && (
