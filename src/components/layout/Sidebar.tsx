@@ -103,6 +103,15 @@ export function Sidebar({
             label="Мониторинг"
             collapsed={!isOpen}
           />
+          {isAdmin && (
+            <NavButton 
+              active={activeTab === 'dashboard'} 
+              onClick={() => setActiveTab('dashboard')} 
+              icon={<ClipboardList className="w-5 h-5" />} 
+              label="Дашборд"
+              collapsed={!isOpen}
+            />
+          )}
 
           {isAdmin && (
             <>

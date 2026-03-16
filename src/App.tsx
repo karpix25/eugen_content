@@ -8,6 +8,7 @@ import { ClipsTab } from './components/sections/ClipsTab';
 import { UsersTab } from './components/sections/UsersTab';
 import { WorkersTab } from './components/sections/WorkersTab';
 import { PublicationsTab } from './components/sections/PublicationsTab';
+import { DashboardTab } from './components/sections/DashboardTab';
 import { SettingsTab } from './components/sections/SettingsTab';
 import CarouselWizard from './components/CarouselWizard';
 import StyleManager from './components/StyleManager';
@@ -83,6 +84,10 @@ function App() {
             onMenuToggle={() => setSidebarOpen(!isSidebarOpen)} 
             isSidebarOpen={isSidebarOpen}
           />
+
+          {activeTab === 'dashboard' && currentUser.is_admin && (
+            <DashboardTab authToken={authToken} />
+          )}
 
           {activeTab === 'monitor' && (
             <MonitoringTab 

@@ -1,7 +1,6 @@
-import { ExternalLink, Play } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { Publication } from '../../types';
-import { AdminStatsView } from '../publications/AdminStatsView';
 
 interface PublicationsTabProps {
   publications: Publication[];
@@ -19,7 +18,6 @@ export function PublicationsTab({ publications, authToken, isAdmin }: Publicatio
         </div>
       </div>
 
-      {isAdmin && authToken && <AdminStatsView authToken={authToken} />}
 
       <div className="grid grid-cols-1 gap-4">
         {publications.length === 0 && (
@@ -30,14 +28,7 @@ export function PublicationsTab({ publications, authToken, isAdmin }: Publicatio
         )}
         {publications.map((pub) => (
           <div key={pub.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row gap-6 hover:border-emerald-500/30 transition-all group">
-            <div className="w-full md:w-32 aspect-[9/16] rounded-xl overflow-hidden bg-black shrink-0 relative">
-              <img src={pub.clip_thumbnail} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-500" alt="" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white">
-                  <Play className="w-4 h-4 fill-current ml-0.5" />
-                </div>
-              </div>
-            </div>
+
 
             <div className="flex-1 min-w-0 space-y-4">
               <div className="flex items-start justify-between gap-4">
