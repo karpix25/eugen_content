@@ -136,7 +136,7 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
 
         <div className="pt-4 grid grid-cols-2 gap-4">
           <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
+            <Sparkles className="w-4 h-4 text-blue-500" />
             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest leading-relaxed">Используются SOTA модели для генерации графики</p>
           </div>
           <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-2">

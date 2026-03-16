@@ -74,35 +74,35 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-3xl p-8 space-y-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 blur-[80px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover:bg-purple-600/20 transition-colors duration-1000" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[80px] -mr-32 -mt-32 rounded-full pointer-events-none group-hover:bg-blue-600/20 transition-colors duration-1000" />
       
-      <div className="relative space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-600/20 rounded-xl flex items-center justify-center border border-purple-600/20">
-            <Scissors className="w-5 h-5 text-purple-600" />
+      <div className="relative space-y-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-600/20 shadow-lg shadow-blue-600/10">
+            <Scissors className="w-6 h-6 text-blue-500" />
           </div>
-          <div className="px-2">
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">Настройки Vizard AI</h3>
-            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Параметры интеллектуальной нарезки клипов</p>
+          <div className="px-1">
+            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">Настройки Vizard AI</h3>
+            <p className="text-[10px] md:text-xs text-white/40 font-bold uppercase tracking-widest mt-1">Параметры интеллектуальной нарезки клипов</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-8">
             {/* Preferred Length */}
-            <div className="p-8 bg-black/40 border border-white/5 rounded-[2rem] space-y-5 flex flex-col justify-between group/card hover:border-purple-500/30 transition-all duration-500">
-                <div className="space-y-5">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-purple-600/10 flex items-center justify-center border border-purple-600/20 group-hover/card:bg-purple-600/20 transition-colors">
-                            <Zap className="w-4 h-4 text-purple-500" />
+            <div className="p-8 md:p-10 bg-black/40 border border-white/5 rounded-[2.5rem] space-y-6 flex flex-col justify-between group/card hover:border-blue-500/40 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-600/5">
+                <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 group-hover/card:bg-blue-600/20 transition-colors shadow-inner">
+                            <Zap className="w-5 h-5 text-blue-500" />
                         </div>
-                        <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Длина клипов</h4>
+                        <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em]">Длина клипов</h4>
                     </div>
                     
                     <div className="relative">
                         <select 
                             value={settings.vizard_prefer_length}
                             onChange={(e) => setSettings({...settings, vizard_prefer_length: e.target.value})}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-purple-500/50 transition-all font-bold appearance-none cursor-pointer hover:bg-white/10"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-all font-bold appearance-none cursor-pointer hover:bg-white/10"
                         >
                             <option value="0">Автоматически (Vizard AI)</option>
                             <option value="1">Менее 30 секунд</option>
@@ -110,71 +110,71 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
                             <option value="3">От 60 до 90 секунд</option>
                             <option value="4">От 90 секунд до 3 минут</option>
                         </select>
-                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                             <Scissors className="w-3 h-3 rotate-90" />
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                             <Scissors className="w-4 h-4 rotate-90" />
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-start gap-4 px-2">
-                    <Info className="w-3.5 h-3.5 text-purple-500/50 flex-shrink-0 mt-0.5" />
-                    <p className="text-[13px] text-white/50 font-medium leading-relaxed">
+                <div className="flex items-start gap-4 px-2 pt-4">
+                    <Info className="w-4 h-4 text-blue-500/50 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs md:text-sm text-white/50 font-medium leading-relaxed">
                         Определяет предпочтительный временной интервал для автоматически создаваемых клипов AI-ассистентом.
                     </p>
                 </div>
             </div>
 
             {/* Silence Removal */}
-            <div className="p-8 bg-black/40 border border-white/5 rounded-[2rem] space-y-6 flex flex-col justify-between group/card hover:border-purple-500/30 transition-all duration-500">
-                <div className="space-y-6">
+            <div className="p-8 md:p-10 bg-black/40 border border-white/5 rounded-[2.5rem] space-y-8 flex flex-col justify-between group/card hover:border-blue-500/40 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-600/5">
+                <div className="space-y-8">
                     <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-purple-600/10 flex items-center justify-center border border-purple-600/20 group-hover/card:bg-purple-600/20 transition-colors">
-                                <VolumeX className="w-4 h-4 text-purple-500" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 group-hover/card:bg-blue-600/20 transition-colors shadow-inner">
+                                <VolumeX className="w-5 h-5 text-blue-500" />
                             </div>
-                            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Удаление тишины</h4>
+                            <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em]">Удаление тишины</h4>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer scale-110">
+                        <label className="relative inline-flex items-center cursor-pointer scale-125">
                             <input 
                                 type="checkbox" 
                                 checked={settings.vizard_remove_silence === '1'} 
                                 onChange={(e) => setSettings({...settings, vizard_remove_silence: e.target.checked ? '1' : '0'})}
                                 className="sr-only peer" 
                             />
-                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 shadow-inner"></div>
+                            <div className="w-12 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                         </label>
                     </div>
                     
-                    <p className="text-[13px] text-white/50 font-medium leading-relaxed px-2">
+                    <p className="text-xs md:text-sm text-white/50 font-medium leading-relaxed px-2">
                         Интеллектуальный анализатор автоматически вырезает длинные паузы и тишину из видео для повышения динамики и удержания внимания зрителей.
                     </p>
                 </div>
             </div>
 
             {/* Auto B-Roll */}
-            <div className="p-8 bg-black/40 border border-white/5 rounded-[2rem] space-y-6 flex flex-col justify-between group/card hover:border-purple-500/30 transition-all duration-500">
-                <div className="space-y-6">
+            <div className="p-8 md:p-10 bg-black/40 border border-white/5 rounded-[2.5rem] space-y-8 flex flex-col justify-between group/card hover:border-blue-500/40 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-600/5">
+                <div className="space-y-8">
                     <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-purple-600/10 flex items-center justify-center border border-purple-600/20 group-hover/card:bg-purple-600/20 transition-colors">
-                                <Image className="w-4 h-4 text-purple-500" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 group-hover/card:bg-blue-600/20 transition-colors shadow-inner">
+                                <Image className="w-5 h-5 text-blue-500" />
                             </div>
-                            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Авто B-roll</h4>
+                            <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em]">Авто B-roll</h4>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer scale-110">
+                        <label className="relative inline-flex items-center cursor-pointer scale-125">
                             <input 
                                 type="checkbox" 
                                 checked={settings.vizard_auto_broll === '1'} 
                                 onChange={(e) => setSettings({...settings, vizard_auto_broll: e.target.checked ? '1' : '0'})}
                                 className="sr-only peer" 
                             />
-                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 shadow-inner"></div>
+                            <div className="w-12 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                         </label>
                     </div>
                     
-                    <p className="text-[13px] text-white/50 font-medium leading-relaxed px-2">
+                    <p className="text-xs md:text-sm text-white/50 font-medium leading-relaxed px-2">
                         Автоматическая подстановка релевантных стоковых футажей во время пауз или для визуальной иллюстрации речи. 
-                        <span className="block mt-2 text-[11px] text-purple-500/60 font-black uppercase tracking-widest">
+                        <span className="block mt-4 text-[10px] md:text-xs text-blue-500/70 font-black uppercase tracking-widest">
                             Увеличивает время обработки видео
                         </span>
                     </p>
@@ -186,9 +186,9 @@ export function VizardSettings({ authToken }: VizardSettingsProps) {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="w-full relative group/btn overflow-hidden"
+                    className="w-full relative group/btn overflow-hidden rounded-[1.5rem]"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-100 group-hover/btn:scale-110 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-400 opacity-100 group-hover/btn:scale-110 transition-transform duration-500" />
                     <div className="relative py-6 rounded-[1.5rem] flex items-center justify-center gap-3 active:scale-95 transition-all">
                         {saving ? (
                             <Loader2 className="w-5 h-5 animate-spin text-white" />

@@ -176,7 +176,7 @@ export function SettingsTab({
       {/* Profile Header Block */}
       <div className="relative overflow-hidden bg-gradient-to-br from-[#111] to-[#050505] rounded-[2.5rem] border border-white/5 p-8 shadow-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[100px] -mr-48 -mt-48 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 blur-[80px] -ml-32 -mb-32 rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 blur-[80px] -ml-32 -mb-32 rounded-full pointer-events-none" />
         
         <div className="relative flex flex-col md:flex-row items-center gap-8">
           <div className="relative shrink-0">
@@ -210,8 +210,8 @@ export function SettingsTab({
                 <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{currentUser.publication_count || 0} ПУБЛИКАЦИЙ</span>
               </div>
               <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-                <Cpu className="w-3 h-3 text-purple-400" />
-                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">AUTO: {currentUser.auto_mode_enabled ? 'ON' : 'OFF'}</span>
+                <Cpu className="w-3 h-3 text-blue-400" />
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">AUTO: {currentUser.auto_mode_enabled ? 'ON' : 'OFF'}</span>
               </div>
             </div>
           </div>
@@ -354,7 +354,7 @@ export function SettingsTab({
                   </style>
                   
                   <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-500 rounded-[3.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-blue-400 rounded-[3.5rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
                     <div className="relative aspect-[9/16] bg-[#000] rounded-[3rem] overflow-hidden border-[8px] border-white/10 w-full max-w-[340px] shadow-2xl">
                       <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80" alt="bg" className="w-full h-full object-cover opacity-60 scale-105 blur-[2px]" />
 
