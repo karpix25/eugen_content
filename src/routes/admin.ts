@@ -51,10 +51,10 @@ router.get("/stats", authenticateToken, requireAdmin, async (req, res) => {
     `);
 
     const top_clips = await query(`
-      SELECT c.id, c.title, c.thumbnail, COUNT(p.id)::int as publish_count
+      SELECT c.id, c.title, c.thumbnail, c.url, COUNT(p.id)::int as publish_count
       FROM clips c
       JOIN publications p ON c.id = p.clip_id
-      GROUP BY c.id, c.title, c.thumbnail
+      GROUP BY c.id, c.title, c.thumbnail, c.url
       ORDER BY publish_count DESC
       LIMIT 10
     `);

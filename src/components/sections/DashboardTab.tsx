@@ -35,6 +35,7 @@ interface StatsData {
     id: string;
     title: string;
     thumbnail: string;
+    url: string;
     publish_count: number;
   }>;
   daily_trend: Array<{
@@ -193,8 +194,16 @@ export function DashboardTab({ authToken }: { authToken: string }) {
                 {i + 1}
               </div>
 
-              <div className="relative w-32 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-2xl">
-                <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt="" />
+              <div className="relative w-32 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-2xl bg-black">
+                {clip.thumbnail ? (
+                  <img src={clip.thumbnail} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt="" />
+                ) : clip.url ? (
+                  <video src={clip.url + '#t=0.1'} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                ) : (
+                  <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                    <Video className="w-6 h-6 text-white/10" />
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               </div>
 
