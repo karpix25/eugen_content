@@ -158,19 +158,6 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                 <EyeOff className="w-3 h-3" /> Приватный
               </span>
             )}
-            
-            {currentUserProfile?.is_admin && onTogglePublic && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTogglePublic(clip.id, !clip.is_public);
-                }}
-                className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md transition-all border border-white/10"
-                title={clip.is_public ? "Сделать приватным" : "Сделать публичным"}
-              >
-                {clip.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-              </button>
-            )}
           </div>
         </div>
 
