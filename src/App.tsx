@@ -35,6 +35,7 @@ function App() {
     handleAddManualVideo,
     handleAddChannel,
     handleDeleteChannel,
+    handleSyncChannel,
     clips,
     totalClips,
     loadMoreClips,
@@ -97,6 +98,7 @@ function App() {
               onComplete={handleCompleteVideo}
               onDelete={handleDeleteVideo}
               onDeleteChannel={handleDeleteChannel}
+              onSyncChannel={handleSyncChannel}
               onToggleChannelPublic={handleToggleChannelPublic}
               onRefresh={updateData}
               onAddChannel={handleAddChannel}

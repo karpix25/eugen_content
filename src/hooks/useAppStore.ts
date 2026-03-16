@@ -183,6 +183,24 @@ export function useAppStore() {
     }
   };
 
+  const handleSyncChannel = async (id: string) => {
+    try {
+      const res = await fetch(`/api/channels/${id}/sync`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      });
+      if (res.ok) {
+        data.fetchData();
+        return true;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    return false;
+  };
+
   const handleToggleClipPublic = async (id: string, isPublic: boolean) => {
     // Optimistic update
     const previousClips = [...data.clips];
@@ -257,11 +275,12 @@ export function useAppStore() {
     handleAddManualVideo,
     handleAddChannel,
     handleDeleteChannel,
+    handleSyncChannel,
     handleToggleChannelPublic,
     handleToggleClipPublic,
     handleToggleFolderPublic,
     manualYoutubeUrl,
     setManualYoutubeUrl,
     processingId
-  }), [authToken, handleLogin, currentUser, activeTab, isSidebarOpen, data, handleLogout, addPlaque, deletePlaque, handleEvaluateVideo, handleApproveVideo, handleCompleteVideo, handleDeleteVideo, handleAddManualVideo, handleAddChannel, handleDeleteChannel, handleToggleChannelPublic, handleToggleClipPublic, handleToggleFolderPublic, manualYoutubeUrl, processingId]);
+  }), [authToken, handleLogin, currentUser, activeTab, isSidebarOpen, data, handleLogout, addPlaque, deletePlaque, handleEvaluateVideo, handleApproveVideo, handleCompleteVideo, handleDeleteVideo, handleAddManualVideo, handleAddChannel, handleDeleteChannel, handleSyncChannel, handleToggleChannelPublic, handleToggleClipPublic, handleToggleFolderPublic, manualYoutubeUrl, processingId]);
 }

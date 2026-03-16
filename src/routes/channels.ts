@@ -59,6 +59,23 @@ router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req: a
   }
 });
 
+router.post("/:id/sync", authenticateToken, async (req: any, res) => {
+  const { id } = req.params;
+  try {
+    const channelRes = await query("SELECT * FROM channels WHERE id = $1", [id]);
+    const channel = channelRes.rows[0];
+    if (!channel) return res.status(404).json({ error: "Channel not found" });
+
+    // Trigger sync
+    syncChannel(channel.id, channel.name, channel.monitoring_interval, channel.scrape_days, channel.handle).catch(console.error);
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Manual sync error:", err);
+    res.status(500).json({ error: "Failed to trigger sync" });
+  }
+});
+
 router.delete("/:id", authenticateToken, requireAdmin, async (req: any, res) => {
   if (!isAdmin(req.user.id)) return res.sendStatus(403);
   const { id } = req.params;

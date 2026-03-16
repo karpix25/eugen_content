@@ -21,6 +21,7 @@ interface MonitoringTabProps {
   onDelete: (id: string) => void;
   onDeleteChannel: (id: string) => void;
   onRefresh: () => void;
+  onSyncChannel: (id: string) => Promise<boolean>;
   onAddChannel: (url: string, interval: string, scrapeDays: number) => void;
   onToggleChannelPublic?: (id: string, isPublic: boolean) => void;
   processingId: string | null;
@@ -45,6 +46,7 @@ export function MonitoringTab({
   onDelete,
   onDeleteChannel,
   onRefresh,
+  onSyncChannel,
   onAddChannel,
   onToggleChannelPublic,
   processingId,
@@ -54,6 +56,7 @@ export function MonitoringTab({
   const [monitoringInterval, setMonitoringInterval] = useState('daily');
   const [scrapeDays, setScrapeDays] = useState(7);
   const [addingChannel, setAddingChannel] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const handleAddChannel = async () => {
     if (!newChannelUrl) return;
@@ -167,6 +170,23 @@ export function MonitoringTab({
                       {channel.is_public ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </span>
                   )}
+                  <button
+                    onClick={async () => {
+                      setSyncingId(channel.id);
+                      await onSyncChannel(channel.id);
+                      setSyncingId(channel.id + '-success');
+                      setTimeout(() => setSyncingId(null), 2000);
+                    }}
+                    disabled={syncingId === channel.id}
+                    className={`p-1.5 rounded-lg border transition-all ${
+                      syncingId === channel.id + '-success'
+                        ? "bg-green-500/20 text-green-500 border-green-500/20"
+                        : "bg-white/5 text-white/20 border-white/10 hover:bg-white/10 hover:text-blue-400"
+                    }`}
+                    title="Синхронизировать сейчас"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${syncingId === channel.id ? 'animate-spin' : ''}`} />
+                  </button>
                   <button
                     onClick={() => onDeleteChannel(channel.id)}
                     className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
