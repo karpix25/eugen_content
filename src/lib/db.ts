@@ -120,7 +120,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         clip_id TEXT REFERENCES clips(id),
         user_id TEXT,
-        plaque_id TEXT REFERENCES ad_plaques(id) ON CONFLICT SET NULL,
+        plaque_id TEXT REFERENCES ad_plaques(id) ON DELETE SET NULL,
         message_id BIGINT,
         social_links TEXT[] DEFAULT '{}',
         status TEXT DEFAULT 'sent',
