@@ -94,60 +94,88 @@ router.delete("/:id", authenticateToken, async (req: any, res) => {
   const userId = String(req.user.id);
   
   try {
-    console.log(`Channel delete request. ID: ${id}, request by User: ${userId}`);
+    console.log(`Channel delete request. ID: "${id}" (length: ${id?.length}), request by User: ${userId}`);
     
     // Check if user is admin or owner
-    const channelRes = await query("SELECT user_id, name FROM channels WHERE id = $1", [id]);
+    const channelRes = await query("SELECT user_id, name, id FROM channels WHERE id = $1", [id]);
+    console.log(`Query result rows: ${channelRes.rows.length}`);
+    if (channelRes.rows.length > 0) {
+      console.log(`Found channel in DB: "${channelRes.rows[0].id}" (matches: ${channelRes.rows[0].id === id})`);
+    } else {
+      console.log(`Channel not found in DB with ID: "${id}"`);
+      // List all channel IDs to see if there's a mismatch
+      const allChannels = await query("SELECT id FROM channels");
+      console.log("Existing channel IDs in DB:", allChannels.rows.map(r => `"${r.id}"`).join(', '));
+    }
+    
     const channel = channelRes.rows[0];
     
     if (!channel) {
-      console.warn(`Attempted to delete non-existent channel ID: ${id}`);
+      console.warn(`[DELETE CHANNEL] Channel not found in DB. ID: ${id}, User: ${userId}`);
       return res.status(404).json({ error: "Channel not found" });
     }
     
     const isUserAdmin = isAdmin(userId);
     const isOwner = channel.user_id ? String(channel.user_id) === userId : false;
 
-    console.log(`Delete check - Channel: ${channel.name}, Owner: ${channel.user_id}, IsAdmin: ${isUserAdmin}, IsOwner: ${isOwner}`);
+    console.log(`[DELETE CHANNEL] Request details - Channel: "${channel.name}", ID: ${id}, Owner: ${channel.user_id}, Requester: ${userId}, IsAdmin: ${isUserAdmin}, IsOwner: ${isOwner}`);
 
-    // If channel has no user_id (older channels), allow admin to delete
-    // If user is owner or admin, allow
     if (!isUserAdmin && !isOwner) {
-      console.error(`Unauthorized delete attempt for channel ${id} by user ${userId}`);
+      console.error(`[DELETE CHANNEL] Unauthorized attempt for ID ${id} by user ${userId}`);
       return res.status(403).json({ error: "Unauthorized to delete this channel" });
     }
 
-    console.log(`Proceeding with deletion of channel: ${channel.name} (${id})`);
+    console.log(`[DELETE CHANNEL] Proceeding with full deletion for: "${channel.name}" (${id})`);
 
     // Manual cascade deletion to ensure cleanup across all related tables
-    // 1. Publications and Carousels (nested deep)
-    await query(`
-      DELETE FROM publications 
-      WHERE clip_id IN (
-        SELECT id FROM clips 
-        WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
-      )
-    `, [id]);
-    
-    await query(`
-      DELETE FROM carousels 
-      WHERE clip_id IN (
-        SELECT id FROM clips 
-        WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
-      )
-    `, [id]);
+    try {
+      // 0. Tasks related to clips of this channel
+      const tasksDel = await query(`
+        DELETE FROM tasks 
+        WHERE clip_id IN (
+          SELECT id FROM clips 
+          WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
+        )
+      `, [id]);
+      console.log(`[DELETE CHANNEL] Deleted ${tasksDel.rowCount} related tasks`);
 
-    // 2. Clips
-    await query("DELETE FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)", [id]);
+      // 1. Publications and Carousels
+      // These use subqueries to find clips belonging to videos of this channel
+      const pubDel = await query(`
+        DELETE FROM publications 
+        WHERE clip_id IN (
+          SELECT id FROM clips 
+          WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
+        )
+      `, [id]);
+      console.log(`[DELETE CHANNEL] Deleted ${pubDel.rowCount} related publications`);
+      
+      const carDel = await query(`
+        DELETE FROM carousels 
+        WHERE clip_id IN (
+          SELECT id FROM clips 
+          WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
+        )
+      `, [id]);
+      console.log(`[DELETE CHANNEL] Deleted ${carDel.rowCount} related carousels`);
 
-    // 3. Videos
-    await query("DELETE FROM videos WHERE channel_id = $1", [id]);
+      // 2. Clips
+      const clipDel = await query("DELETE FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)", [id]);
+      console.log(`[DELETE CHANNEL] Deleted ${clipDel.rowCount} related clips`);
 
-    // 4. Channel itself
-    await query("DELETE FROM channels WHERE id = $1", [id]);
-    
-    console.log(`Successfully deleted channel ${id} and all its data.`);
-    res.json({ success: true });
+      // 3. Videos
+      const videoDel = await query("DELETE FROM videos WHERE channel_id = $1", [id]);
+      console.log(`[DELETE CHANNEL] Deleted ${videoDel.rowCount} related videos`);
+
+      // 4. Channel itself
+      await query("DELETE FROM channels WHERE id = $1", [id]);
+      
+      console.log(`[DELETE CHANNEL] Success: Deleted channel ${id} and all its data.`);
+      res.json({ success: true });
+    } catch (dbErr: any) {
+      console.error(`[DELETE CHANNEL] Database error during deletion:`, dbErr);
+      res.status(500).json({ error: "Failed to delete channel data due to internal error." });
+    }
   } catch (err) {
     console.error("Error deleting channel:", err);
     res.status(500).json({ error: "Failed to delete channel" });
