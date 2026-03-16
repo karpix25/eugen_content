@@ -95,16 +95,17 @@ export function Sidebar({
           "space-y-1.5 pt-4 flex-1 overflow-y-auto custom-scrollbar transition-all duration-500",
           isOpen ? "-mx-2 px-2" : "w-full flex flex-col items-center gap-1"
         )}>
+          {isOpen && <div className="px-4 py-2 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Управление</div>}
+          <NavButton 
+            active={activeTab === 'monitor'} 
+            onClick={() => setActiveTab('monitor')} 
+            icon={<Bot className="w-5 h-5" />} 
+            label="Мониторинг"
+            collapsed={!isOpen}
+          />
+
           {isAdmin && (
             <>
-              {isOpen && <div className="px-4 py-2 text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Управление</div>}
-              <NavButton 
-                active={activeTab === 'monitor'} 
-                onClick={() => setActiveTab('monitor')} 
-                icon={<Bot className="w-5 h-5" />} 
-                label="Мониторинг"
-                collapsed={!isOpen}
-              />
             </>
           )}
           
