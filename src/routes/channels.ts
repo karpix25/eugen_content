@@ -34,7 +34,17 @@ router.post("/", authenticateToken, async (req: any, res) => {
       return res.status(400).json({ error: "Failed to fetch channel info. Please check the URL/ID." });
     }
 
-    const { id: channelId, name, handle, thumbnail, subscribers } = channelInfo;
+    let { id: channelId, name, handle, thumbnail, subscribers } = channelInfo;
+
+    // Safety check: ensure ID is not a full URL
+    if (channelId && channelId.includes('youtube.com/')) {
+      const idMatch = channelId.match(/channel\/([\w-]{24})/);
+      if (idMatch) channelId = idMatch[1];
+      else {
+        const hMatch = channelId.match(/youtube\.com\/(@[\w.-]+)/);
+        if (hMatch) channelId = hMatch[1];
+      }
+    }
 
     await query(`
       INSERT INTO channels (id, name, handle, scrape_days, monitoring_interval, user_id, thumbnail, subscribers)

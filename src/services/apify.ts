@@ -90,12 +90,26 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
                 if (handleMatch) handle = handleMatch[1];
             }
 
+            let channelId = item.channelId || item.id;
+            
+            // Critical fix: Ensure ID is just the ID, not a URL
+            if (channelId && channelId.includes('youtube.com/')) {
+              const idMatch = channelId.match(/channel\/([\w-]{24})/);
+              if (idMatch) {
+                channelId = idMatch[1];
+              } else {
+                // Try handle-based URL if it's not a UC... ID
+                const handleMatch = channelId.match(/youtube\.com\/(@[\w.-]+)/);
+                if (handleMatch) channelId = handleMatch[1];
+              }
+            }
+
             return {
-                id: item.channelId || item.id,
-                name: item.channelName || item.title,
-                handle: handle,
-                thumbnail: item.channelAvatarUrl || item.channelThumbnail || item.thumbnailUrl,
-                subscribers: item.numberOfSubscribers || 0
+              id: channelId,
+              name: item.channelName || item.title,
+              handle: handle,
+              thumbnail: item.channelAvatarUrl || item.channelThumbnail || item.thumbnailUrl,
+              subscribers: item.numberOfSubscribers || 0
             };
         }
     } catch (e) {
