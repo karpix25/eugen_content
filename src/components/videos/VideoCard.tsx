@@ -67,10 +67,10 @@ export function VideoCard({ video, onEvaluate, onApprove, onDelete, loading }: V
 
         <div className="flex-1 p-6 flex flex-col">
           <div className="flex justify-between items-start gap-4 mb-2">
-            <h3 className="font-semibold text-lg leading-tight">{video.title}</h3>
+            <h3 className="font-semibold text-lg leading-tight min-w-0">{video.title}</h3>
             {video.ai_score !== null && (
               <div className={cn(
-                "px-3 py-1 rounded-full text-sm font-bold",
+                "w-[100px] h-8 flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold whitespace-nowrap",
                 video.ai_score > 70 ? "bg-blue-600/20 text-blue-500" : "bg-yellow-500/20 text-yellow-400"
               )}>
                 {video.ai_score}% Match
