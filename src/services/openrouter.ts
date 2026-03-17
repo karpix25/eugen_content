@@ -78,6 +78,7 @@ export const translateText = async (text: string, targetLang: string): Promise<s
 
 export const detectLanguage = async (text: string): Promise<string | null> => {
   if (!OPENROUTER_API_KEY) return null;
+  if (!text) return null;
   const prompt = `Detect the language of the following text. Return ONLY the ISO code (e.g. "ru", "en"): ${text.substring(0, 500)}`;
   try {
     const response = await axios.post(

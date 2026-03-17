@@ -4,8 +4,18 @@ import { evaluateContent } from './gemini';
 import { sendToVizard } from './vizard';
 
 export class VideoManager {
-  static async getAllVideos() {
-    const result = await query("SELECT * FROM videos ORDER BY published_at DESC");
+  static async getAllVideos(userId?: string, isAdmin?: boolean) {
+    const result = await query(`
+      SELECT v.* 
+      FROM videos v 
+      LEFT JOIN channels ch ON v.channel_id = ch.id 
+      WHERE ($2 = true) 
+         OR (v.is_public = true) 
+         OR (ch.is_public = true) 
+         OR (ch.user_id = $1)
+         OR (v.user_id = $1)
+      ORDER BY v.published_at DESC
+    `, [userId, isAdmin || false]);
     return result.rows;
   }
 
@@ -110,7 +120,7 @@ export class VideoManager {
     await query("UPDATE videos SET is_public = $1 WHERE id = $2", [isPublic, id]);
   }
 
-  static async addManualVideo(url: string) {
+  static async addManualVideo(url: string, userId: string) {
     // Detect if it's a channel URL (contains @, /channel/, /c/, or /user/)
     const isChannel = url.includes('/@') || url.includes('/channel/') || url.includes('/c/') || url.includes('/user/');
     
@@ -129,9 +139,9 @@ export class VideoManager {
     
     // Initial insert with minimal data
     await query(`
-      INSERT INTO videos (id, title, status, published_at)
-      VALUES ($1, $2, $3, $4)
-    `, [videoId, 'Manual Upload', 'pending', new Date().toISOString()]);
+      INSERT INTO videos (id, title, status, published_at, user_id)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [videoId, 'Manual Upload', 'pending', new Date().toISOString(), userId]);
 
     // Process in background to get title and transcript
     this.processVideoBackground(videoId, { id: videoId, title: 'Manual Upload' });

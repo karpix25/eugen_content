@@ -27,11 +27,23 @@ export class CarouselService {
             if (['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(styleId)) {
                 // Template prompt mappings (copied from routes/carousels.ts logic)
                 const templates: Record<string, any> = {
-                    'ios-notes': { prompt: "iOS Notes app style, clean white background, San Francisco typography, minimalist UI elements" },
-                    'dark-luxury': { prompt: "Luxury dark aesthetic, deep black and gold accents, elegant serif typography, high-end product photography style" },
-                    'cyber-brutalist': { prompt: "Cyber Brutalist style, high contrast, bold neon colors, glitch effects, raw industrial typography" }
+                    'ios-notes': { 
+                        styleDescription: "iOS Notes app style, clean white background, San Francisco typography, minimalist UI elements",
+                        design_dna: { vibe: "Clean, productivity-focused, minimalist" },
+                        visual_elements: { art_style: "Flat Graphic" }
+                    },
+                    'dark-luxury': { 
+                        styleDescription: "Luxury dark aesthetic, deep black and gold accents, elegant serif typography, high-end product photography style",
+                        design_dna: { vibe: "Premium, exclusive, high-value" },
+                        visual_elements: { art_style: "Realistic Photo" }
+                    },
+                    'cyber-brutalist': { 
+                        styleDescription: "Cyber Brutalist style, high contrast, bold neon colors, glitch effects, raw industrial typography",
+                        design_dna: { vibe: "Edgy, technical, bold" },
+                        visual_elements: { art_style: "Flat Graphic" }
+                    }
                 };
-                analysis = templates[styleId] || { prompt: "Clean modern style" };
+                analysis = templates[styleId] || { styleDescription: "Clean modern style" };
             } else {
                 const styleRes = await query("SELECT analysis FROM carousel_styles WHERE id = $1", [styleId]);
                 if (styleRes.rows.length === 0) throw new Error("Style not found");
@@ -45,8 +57,8 @@ export class CarouselService {
             const user = userRes.rows[0];
             const faceRef = user?.use_face_in_carousels ? user.face_image_url : undefined;
 
-            const detectedLang = await detectLanguage(transcript) || 'ru';
-            const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
+            const detectedLang = transcript ? (await detectLanguage(transcript) || 'ru') : 'ru';
+            const script = await generateCarouselScript(transcript || title, topic || title, styleId, detectedLang, targetAudience);
             const gridUrl = await generateGridImage(script, analysis, faceRef);
             const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
             

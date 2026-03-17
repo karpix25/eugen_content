@@ -12,7 +12,7 @@ interface CarouselJobData {
 }
 
 export const carouselWorker = new Worker(
-  "carouselQueue",
+  "carousel",
   async (job: Job<CarouselJobData>) => {
     const { carouselId, clipId, userId, styleId, topic, targetAudience } = job.data;
     console.log(`[Worker: Carousel] Generating carousel ${carouselId} for clip ${clipId}`);

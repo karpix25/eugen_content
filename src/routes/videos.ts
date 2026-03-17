@@ -6,7 +6,9 @@ const router = Router();
 
 router.get("/", authenticateToken, async (req, res) => {
   try {
-    const videos = await VideoManager.getAllVideos();
+    const userId = req.user ? String(req.user.id) : undefined;
+    const isAdmin = req.user?.is_admin || false;
+    const videos = await VideoManager.getAllVideos(userId, isAdmin);
     res.json(videos);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch videos" });
@@ -26,7 +28,8 @@ router.post("/monitor", authenticateToken, requireAdmin, async (req, res) => {
 router.post("/manual", authenticateToken, async (req, res) => {
   try {
     const { url } = req.body;
-    const result = await VideoManager.addManualVideo(url);
+    const userId = String(req.user!.id);
+    const result = await VideoManager.addManualVideo(url, userId);
     res.json(result);
   } catch (error) {
     console.error("Manual add error:", error);
