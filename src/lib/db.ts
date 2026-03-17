@@ -38,6 +38,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
             subtitle_style TEXT DEFAULT 'ali',
             subtitle_outline_color TEXT DEFAULT '#000000',
             is_admin BOOLEAN DEFAULT FALSE,
+            is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `
@@ -229,6 +230,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_plaque_id_fkey",
       "ALTER TABLE carousel_styles DROP CONSTRAINT IF EXISTS carousel_styles_user_id_fkey",
       "ALTER TABLE carousels DROP CONSTRAINT IF EXISTS carousels_user_id_fkey",
+      "ALTER TABLE channels DROP CONSTRAINT IF EXISTS channels_user_id_fkey",
+      "ALTER TABLE videos DROP CONSTRAINT IF EXISTS videos_user_id_fkey",
       
       "ALTER TABLE users ALTER COLUMN telegram_id TYPE TEXT USING telegram_id::TEXT",
       "ALTER TABLE auth_sessions ALTER COLUMN telegram_id TYPE TEXT USING telegram_id::TEXT",
@@ -238,11 +241,13 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE carousel_styles ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
       "ALTER TABLE carousels ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT",
       
-      "ALTER TABLE clips ADD CONSTRAINT clips_downloaded_by_fkey FOREIGN KEY (downloaded_by) REFERENCES users(telegram_id)",
-      "ALTER TABLE publications ADD CONSTRAINT publications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id)",
+      "ALTER TABLE clips ADD CONSTRAINT clips_downloaded_by_fkey FOREIGN KEY (downloaded_by) REFERENCES users(telegram_id) ON DELETE CASCADE",
+      "ALTER TABLE publications ADD CONSTRAINT publications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE",
       "ALTER TABLE publications ADD CONSTRAINT publications_plaque_id_fkey FOREIGN KEY (plaque_id) REFERENCES ad_plaques(id) ON DELETE SET NULL",
-      "ALTER TABLE carousel_styles ADD CONSTRAINT carousel_styles_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id)",
-      "ALTER TABLE carousels ADD CONSTRAINT carousels_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id)"
+      "ALTER TABLE carousel_styles ADD CONSTRAINT carousel_styles_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE",
+      "ALTER TABLE carousels ADD CONSTRAINT carousels_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE",
+      "ALTER TABLE channels ADD CONSTRAINT channels_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE",
+      "ALTER TABLE videos ADD CONSTRAINT videos_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE"
     ];
 
     for (const stmt of migrationStatements) {
@@ -302,7 +307,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(telegram_id)",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE",
       "ALTER TABLE carousels ADD COLUMN IF NOT EXISTS topic TEXT",
-      "ALTER TABLE videos ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(telegram_id)"
+      "ALTER TABLE videos ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(telegram_id)",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"
     ];
 
     for (const stmt of columnAdditions) {

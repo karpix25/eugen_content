@@ -12,6 +12,7 @@ export class UserManager {
         ) as published_links
       FROM users u
       LEFT JOIN publications p ON u.telegram_id = p.user_id
+      WHERE u.is_active = TRUE
       GROUP BY u.telegram_id
       ORDER BY u.created_at DESC
     `);
@@ -61,6 +62,6 @@ export class UserManager {
   }
 
   static async deleteUser(telegramId: string) {
-    return query("DELETE FROM users WHERE telegram_id = $1", [telegramId]);
+    return query("UPDATE users SET is_active = FALSE WHERE telegram_id = $1", [telegramId]);
   }
 }

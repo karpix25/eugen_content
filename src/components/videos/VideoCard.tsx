@@ -45,9 +45,20 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
         animate={{ opacity: 1, y: 0 }}
         className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col sm:flex-row min-w-0 sm:min-h-[220px]"
       >
-        <div className="relative w-full sm:w-64 md:w-72 aspect-video sm:aspect-auto shrink-0 border-b sm:border-b-0 sm:border-r border-white/10">
-          <img src={video.thumbnail} className="w-full h-full object-cover" alt="" />
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+        <div className="relative w-full sm:w-64 md:w-72 aspect-square shrink-0 border-b sm:border-b-0 sm:border-r border-white/10 overflow-hidden bg-black">
+          {/* Blurred background */}
+          <img 
+            src={video.thumbnail} 
+            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110" 
+            alt="" 
+          />
+          {/* Main contained image */}
+          <img 
+            src={video.thumbnail} 
+            className="relative z-10 w-full h-full object-contain" 
+            alt="" 
+          />
+          <div className="absolute inset-0 z-20 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity backdrop-blur-[2px]">
             <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="p-3 bg-white/20 backdrop-blur-md rounded-full">
               <ExternalLink className="w-6 h-6" />
             </a>

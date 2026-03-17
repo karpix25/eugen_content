@@ -34,9 +34,15 @@ export function UsersTab({ users, onUpdate, authToken }: UsersTabProps) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` }
       });
-      if (res.ok) onUpdate();
+      if (res.ok) {
+        onUpdate();
+      } else {
+        const data = await res.json();
+        alert(`Ошибка при удалении: ${data.error || 'Неизвестная ошибка'}`);
+      }
     } catch (e) {
       console.error(e);
+      alert('Произошла ошибка при выполнении запроса');
     } finally {
       setLoading(null);
     }
