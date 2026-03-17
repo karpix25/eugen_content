@@ -61,7 +61,7 @@ export const api = {
       return handleResponse(res);
     },
     async delete(id: string) {
-      const res = await fetch(`/api/channels/${id}`, { method: 'DELETE', headers: getHeaders() });
+      const res = await fetch(`/api/channels/${encodeURIComponent(id)}`, { method: 'DELETE', headers: getHeaders() });
       return handleResponse(res);
     }
   },

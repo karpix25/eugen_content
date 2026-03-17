@@ -157,7 +157,7 @@ export function useAppStore() {
   const handleDeleteChannel = async (id: string) => {
     if (!confirm('Удалить этот канал?')) return;
     try {
-      const res = await fetch(`/api/channels/${id}`, {
+      const res = await fetch(`/api/channels/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` }
       });

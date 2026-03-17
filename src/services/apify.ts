@@ -93,14 +93,27 @@ export const getChannelInfo = async (channelUrl: string): Promise<{ id: string, 
             let channelId = item.channelId || item.id;
             
             // Critical fix: Ensure ID is just the ID, not a URL
-            if (channelId && channelId.includes('youtube.com/')) {
+            // Handle various YouTube URL formats to extract clean ID or handle
+            if (channelId && (channelId.includes('youtube.com/') || channelId.includes('youtu.be/'))) {
+              // Extract UC... ID
               const idMatch = channelId.match(/channel\/([\w-]{24})/);
               if (idMatch) {
                 channelId = idMatch[1];
               } else {
-                // Try handle-based URL if it's not a UC... ID
+                // Extract @handle
                 const handleMatch = channelId.match(/youtube\.com\/(@[\w.-]+)/);
-                if (handleMatch) channelId = handleMatch[1];
+                if (handleMatch) {
+                  channelId = handleMatch[1];
+                } else {
+                  // If it's a video URL like youtu.be/VIDEO_ID or youtube.com/watch?v=VIDEO_ID,
+                  // we shouldn't use it as channelId. 
+                  // In this case, we'll try to get the channel title/handle if available,
+                  // or fallback to the item's own ID if it's cleaner.
+                  const videoIdMatch = channelId.match(/(?:v=|be\/|shorts\/)([\w-]{11})/);
+                  if (videoIdMatch && item.authorHandle) {
+                    channelId = item.authorHandle.startsWith('@') ? item.authorHandle : '@' + item.authorHandle;
+                  }
+                }
               }
             }
 
