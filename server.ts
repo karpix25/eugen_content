@@ -4,6 +4,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 
+import { initLogger } from "./src/lib/logger.js";
+initLogger();
+
 import { createServer as createViteServer } from "vite";
 import { query, initDb } from "./src/lib/db.js";
 import { bot, startBot } from "./src/services/telegram.js";

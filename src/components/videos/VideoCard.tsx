@@ -43,9 +43,9 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
         layout
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col sm:flex-row min-w-0"
+        className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col sm:flex-row min-w-0 sm:min-h-[220px]"
       >
-        <div className="relative w-full sm:w-64 md:w-72 aspect-video shrink-0">
+        <div className="relative w-full sm:w-64 md:w-72 aspect-video sm:aspect-auto shrink-0 border-b sm:border-b-0 sm:border-r border-white/10">
           <img src={video.thumbnail} className="w-full h-full object-cover" alt="" />
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
             <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="p-3 bg-white/20 backdrop-blur-md rounded-full">
@@ -81,9 +81,9 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
                 Анализ ИИ...
               </button>
             ) : (
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex flex-col min-h-0">
                 <div className="text-xs text-white/40 mb-1 uppercase tracking-widest font-bold">Оценка ИИ:</div>
-                <div className="text-sm text-white/80 bg-black/20 p-3 rounded-lg">
+                <div className="text-sm text-white/80 bg-black/20 p-3 rounded-lg overflow-y-auto max-h-[120px] scrollbar-thin scrollbar-thumb-white/10">
                   <Markdown>{video.ai_evaluation}</Markdown>
                 </div>
               </div>
