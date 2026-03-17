@@ -34,8 +34,8 @@ export const generatePlaqueImage = async (topic: string): Promise<string> => {
   const prompt = await OpenRouter.generatePlaquePrompt(topic);
   
   console.log("Generating plaque image via Kie.ai (Nano Banana Pro)...");
-  // Plaques are rectangular, 3:2 or 16:9. 3:2 is a good compromise for wide banners.
-  return Kie.generateGridImage(prompt, "3:2");
+  // Plaques use 21:9 aspect ratio in 2K as requested.
+  return Kie.generateGridImage(prompt, "21:9");
 };
 
 export type CarouselSlide = OpenRouter.CarouselSlide;
