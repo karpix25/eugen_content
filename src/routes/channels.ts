@@ -142,7 +142,11 @@ router.delete("/:id", authenticateToken, async (req: any, res) => {
       // 0. Identify videos to be deleted (ONLY pending)
       const videosToDeleteRes = await query(`
         SELECT id FROM videos 
-        WHERE channel_id = $1 AND (status = 'pending' OR status IS NULL)
+        WHERE channel_id = $1 
+        AND (status = 'pending' OR status IS NULL)
+        AND status != 'processing'
+        AND status != 'approved'
+        AND status != 'completed'
       `, [id]);
       const videoIdsToDelete = videosToDeleteRes.rows.map(r => r.id);
 
