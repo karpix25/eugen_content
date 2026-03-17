@@ -147,7 +147,7 @@ export function MonitoringTab({
                     )}
                   </div>
                 </div>
-                <div className="absolute top-2 right-2 flex flex-col gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 flex flex-row gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
                   {currentUserProfile?.is_admin && onToggleChannelPublic ? (
                     <button
                       onClick={() => onToggleChannelPublic(channel.id, !channel.is_public)}
