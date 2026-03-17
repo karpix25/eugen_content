@@ -19,7 +19,7 @@ export const plaqueWorker = new Worker(
       const imageUrl = await generatePlaqueImage(topic);
       
       await query(
-        "UPDATE ad_plaques SET image_url = $1, status = 'completed' WHERE id = $2",
+        "UPDATE ad_plaques SET image_url = $1, status = 'preview' WHERE id = $2",
         [imageUrl, plaqueId]
       );
       

@@ -13,6 +13,8 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  const [currentPlaqueId, setCurrentPlaqueId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,17 +49,23 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
           });
           const statusData = await statusRes.json();
           
-          if (statusData.status === 'completed') {
+          if (statusData.status === 'preview') {
             setSuccess(true);
             setGeneratedUrl(statusData.image_url);
+            setCurrentPlaqueId(id);
             setTopic('');
             setName('');
             setLoading(false);
-            onUpdate();
           } else if (statusData.status === 'failed') {
             throw new Error(statusData.error_message || 'Plaque generation failed');
+          } else if (statusData.status === 'completed') {
+            // Already completed? Maybe user refreshed.
+            setSuccess(true);
+            setGeneratedUrl(statusData.image_url);
+            setLoading(false);
+            onUpdate();
           } else {
-            // Check again in 2 seconds
+            // Still pending or generating
             setTimeout(poll, 2000);
           }
         } catch (err: any) {
@@ -119,21 +127,77 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
             </div>
           )}
 
-          {success && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+          {success && generatedUrl && currentPlaqueId && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
               <div className="p-4 bg-blue-600/10 border border-blue-600/20 rounded-2xl text-blue-600 text-xs font-bold">
-                Плашка успешно сгенерирована и сохранена!
+                Плашка готова! Сохранить результат?
               </div>
-              {generatedUrl && (
-                <div className="relative group/preview rounded-2xl overflow-hidden border border-white/10 aspect-[3/2] bg-black/40">
-                  <img src={generatedUrl} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center p-6 text-center">
-                    <p className="text-[10px] font-black text-white uppercase tracking-widest leading-relaxed">
-                      Эта плашка уже доступна в разделе «Настройки плашек»
-                    </p>
-                  </div>
-                </div>
-              )}
+              
+              <div className="relative group/preview rounded-2xl overflow-hidden border border-white/10 aspect-[3/2] bg-black/40">
+                <img src={generatedUrl} alt="Preview" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/20" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!currentPlaqueId) return;
+                    setActionLoading(true);
+                    try {
+                      const res = await fetch(`/api/ad-plaques/approve/${currentPlaqueId}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                      });
+                      if (!res.ok) throw new Error('Failed to approve');
+                      
+                      setSuccess(true);
+                      setGeneratedUrl(null);
+                      setCurrentPlaqueId(null);
+                      onUpdate();
+                    } catch (err: any) {
+                      setError(err.message);
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="py-4 rounded-2xl bg-blue-600 text-black font-black uppercase tracking-widest text-[10px] hover:bg-blue-500 transition-all disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Сохранить'}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!currentPlaqueId) return;
+                    setActionLoading(true);
+                    try {
+                      const res = await fetch(`/api/ad-plaques/${currentPlaqueId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                      });
+                      if (!res.ok) throw new Error('Failed to delete');
+                      setSuccess(false);
+                      setGeneratedUrl(null);
+                      setCurrentPlaqueId(null);
+                    } catch (err: any) {
+                      setError(err.message);
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="py-4 rounded-2xl bg-white/5 border border-white/10 text-white/40 font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Удалить'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {success && generatedUrl && !currentPlaqueId && (
+            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 text-xs font-bold">
+              Плашка успешно сохранена в коллекции!
             </div>
           )}
 

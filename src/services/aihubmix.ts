@@ -22,14 +22,15 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1",
     // Clean aspect ratio (e.g. "2:3" -> "2:3", "3/2" -> "3:2")
     const cleanedAspectRatio = aspectRatio.replace('/', ':');
 
+    const isGrid = aspectRatio === "2:3";
+    const gridInstruction = isGrid ? "Instruction: Generate a single unified image representing a 2x3 grid of 6 slides (2 columns, 3 rows). MANDATORY: The output MUST contain exactly 6 distinct content zones arranged in 2 columns and 3 rows. DO NOT generate 9 slides. " : "";
+    
     const contents: any[] = [
       {
         role: "user",
         parts: [
           {
-            text: `Instruction: Generate a single unified image representing a 2x3 grid of 6 slides (2 columns, 3 rows). ${referImageUrl ? "Use the provided image as a visual reference for character appearance and style." : ""} 
-            
-MANDATORY: The output MUST contain exactly 6 distinct content zones arranged in 2 columns and 3 rows. DO NOT generate 9 slides.
+            text: `${gridInstruction}${referImageUrl ? "Use the provided image as a visual reference for character appearance and style." : ""} 
             
 Prompt: ${cleanPrompt}`
           }

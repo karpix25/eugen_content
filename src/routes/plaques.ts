@@ -18,11 +18,9 @@ router.get("/ad-plaques", authenticateToken, async (req: any, res) => {
     let result;
     
     if (isAdmin) {
-      // Admins see everything
-      result = await query("SELECT * FROM ad_plaques ORDER BY created_at DESC");
+      result = await query("SELECT * FROM ad_plaques WHERE status = 'completed' ORDER BY created_at DESC");
     } else {
-      // Regular users only see global plaques (user_id IS NULL)
-      result = await query("SELECT * FROM ad_plaques WHERE user_id IS NULL ORDER BY created_at DESC");
+      result = await query("SELECT * FROM ad_plaques WHERE user_id IS NULL AND status = 'completed' ORDER BY created_at DESC");
     }
     res.json(result.rows);
   } catch (error) {
@@ -90,15 +88,28 @@ router.get("/ad-plaques/status/:id", authenticateToken, async (req: any, res) =>
   }
 });
 
-router.delete("/ad-plaques/:id", authenticateToken, requireAdmin, async (req, res) => {
+router.post("/ad-plaques/approve/:id", authenticateToken, requireAdmin, async (req: any, res) => {
   const { id } = req.params;
   try {
+    await query("UPDATE ad_plaques SET status = 'completed' WHERE id = $1", [id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to approve plaque" });
+  }
+});
+
+router.delete("/ad-plaques/:id", authenticateToken, requireAdmin, async (req: any, res) => {
+  const { id } = req.params;
+  try {
+    // Basic dependency cleanup (though if these are many, a transaction or cascade is better)
     await query("UPDATE publications SET plaque_id = NULL WHERE plaque_id = $1", [id]);
     await query("UPDATE users SET default_plaque_id = NULL WHERE default_plaque_id = $1", [id]);
     await query("UPDATE clips SET ad_plaque_id = NULL WHERE ad_plaque_id = $1", [id]);
+    
     await query("DELETE FROM ad_plaques WHERE id = $1", [id]);
     res.json({ success: true });
-  } catch (err) {
+  } catch (error) {
+    console.error("Delete plaque error:", error);
     res.status(500).json({ error: "Failed to delete plaque" });
   }
 });
