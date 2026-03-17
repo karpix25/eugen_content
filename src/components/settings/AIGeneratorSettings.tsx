@@ -34,18 +34,41 @@ export function AIGeneratorSettings({ authToken, onUpdate }: AIGeneratorSettings
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to generate plaque');
+        throw new Error(data.error || 'Failed to start plaque generation');
       }
 
-      setSuccess(true);
-      const data = await response.json();
-      setGeneratedUrl(data.imageUrl);
-      setTopic('');
-      setName('');
-      onUpdate();
+      const { id } = await response.json();
+      
+      // Start polling
+      const poll = async () => {
+        try {
+          const statusRes = await fetch(`/api/ad-plaques/status/${id}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const statusData = await statusRes.json();
+          
+          if (statusData.status === 'completed') {
+            setSuccess(true);
+            setGeneratedUrl(statusData.image_url);
+            setTopic('');
+            setName('');
+            setLoading(false);
+            onUpdate();
+          } else if (statusData.status === 'failed') {
+            throw new Error(statusData.error_message || 'Plaque generation failed');
+          } else {
+            // Check again in 2 seconds
+            setTimeout(poll, 2000);
+          }
+        } catch (err: any) {
+          setError(err.message);
+          setLoading(false);
+        }
+      };
+      
+      poll();
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };

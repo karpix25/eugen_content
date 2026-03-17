@@ -39,4 +39,9 @@ export const carouselQueue = new Queue("carousel", {
   defaultJobOptions,
 });
 
+export const plaqueQueue = new Queue("plaque", {
+  connection: redisConnection as any,
+  defaultJobOptions,
+});
+
 console.log("🚀 BullMQ Queues initialized");

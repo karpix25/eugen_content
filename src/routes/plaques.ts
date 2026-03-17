@@ -7,6 +7,7 @@ import { query } from "../lib/db.js";
 import { uploadToS3 } from "../lib/s3.js";
 import { authenticateToken, isAdmin, requireAdmin, JWT_SECRET } from "../middleware/auth.js";
 import { generatePlaqueImage } from "../services/gemini.js";
+import { plaqueQueue } from "../lib/queues.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -57,17 +58,35 @@ router.post("/ad-plaques/generate", authenticateToken, requireAdmin, async (req:
   if (!topic) return res.status(400).json({ error: "Topic is required" });
 
   try {
-    const imageUrl = await generatePlaqueImage(topic);
     const id = uuidv4();
-    // Global plaque has user_id = null
+    // Create plaque record with 'pending' status
     await query(
-      "INSERT INTO ad_plaques (id, name, image_url, text, user_id) VALUES ($1, $2, $3, $4, $5)",
-      [id, name || topic, imageUrl, topic, null]
+      "INSERT INTO ad_plaques (id, name, image_url, text, user_id, status) VALUES ($1, $2, $3, $4, $5, $6)",
+      [id, name || topic, '', topic, null, 'pending']
     );
-    res.json({ id, imageUrl });
+
+    // Add to queue
+    await plaqueQueue.add(`plaque-${id}`, {
+      plaqueId: id,
+      topic,
+      name: name || topic
+    });
+
+    res.json({ id, status: 'pending' });
   } catch (error: any) {
     console.error("Plaque generation error:", error);
-    res.status(500).json({ error: error.message || "Failed to generate plaque" });
+    res.status(500).json({ error: error.message || "Failed to start plaque generation" });
+  }
+});
+
+router.get("/ad-plaques/status/:id", authenticateToken, async (req: any, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query("SELECT status, image_url, error_message FROM ad_plaques WHERE id = $1", [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Plaque not found" });
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch plaque status" });
   }
 });
 

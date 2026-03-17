@@ -110,6 +110,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
             name TEXT,
             image_url TEXT,
             text TEXT,
+            status TEXT DEFAULT 'completed',
+            error_message TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `
@@ -259,6 +261,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'idle'",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS sync_error TEXT",
       "ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+      "ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed'",
+      "ALTER TABLE ad_plaques ADD COLUMN IF NOT EXISTS error_message TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS detected_language TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS error_message TEXT",
