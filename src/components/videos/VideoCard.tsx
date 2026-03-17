@@ -130,21 +130,28 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
               <div className="ml-auto flex flex-col items-end gap-1">
                 <div className="flex items-center gap-2 text-blue-500 text-sm font-medium">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {video.status === 'approved' ? 'Одобрено, отправляю...' : 'В обработке Vizard...'}
+                  {video.status === 'approved' ? 'Одобрено, отправка...' : 'В обработке (Vizard)...'}
                 </div>
                 {video.target_language && (
                   <div className="text-[10px] uppercase font-bold text-blue-600/60 tracking-wider">
-                    Запланирован дубляж: {video.target_language}
+                    Дубляж: {video.target_language === 'ru' ? 'RU' : 'EN'}
                   </div>
                 )}
               </div>
             )}
 
-
             {video.status === 'completed' && (
               <div className="ml-auto flex flex-col items-end gap-1">
                 <div className="text-blue-500 text-sm font-medium flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" /> Готово
+                </div>
+              </div>
+            )}
+
+            {video.status === 'rejected' && (
+              <div className="ml-auto flex flex-col items-end gap-1">
+                <div className="text-red-500 text-sm font-medium flex items-center gap-2">
+                  <XCircle className="w-4 h-4" /> Отклонено
                 </div>
               </div>
             )}

@@ -1,10 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { useAppData } from './useAppData';
+import { api } from '../services/api';
 
 export function useAppStore() {
   const { authToken, currentUser, handleLogin, handleLogout } = useAuth();
   const data = useAppData(authToken, currentUser, handleLogout);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('clips');
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [manualYoutubeUrl, setManualYoutubeUrl] = useState('');
@@ -12,108 +15,109 @@ export function useAppStore() {
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
 
-  // Add plaque management to the store
-  const addPlaque = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    try {
+  // Mutations
+  const addPlaqueMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
       const res = await fetch('/api/ad-plaques', {
         method: 'POST',
         headers: { Authorization: `Bearer ${authToken}` },
         body: formData
       });
-      if (res.ok) {
-        data.fetchData();
-        (e.target as HTMLFormElement).reset();
-      }
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error('Failed to add plaque');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plaques'] });
     }
-  };
+  });
 
-  const deletePlaque = async (id: string) => {
-    if (!confirm('Удалить эту плашку?')) return;
-    try {
+  const deletePlaqueMutation = useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/ad-plaques/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` }
       });
-      if (res.ok) data.fetchData();
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error('Failed to delete plaque');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plaques'] });
     }
-  };
+  });
 
-  const handleEvaluateVideo = async (id: string) => {
-    setProcessingId(id);
-    try {
-      await fetch(`/api/videos/${id}/evaluate`, {
+  const videoActionMutation = useMutation({
+    mutationFn: async ({ id, action, body }: { id: string, action: string, body?: any }) => {
+      setProcessingId(id);
+      const res = await fetch(`/api/videos/${id}/${action}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}` 
         },
-        body: JSON.stringify({ targetAudience: data.targetAudience })
+        body: body ? JSON.stringify(body) : undefined
       });
-      data.fetchData();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setProcessingId(null);
-    }
-  };
+      if (!res.ok) throw new Error(`Failed to ${action} video`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['videos'] });
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
+    },
+    onSettled: () => setProcessingId(null)
+  });
 
-  const handleApproveVideo = async (id: string, targetLanguage?: string) => {
-    setProcessingId(id);
-    try {
-      await fetch(`/api/videos/${id}/approve`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}` 
-        },
-        body: JSON.stringify({ target_language: targetLanguage })
-      });
-      data.fetchData();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleCompleteVideo = async (id: string) => {
-    setProcessingId(id);
-    try {
-      await fetch(`/api/videos/${id}/complete`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      data.fetchData();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleDeleteVideo = async (id: string) => {
-    if (!confirm('Удалить это видео из мониторинга?')) return;
-    try {
-      await fetch(`/api/videos/${id}`, {
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/videos/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` }
       });
-      data.fetchData();
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error('Failed to delete video');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['videos'] });
     }
-  };
+  });
+
+  const channelMutation = useMutation({
+    mutationFn: async ({ url, interval, scrapeDays }: { url: string, interval: string, scrapeDays: number }) => {
+      const res = await fetch('/api/channels', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ id: url, monitoring_interval: interval, scrape_days: scrapeDays })
+      });
+      if (!res.ok) throw new Error('Failed to add channel');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+    }
+  });
+
+  const deleteChannelMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/channels/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw { status: res.status, ...errData };
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+    },
+    onError: (err: any) => {
+      if (err.status === 403) alert('У вас нет прав на удаление этого канала.');
+      else if (err.status === 404) alert('Канал не найден.');
+      else alert(`Ошибка при удалении канала: ${err.error || 'Неизвестная ошибка'}`);
+    }
+  });
 
   const handleAddManualVideo = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!manualYoutubeUrl) return;
-    
     try {
       const res = await fetch('/api/videos/manual', {
         method: 'POST',
@@ -125,94 +129,11 @@ export function useAppStore() {
       });
       if (res.ok) {
         setManualYoutubeUrl('');
-        data.fetchData();
+        queryClient.invalidateQueries({ queryKey: ['videos'] });
       }
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const handleAddChannel = async (url: string, interval: string, scrapeDays: number) => {
-    try {
-      const res = await fetch('/api/channels', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ 
-          id: url,
-          monitoring_interval: interval,
-          scrape_days: scrapeDays
-        })
-      });
-      if (res.ok) {
-        data.fetchData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeleteChannel = async (id: string) => {
-    if (!confirm('Удалить этот канал?')) return;
-    try {
-      const res = await fetch(`/api/channels/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      
-      if (res.ok) {
-        data.fetchData();
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        console.error(`Failed to delete channel. Status: ${res.status}`, errData);
-        
-        if (res.status === 403) {
-          alert('У вас нет прав на удаление этого канала.');
-        } else if (res.status === 404) {
-          alert('Канал не найден.');
-        } else {
-          alert(`Ошибка при удалении канала: ${errData.error || 'Неизвестная ошибка'}`);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleToggleChannelPublic = async (id: string, isPublic: boolean) => {
-    try {
-      const res = await fetch(`/api/channels/${id}/toggle-public`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ is_public: isPublic })
-      });
-      if (res.ok) data.fetchData();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleSyncChannel = async (id: string) => {
-    try {
-      const res = await fetch(`/api/channels/${id}/sync`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${authToken}`
-        }
-      });
-      if (res.ok) {
-        data.fetchData();
-        return true;
-      }
-    } catch (err) {
-      console.error(err);
-    }
-    return false;
   };
 
   const handleToggleClipPublic = async (id: string, isPublic: boolean) => {
@@ -230,37 +151,11 @@ export function useAppStore() {
         body: JSON.stringify({ is_public: isPublic })
       });
       if (!res.ok) {
-        // Rollback on error
         data.setClips(previousClips);
         const err = await res.json();
         alert(err.error || "Ошибка при изменении приватности");
-      }
-    } catch (err) {
-      console.error(err);
-      data.setClips(previousClips);
-    }
-  };
-
-  const handleToggleFolderPublic = async (videoId: string, isPublic: boolean) => {
-    // Optimistic update
-    const previousClips = [...data.clips];
-    data.setClips(prev => prev.map(c => c.video_id === videoId ? { ...c, video_is_public: isPublic } : c));
-
-    try {
-      const res = await fetch(`/api/videos/${videoId}/toggle-public`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ isPublic: isPublic })
-      });
-
-      if (!res.ok) {
-        // Rollback
-        data.setClips(previousClips);
-        const err = await res.json();
-        alert(err.error || "Ошибка при изменении приватности");
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['clips'] });
       }
     } catch (err) {
       console.error(err);
@@ -278,23 +173,59 @@ export function useAppStore() {
     setSidebarOpen,
     toggleSidebar,
     ...data,
-    updateData: data.fetchData,
+    updateData: () => queryClient.invalidateQueries(),
     handleLogout,
-    addPlaque,
-    deletePlaque,
-    handleEvaluateVideo,
-    handleApproveVideo,
-    handleCompleteVideo,
-    handleDeleteVideo,
+    addPlaque: async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      await addPlaqueMutation.mutateAsync(new FormData(e.currentTarget));
+      (e.target as HTMLFormElement).reset();
+    },
+    deletePlaque: async (id: string) => {
+      if (confirm('Удалить эту плашку?')) {
+        await deletePlaqueMutation.mutateAsync(id);
+      }
+    },
+    handleEvaluateVideo: (id: string) => videoActionMutation.mutate({ id, action: 'evaluate', body: { targetAudience: data.targetAudience } }),
+    handleApproveVideo: (id: string, targetLanguage?: string) => videoActionMutation.mutate({ id, action: 'approve', body: { target_language: targetLanguage } }),
+    handleCompleteVideo: (id: string) => videoActionMutation.mutate({ id, action: 'complete' }),
+    handleDeleteVideo: (id: string) => {
+      if (confirm('Удалить это видео из мониторинга?')) deleteVideoMutation.mutate(id);
+    },
     handleAddManualVideo,
-    handleAddChannel,
-    handleDeleteChannel,
-    handleSyncChannel,
-    handleToggleChannelPublic,
+    handleAddChannel: (url: string, interval: string, scrapeDays: number) => channelMutation.mutate({ url, interval, scrapeDays }),
+    handleDeleteChannel: (id: string) => deleteChannelMutation.mutate(id),
+    handleSyncChannel: async (id: string) => {
+      try {
+        const res = await fetch(`/api/channels/${id}/sync`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
+        if (res.ok) {
+          queryClient.invalidateQueries({ queryKey: ['channels'] });
+          return true;
+        }
+      } catch (err) { console.error(err); }
+      return false;
+    },
+    handleToggleChannelPublic: async (id: string, isPublic: boolean) => {
+      const res = await fetch(`/api/channels/${id}/toggle-public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ is_public: isPublic })
+      });
+      if (res.ok) queryClient.invalidateQueries({ queryKey: ['channels'] });
+    },
     handleToggleClipPublic,
-    handleToggleFolderPublic,
+    handleToggleFolderPublic: async (videoId: string, isPublic: boolean) => {
+      const res = await fetch(`/api/videos/${videoId}/toggle-public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ isPublic: isPublic })
+      });
+      if (res.ok) queryClient.invalidateQueries({ queryKey: ['clips'] });
+    },
     manualYoutubeUrl,
     setManualYoutubeUrl,
     processingId
-  }), [authToken, handleLogin, currentUser, activeTab, isSidebarOpen, data, handleLogout, addPlaque, deletePlaque, handleEvaluateVideo, handleApproveVideo, handleCompleteVideo, handleDeleteVideo, handleAddManualVideo, handleAddChannel, handleDeleteChannel, handleSyncChannel, handleToggleChannelPublic, handleToggleClipPublic, handleToggleFolderPublic, manualYoutubeUrl, processingId]);
+  }), [authToken, handleLogin, currentUser, activeTab, isSidebarOpen, data, handleLogout, addPlaqueMutation, deletePlaqueMutation, videoActionMutation, deleteVideoMutation, channelMutation, deleteChannelMutation, queryClient, manualYoutubeUrl, processingId]);
 }
