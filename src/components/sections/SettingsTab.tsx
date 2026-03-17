@@ -173,54 +173,6 @@ export function SettingsTab({
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Profile Header Block */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#111] to-[#050505] rounded-[2.5rem] border border-white/5 p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[100px] -mr-48 -mt-48 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 blur-[80px] -ml-32 -mb-32 rounded-full pointer-events-none" />
-        
-        <div className="relative flex flex-col md:flex-row items-center gap-8">
-          <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-700 p-1 shadow-xl shadow-blue-600/20 rotate-3">
-              <div className="w-full h-full bg-[#0A0A0A] rounded-[1.4rem] flex items-center justify-center -rotate-3 overflow-hidden">
-                {currentUser.username ? (
-                  <span className="text-3xl font-black text-blue-600">{currentUser.username[0].toUpperCase()}</span>
-                ) : (
-                  <UserIcon className="w-10 h-10 text-blue-600" />
-                )}
-              </div>
-            </div>
-            <div className="absolute -bottom-2 -right-2 bg-blue-600 text-black p-1.5 rounded-xl shadow-lg border-4 border-[#0A0A0A]">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-
-          <div className="flex-1 text-center md:text-left space-y-2">
-            <h1 className="text-2xl font-black tracking-tight text-white flex items-center justify-center md:justify-start gap-3">
-              {currentUser.first_name || currentUser.username}
-              <span className="bg-blue-600/10 text-blue-600 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border border-blue-600/20">
-                {currentUser.role || 'PRO'}
-              </span>
-            </h1>
-            <p className="text-white/40 text-xs font-medium uppercase tracking-[0.2em]">
-              ID: {currentUser.telegram_id || 'NANOBANANA_BASE'} • {currentUser.is_admin ? 'ADMINISTRATOR' : 'WORKER'}
-            </p>
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
-              <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-                <TrendingUp className="w-3 h-3 text-blue-500" />
-                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{currentUser.publication_count || 0} ПУБЛИКАЦИЙ</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-                <Cpu className="w-3 h-3 text-blue-400" />
-                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">AUTO: {currentUser.auto_mode_enabled ? 'ON' : 'OFF'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full md:w-auto">
-            {/* Premium card removed based on user request */}
-          </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* Settings Controls */}
