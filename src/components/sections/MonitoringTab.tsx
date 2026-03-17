@@ -61,6 +61,7 @@ export function MonitoringTab({
   const [addingChannel, setAddingChannel] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   const handleAddChannel = async () => {
     if (!newChannelUrl) return;
@@ -75,7 +76,13 @@ export function MonitoringTab({
 
   // Filter and sort videos
   const filteredVideos = videos
-    .filter(v => !selectedChannelId || v.channel_id === selectedChannelId)
+    .filter(v => (!selectedChannelId || v.channel_id === selectedChannelId))
+    .filter(v => {
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'pending') return v.status === 'pending' || v.status === null;
+      if (statusFilter === 'completed') return v.status === 'completed';
+      return true;
+    })
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
 
   return (
@@ -262,11 +269,11 @@ export function MonitoringTab({
       </div>
 
       {/* Videos Section */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col min-w-0">
           <h2 className="text-2xl font-bold">Мониторинг</h2>
           <div className="flex items-center gap-2">
-            <p className="text-white/40 text-sm">
+            <p className="text-white/40 text-sm truncate">
               {selectedChannelId ? (
                 <>Фильтр по каналу: <span className="text-blue-500 font-bold">{channels.find(c => c.id === selectedChannelId)?.name}</span></>
               ) : (
@@ -276,19 +283,43 @@ export function MonitoringTab({
             {selectedChannelId && (
               <button 
                 onClick={() => setSelectedChannelId(null)}
-                className="text-[10px] text-red-400/60 hover:text-red-400 underline uppercase tracking-tighter"
+                className="text-[10px] text-red-400/60 hover:text-red-400 underline uppercase tracking-tighter shrink-0"
               >
                 Сбросить
               </button>
             )}
           </div>
         </div>
-        <button
-          onClick={onRefresh}
-          className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all group"
-        >
-          <RefreshCw className={loadingVideos ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
-        </button>
+
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="hidden sm:flex bg-white/5 border border-white/10 rounded-xl p-1">
+            {[
+              { id: 'all', label: 'Все' },
+              { id: 'pending', label: 'Новые' },
+              { id: 'completed', label: 'Нарезанные' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setStatusFilter(f.id as any)}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  statusFilter === f.id 
+                    ? "bg-blue-600 text-black shadow-lg" 
+                    : "text-white/40 hover:text-white"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={onRefresh}
+            className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all group"
+          >
+            <RefreshCw className={loadingVideos ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -305,7 +336,13 @@ export function MonitoringTab({
         {filteredVideos.length === 0 && !loadingVideos && (
           <div className="py-20 text-center text-white/20 bg-white/5 rounded-2xl border border-white/5">
             <Play className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>{selectedChannelId ? "У этого канала пока нет видео." : "Новых видео для мониторинга пока нет."}</p>
+            <p>
+              {statusFilter === 'pending' 
+                ? "Нет новых видео для мониторинга." 
+                : statusFilter === 'completed' 
+                  ? "У вас пока нет нарезанных (готовых) видео."
+                  : "Видео не найдены."}
+            </p>
           </div>
         )}
       </div>
