@@ -139,45 +139,57 @@ router.delete("/:id", authenticateToken, async (req: any, res) => {
 
     // Manual cascade deletion to ensure cleanup across all related tables
     try {
-      // 0. Tasks related to clips of this channel
-      const tasksDel = await query(`
-        DELETE FROM tasks 
-        WHERE clip_id IN (
-          SELECT id FROM clips 
-          WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
-        )
+      // 0. Identify videos to be deleted (pending or processing)
+      const videosToDeleteRes = await query(`
+        SELECT id FROM videos 
+        WHERE channel_id = $1 AND (status = 'pending' OR status = 'processing' OR status IS NULL)
       `, [id]);
-      console.log(`[DELETE CHANNEL] Deleted ${tasksDel.rowCount} related tasks`);
+      const videoIdsToDelete = videosToDeleteRes.rows.map(r => r.id);
 
-      // 1. Publications and Carousels
-      // These use subqueries to find clips belonging to videos of this channel
-      const pubDel = await query(`
-        DELETE FROM publications 
-        WHERE clip_id IN (
-          SELECT id FROM clips 
-          WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
-        )
+      if (videoIdsToDelete.length > 0) {
+        // 1. Tasks related to clips of videos to be deleted
+        await query(`
+          DELETE FROM tasks 
+          WHERE clip_id IN (
+            SELECT id FROM clips 
+            WHERE video_id = ANY($1)
+          )
+        `, [videoIdsToDelete]);
+
+        // 2. Publications and Carousels for videos to be deleted
+        await query(`
+          DELETE FROM publications 
+          WHERE clip_id IN (
+            SELECT id FROM clips 
+            WHERE video_id = ANY($1)
+          )
+        `, [videoIdsToDelete]);
+        
+        await query(`
+          DELETE FROM carousels 
+          WHERE clip_id IN (
+            SELECT id FROM clips 
+            WHERE video_id = ANY($1)
+          )
+        `, [videoIdsToDelete]);
+
+        // 3. Clips for videos to be deleted
+        await query("DELETE FROM clips WHERE video_id = ANY($1)", [videoIdsToDelete]);
+
+        // 4. Videos themselves (only pending/processing)
+        const videoDel = await query("DELETE FROM videos WHERE id = ANY($1)", [videoIdsToDelete]);
+        console.log(`[DELETE CHANNEL] Deleted ${videoDel.rowCount} pending/processing videos`);
+      }
+
+      // 5. For REMAINING videos (approved, completed, etc.), just unbind them from the channel
+      const videoUpdate = await query(`
+        UPDATE videos 
+        SET channel_id = NULL 
+        WHERE channel_id = $1
       `, [id]);
-      console.log(`[DELETE CHANNEL] Deleted ${pubDel.rowCount} related publications`);
-      
-      const carDel = await query(`
-        DELETE FROM carousels 
-        WHERE clip_id IN (
-          SELECT id FROM clips 
-          WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)
-        )
-      `, [id]);
-      console.log(`[DELETE CHANNEL] Deleted ${carDel.rowCount} related carousels`);
+      console.log(`[DELETE CHANNEL] Preserved ${videoUpdate.rowCount} processed videos by setting channel_id to NULL`);
 
-      // 2. Clips
-      const clipDel = await query("DELETE FROM clips WHERE video_id IN (SELECT id FROM videos WHERE channel_id = $1)", [id]);
-      console.log(`[DELETE CHANNEL] Deleted ${clipDel.rowCount} related clips`);
-
-      // 3. Videos
-      const videoDel = await query("DELETE FROM videos WHERE channel_id = $1", [id]);
-      console.log(`[DELETE CHANNEL] Deleted ${videoDel.rowCount} related videos`);
-
-      // 4. Channel itself
+      // 6. Channel itself
       await query("DELETE FROM channels WHERE id = $1", [id]);
       
       console.log(`[DELETE CHANNEL] Success: Deleted channel ${id} and all its data.`);
