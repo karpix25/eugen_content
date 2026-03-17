@@ -1,5 +1,6 @@
 import { Router } from "express";
 import path from "path";
+import crypto from "crypto";
 import { query } from "../lib/db.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 import { analyzeStyle, generateCarouselScript, generateGridImage, detectLanguage } from "../services/gemini.js";
@@ -84,22 +85,32 @@ router.delete("/styles/:id", authenticateToken, requireAdmin, async (req: any, r
 
 router.post("/generate", authenticateToken, async (req: any, res) => {
   const { clipId, styleId, topic, targetAudience } = req.body;
-  try {
-    const carouselRes = await query(
-      "INSERT INTO carousels (clip_id, user_id, status, style_id, target_audience, topic) VALUES ($1, $2, 'pending', $3, $4, $5) RETURNING id", 
-      [clipId, String(req.user.id), styleId, targetAudience, topic]
-    );
-    const carouselId = carouselRes.rows[0].id;
+  const userId = String(req.user.id);
 
-    // Add to BullMQ instead of direct execution
+  try {
+    // Deterministic ID based on clip and style
+    const carouselId = crypto
+      .createHash("sha256")
+      .update(`${clipId}-${styleId}`)
+      .digest("hex");
+
+    await query(`
+      INSERT INTO carousels (id, clip_id, user_id, status, style_id, target_audience, topic)
+      VALUES ($1, $2, $3, 'pending', $4, $5, $6)
+      ON CONFLICT (id) DO UPDATE SET 
+        updated_at = NOW()
+      WHERE carousels.status = 'error'
+    `, [carouselId, clipId, userId, styleId, targetAudience, topic]);
+
+    // Add to BullMQ with deterministic ID to prevent duplicates in queue
     await carouselQueue.add(`carousel-${carouselId}`, {
         carouselId,
         clipId,
-        userId: String(req.user.id),
+        userId,
         styleId,
         topic,
         targetAudience
-    });
+    }, { jobId: carouselId });
 
     res.json({ carouselId, status: 'generating' });
   } catch (err) {

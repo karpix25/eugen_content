@@ -18,19 +18,11 @@ export class CarouselService {
     static async generateCarousel(params: CarouselParams) {
         const { carouselId, clipId, userId, styleId, topic, targetAudience } = params;
         
-        // Idempotency check: don't start if already ready or generating
+        // Status check: don't start if already ready
         const currentRes = await query("SELECT status FROM carousels WHERE id = $1", [carouselId]);
-        if (currentRes.rows.length > 0) {
-            const status = currentRes.rows[0].status;
-            if (status === 'ready') {
-                console.log(`[CarouselService] Carousel ${carouselId} is already ready. Skipping generation.`);
-                return { success: true, carouselId };
-            }
-            // If it's already generating, this is likely a redundant BullMQ retry due to stall timeout
-            if (status === 'generating') {
-                console.log(`[CarouselService] Carousel ${carouselId} is already in 'generating' state. Skipping to avoid loop.`);
-                return { success: true, carouselId };
-            }
+        if (currentRes.rows.length > 0 && currentRes.rows[0].status === 'ready') {
+            console.log(`[CarouselService] Carousel ${carouselId} is already ready. Skipping generation.`);
+            return { success: true, carouselId };
         }
 
         try {

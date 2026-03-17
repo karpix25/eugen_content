@@ -36,8 +36,8 @@ export const carouselWorker = new Worker(
   { 
     connection: redisConnection as any, 
     concurrency: parseInt(process.env.WORKER_CONCURRENCY || "2"),
-    lockDuration: 600000, // 10 minutes
-    stalledInterval: 300000, // Check for stalled jobs every 5 minutes
+    lockDuration: 900000, // 15 minutes
+    stalledInterval: 600000, // Check for stalled jobs every 10 minutes
     maxStalledCount: 1,
   }
 );

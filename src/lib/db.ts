@@ -259,6 +259,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS subscribers BIGINT",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS handle TEXT",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS thumbnail TEXT",
+      "ALTER TABLE publications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'video'",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS scrape_days INTEGER DEFAULT 7",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'idle'",
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS sync_error TEXT",

@@ -12,8 +12,9 @@ const defaultJobOptions = {
     type: 'exponential',
     delay: 5000,
   },
-  // Increase lock duration to 10 minutes to prevent Stall detection for heavy jobs
-  lockDuration: 600000, 
+  // Increase lock duration to 15 minutes to prevent Stall detection for heavy jobs
+  lockDuration: 900000, 
+  stalledInterval: 600000,
 };
 
 export const videoProcessingQueue = new Queue("video-processing", {
