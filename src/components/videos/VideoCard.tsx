@@ -9,11 +9,11 @@ interface VideoCardProps {
   video: VideoData;
   onEvaluate: () => void;
   onApprove: (targetLanguage?: string) => void;
-  onComplete: () => void;
+  onDelete: () => void;
   loading: boolean;
 }
 
-export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: VideoCardProps) {
+export function VideoCard({ video, onEvaluate, onApprove, onDelete, loading }: VideoCardProps) {
   const [showDubModal, setShowDubModal] = useState(false);
 
 
@@ -103,13 +103,6 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
             {video.ai_evaluation && video.status === 'pending' && (
               <div className="flex gap-2 ml-auto">
                 <button
-                  onClick={onComplete}
-                  title="Отметить как готовое"
-                  className="p-2 bg-white/10 text-white/60 rounded-lg hover:bg-white/20 transition-colors"
-                >
-                  <CheckCircle className="w-5 h-5 text-white/40" />
-                </button>
-                <button
                   onClick={() => setShowDubModal(true)}
                   disabled={loading}
                   className={cn(
@@ -120,7 +113,11 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
                 >
                   <CheckCircle className="w-5 h-5" />
                 </button>
-                <button className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors">
+                <button 
+                  onClick={onDelete}
+                  title="Удалить видео"
+                  className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                >
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>

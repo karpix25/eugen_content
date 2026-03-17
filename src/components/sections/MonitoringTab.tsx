@@ -293,21 +293,14 @@ export function MonitoringTab({
 
       <div className="grid grid-cols-1 gap-6">
         {filteredVideos.map(video => (
-          <div key={video.id} className="relative group">
-            <VideoCard
-              video={video}
-              onEvaluate={() => onEvaluate(video.id)}
-              onApprove={(lang) => onApprove(video.id, lang)}
-              onComplete={() => onComplete(video.id)}
-              loading={processingId === video.id}
-            />
-            <button
-              onClick={() => onDelete(video.id)}
-              className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          <VideoCard
+            key={video.id}
+            video={video}
+            onEvaluate={() => onEvaluate(video.id)}
+            onApprove={(lang) => onApprove(video.id, lang)}
+            onDelete={() => onDelete(video.id)}
+            loading={processingId === video.id}
+          />
         ))}
         {filteredVideos.length === 0 && !loadingVideos && (
           <div className="py-20 text-center text-white/20 bg-white/5 rounded-2xl border border-white/5">
