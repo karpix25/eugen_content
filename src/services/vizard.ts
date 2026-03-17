@@ -62,14 +62,17 @@ export const sendToVizard = async (
 
         const data = response.data;
         // Check for success codes or presence of project ID
-        const vizardId = data.projectId || data.id || data.project_id || data.data?.project_id || data.data?.id;
+        let vizardId = data.projectId || data.id || data.project_id || data.data?.project_id || data.data?.id;
         
+        // Sometimes it might be in the 'projectName' if the API is weird, but usually it's an ID
+        if (!vizardId && data.data?.projectId) vizardId = data.data.projectId;
+
         if (data.code === 0 || data.code === 2000 || data.success || vizardId) {
             return vizardId || "unknown_id";
         } else if (data.code === 4005 || (data.errMsg && data.errMsg.includes("exists"))) {
-            // Project might already exist, try to return ID if present or log it
+            // Project might already exist
             console.warn(`Vizard project might already exist: ${data.errMsg}`);
-            return vizardId || null;
+            return vizardId || "project_exists_but_no_id";
         } else {
             console.error(`Vizard returned error code ${data.code}: ${data.errMsg || data.message}`);
             return null;
@@ -95,5 +98,24 @@ export const getVizardProjectStatus = async (projectId: string): Promise<any> =>
     } catch (error: any) {
         console.error(`Error polling Vizard project ${projectId}:`, error.response?.data || error.message);
         return null;
+    }
+};
+
+export const listVizardProjects = async (pageNo = 1, pageSize = 50): Promise<any[]> => {
+    if (!VIZARD_API_KEY) return [];
+    try {
+        const response = await axios.get(
+            `https://elb-api.vizard.ai/hvizard-server-front/open-api/v1/project/list`,
+            {
+                params: { pageNo, pageSize },
+                headers: {
+                    'VIZARDAI_API_KEY': VIZARD_API_KEY,
+                }
+            }
+        );
+        return response.data?.list || response.data?.data?.list || [];
+    } catch (error: any) {
+        console.error('Error listing Vizard projects:', error.message);
+        return [];
     }
 };

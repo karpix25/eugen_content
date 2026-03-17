@@ -3,7 +3,7 @@ import fs from "fs";
 import { query } from "../lib/db.js";
 import { downloadYouTubeVideo } from "../services/video-downloader.js";
 import { uploadToS3 } from "../lib/s3.js";
-import { sendToVizard, getVizardProjectStatus } from "../services/vizard.js";
+import { sendToVizard, getVizardProjectStatus, listVizardProjects } from "../services/vizard.js";
 import { processClip, generateThumbnail } from "../services/processor.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 import { detectLanguage, translateText } from "../services/gemini.js";
@@ -17,6 +17,37 @@ const normalizeLang = (lang: string | null): string | null => {
   if (l.includes('spanish') || l === 'es') return 'es';
   return l;
 };
+
+async function recoverLostVizardIds() {
+  const stuckVideos = await query(
+    "SELECT id FROM videos WHERE status IN ('approved', 'vizard_creating', 'sent_to_vizard', 'vizard_processing') AND (vizard_project_id IS NULL OR vizard_project_id IN ('unknown_id', 'project_exists_but_no_id')) LIMIT 10"
+  );
+  
+  if (stuckVideos.rows.length === 0) return;
+
+  console.log(`[Recovery] Attempting to recover IDs for ${stuckVideos.rows.length} stuck videos...`);
+  try {
+    const vizardProjects = await listVizardProjects(1, 100);
+    if (!vizardProjects || vizardProjects.length === 0) return;
+
+    for (const video of stuckVideos.rows) {
+      const expectedName = `Youtube_${video.id}`;
+      const match = vizardProjects.find((p: any) => 
+        p.projectName === expectedName || 
+        p.projectName === video.id || 
+        p.external_id === video.id
+      );
+
+      if (match) {
+        const vizardId = match.projectId || match.id;
+        console.log(`[Recovery] Found lost ID for ${video.id}: ${vizardId}`);
+        await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, video.id]);
+      }
+    }
+  } catch (err: any) {
+    console.error("[Recovery] Failed to recover IDs:", err.message);
+  }
+}
 
 export const handleVizardFallback = async (videoId: string) => {
   try {
@@ -68,6 +99,7 @@ export const handleVizardFallback = async (videoId: string) => {
 
 export const autoSendToVizard = async () => {
   console.log("Checking for approved videos to send to Vizard...");
+  await recoverLostVizardIds();
   try {
     // Fetch global Vizard settings
     const settingsRes = await query("SELECT key, value FROM global_settings WHERE key IN ('vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll')");
@@ -76,17 +108,38 @@ export const autoSendToVizard = async () => {
     const approvedVideos = await query("SELECT id FROM videos WHERE status = 'approved' AND vizard_project_id IS NULL LIMIT 5");
     for (const video of approvedVideos.rows) {
       console.log(`[Auto] Sending approved video ${video.id} to Vizard...`);
+      
+      // Mark as sending to prevent duplicate triggers
+      await query("UPDATE videos SET status = 'vizard_creating' WHERE id = $1", [video.id]);
+
       const videoUrl = `https://www.youtube.com/watch?v=${video.id}`;
-      const vizardId = await sendToVizard(videoUrl, video.id, {
-        preferLength: [Number(settings.vizard_prefer_length || 2)],
-        removeSilenceSwitch: Number(settings.vizard_remove_silence || 0),
-        autoBrollSwitch: Number(settings.vizard_auto_broll || 0)
-      });
-      if (vizardId) {
-        await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, video.id]);
-        console.log(`[Auto] Successfully sent ${video.id} to Vizard. ID: ${vizardId}`);
+      try {
+        const vizardId = await sendToVizard(videoUrl, video.id, {
+          preferLength: [Number(settings.vizard_prefer_length || 2)],
+          removeSilenceSwitch: Number(settings.vizard_remove_silence || 0),
+          autoBrollSwitch: Number(settings.vizard_auto_broll || 0)
+        });
+
+        if (vizardId) {
+          await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, video.id]);
+          console.log(`[Auto] Successfully sent ${video.id} to Vizard. ID: ${vizardId}`);
+        } else {
+          // If null, it might have failed or project already exists without ID
+          await query("UPDATE videos SET status = 'approved', error_message = 'Failed to get Vizard ID, retrying...' WHERE id = $1", [video.id]);
+        }
+      } catch (err: any) {
+        console.error(`[Auto] Error sending ${video.id} to Vizard:`, err.message);
+        await query("UPDATE videos SET status = 'approved', error_message = $1 WHERE id = $2", [err.message, video.id]);
       }
     }
+    
+    // Recovery for projects stuck in 'vizard_creating' for more than 30 mins
+    await query(`
+      UPDATE videos 
+      SET status = 'approved', error_message = 'Recovered from vizard_creating timeout' 
+      WHERE status = 'vizard_creating' 
+      AND created_at < NOW() - INTERVAL '30 minutes'
+    `);
   } catch (err) {
     console.error("Auto-Vizard error:", err);
   }
@@ -95,9 +148,16 @@ export const autoSendToVizard = async () => {
 export const pollVizardStatus = async () => {
     console.log("Polling Vizard for completed projects...");
     try {
-      const sentVideos = await query("SELECT id, vizard_project_id, title FROM videos WHERE status = 'sent_to_vizard'");
+      const sentVideos = await query("SELECT id, vizard_project_id, title FROM videos WHERE status IN ('sent_to_vizard', 'vizard_processing')");
       for (const v of sentVideos.rows) {
-        if (!v.vizard_project_id) continue;
+        if (!v.vizard_project_id || v.vizard_project_id === 'unknown_id') {
+           // If we have no ID but we were supposed to, try to reset to approved so it can be re-sent or recovered
+           await query("UPDATE videos SET status = 'approved', vizard_project_id = NULL WHERE id = $1", [v.id]);
+           continue;
+        }
+
+        // Set to processing to indicate we are actively working on it
+        await query("UPDATE videos SET status = 'vizard_processing' WHERE id = $1", [v.id]);
 
         const statusData = await getVizardProjectStatus(v.vizard_project_id);
         if (!statusData) {

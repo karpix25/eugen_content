@@ -29,6 +29,12 @@ export const renderingWorker = new Worker(
     console.log(`[Worker: Rendering] Processing clip ${clipId} (Job: ${job.id})`);
     
     try {
+      const currentRes = await query("SELECT status FROM clips WHERE id = $1", [clipId]);
+      if (currentRes.rows.length > 0 && currentRes.rows[0].status === 'processed') {
+        console.log(`[Worker: Rendering] Clip ${clipId} is already processed. Skipping.`);
+        return { success: true };
+      }
+
       await query("UPDATE clips SET status = 'processing' WHERE id = $1", [clipId]);
       
       const resultUrl = await processClip(
@@ -101,6 +107,9 @@ export const renderingWorker = new Worker(
   {
     connection: redisConnection as any,
     concurrency: parseInt(process.env.WORKER_CONCURRENCY || "2"),
+    lockDuration: 600000, // 10 minutes
+    stalledInterval: 300000, // Check for stalled jobs every 5 minutes
+    maxStalledCount: 1,
     limiter: {
         max: 5,
         duration: 1000

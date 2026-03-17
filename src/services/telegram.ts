@@ -200,9 +200,9 @@ bot.on('text', authMiddleware, async (ctx) => {
         let publicationId = null;
 
         if (replyToMessage && replyToMessage.message_id) {
-            // Check if this reply is to a known publication message
+            // Check if this reply is to a known publication message OR its control message
             const res = await query(
-                'SELECT id FROM publications WHERE user_id = $1 AND message_id = $2',
+                'SELECT id FROM publications WHERE user_id = $1 AND (message_id = $2 OR control_message_id = $2)',
                 [from.id.toString(), replyToMessage.message_id]
             );
             if (res.rows.length > 0) {
@@ -270,7 +270,7 @@ bot.action(/^regen_carousel_(.+)$/, async (ctx) => {
     await ctx.answerCbQuery('Запускаю перегенерацию... ⏳');
     
     try {
-        const { CarouselService } = await import('./CarouselService.js');
+        const { carouselQueue } = await import('../lib/queues.js');
         
         // Fetch original params
         const res = await query(
@@ -284,18 +284,21 @@ bot.action(/^regen_carousel_(.+)$/, async (ctx) => {
         
         const { clip_id, style_id, topic, target_audience } = res.rows[0];
         
-        await ctx.reply('🔄 Начинаю повторную генерацию карусели. Это займет около минуты...');
+        // Reset status to pending/generating to indicate we are starting over
+        await query("UPDATE carousels SET status = 'pending', slides = NULL, image_url = NULL WHERE id = $1", [carouselId]);
+
+        await ctx.reply('🔄 Запрос на повторную генерацию добавлен в очередь. Это может занять несколько минут...');
         
-        // Start generation in background
-        CarouselService.generateCarousel({
+        // Add to BullMQ queue
+        await carouselQueue.add(`regen-${carouselId}`, {
             carouselId,
             clipId: clip_id,
             userId: String(from.id),
             styleId: style_id,
             topic,
             targetAudience: target_audience
-        }).catch(err => {
-             bot.telegram.sendMessage(from.id, `❌ Ошибка при пересоздании карусели: ${err.message}`);
+        }, {
+            jobId: `regen-${carouselId}-${Date.now()}` // Unique ID to avoid job ID collision if immediate retry
         });
 
     } catch (err: any) {
@@ -315,23 +318,36 @@ export const sendCarouselToTelegram = async (telegramId: string, slicePaths: str
         const messages = await bot.telegram.sendMediaGroup(telegramId, media);
         console.log(`Carousel sent to Telegram user ${telegramId}`);
 
-        // If clipId is provided, create a publication and a reporting button
+        // Create publication and prepare buttons
+        const inline_keyboard: any[][] = [];
+        let pubId = null;
+
         if (clipId) {
             const lastMessageId = messages[messages.length - 1].message_id;
             const pubRes = await query(
                 "INSERT INTO publications (clip_id, user_id, message_id, type, status) VALUES ($1, $2, $3, 'carousel', 'sent') RETURNING id",
                 [clipId, String(telegramId), lastMessageId]
             );
-            const pubId = pubRes.rows[0].id;
+            pubId = pubRes.rows[0].id;
+            inline_keyboard.push([{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${pubId}` }]);
+        }
 
-            await bot.telegram.sendMessage(telegramId, 'Используйте кнопки ниже для управления каруселью:', {
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${pubId}` }],
-                        ...(carouselId ? [[{ text: "🔄 Пересоздать", callback_data: `regen_carousel_${carouselId}` }]] : [])
-                    ]
-                }
+        if (carouselId) {
+            inline_keyboard.push([{ text: "🔄 Пересоздать", callback_data: `regen_carousel_${carouselId}` }]);
+        }
+
+        if (inline_keyboard.length > 0) {
+            const controlMsg = await bot.telegram.sendMessage(telegramId, 'Используйте кнопки ниже для управления:', {
+                reply_markup: { inline_keyboard }
             });
+
+            // If we created a publication, also store the control message ID so user can reply to it
+            if (pubId) {
+                await query(
+                    "UPDATE publications SET control_message_id = $1 WHERE id = $2",
+                    [controlMsg.message_id, pubId]
+                );
+            }
         }
     } catch (err: any) {
         console.error('Failed to send carousel to Telegram:', err.message);

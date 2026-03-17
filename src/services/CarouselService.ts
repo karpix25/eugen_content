@@ -18,6 +18,21 @@ export class CarouselService {
     static async generateCarousel(params: CarouselParams) {
         const { carouselId, clipId, userId, styleId, topic, targetAudience } = params;
         
+        // Idempotency check: don't start if already ready or generating
+        const currentRes = await query("SELECT status FROM carousels WHERE id = $1", [carouselId]);
+        if (currentRes.rows.length > 0) {
+            const status = currentRes.rows[0].status;
+            if (status === 'ready') {
+                console.log(`[CarouselService] Carousel ${carouselId} is already ready. Skipping generation.`);
+                return { success: true, carouselId };
+            }
+            // If it's already generating, this is likely a redundant BullMQ retry due to stall timeout
+            if (status === 'generating') {
+                console.log(`[CarouselService] Carousel ${carouselId} is already in 'generating' state. Skipping to avoid loop.`);
+                return { success: true, carouselId };
+            }
+        }
+
         try {
             const clipRes = await query("SELECT transcript, title FROM clips WHERE id = $1", [clipId]);
             if (clipRes.rows.length === 0) throw new Error("Clip not found");
@@ -56,6 +71,13 @@ export class CarouselService {
             const userRes = await query("SELECT face_image_url, use_face_in_carousels FROM users WHERE telegram_id = $1", [String(userId)]);
             const user = userRes.rows[0];
             const faceRef = user?.use_face_in_carousels ? user.face_image_url : undefined;
+            
+            console.log(`[CarouselService] User ${userId} face settings: use_face=${user?.use_face_in_carousels}, face_url=${user?.face_image_url}`);
+            if (faceRef) {
+                console.log(`[CarouselService] Using face reference: ${faceRef}`);
+            } else {
+                console.log(`[CarouselService] NO face reference used (either disabled or missing URL)`);
+            }
 
             const detectedLang = transcript ? (await detectLanguage(transcript) || 'ru') : 'ru';
             const script = await generateCarouselScript(transcript || title, topic || title, styleId, detectedLang, targetAudience);
