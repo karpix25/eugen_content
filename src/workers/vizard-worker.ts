@@ -234,7 +234,7 @@ export const pollVizardStatus = async () => {
 };
 
 export function initVizardWorker() {
-  cron.schedule('*/15 * * * *', async () => {
+  cron.schedule('*/5 * * * *', async () => {
     await videoProcessingQueue.add('auto-vizard', { type: 'auto-vizard' });
   });
   cron.schedule('*/2 * * * *', async () => {

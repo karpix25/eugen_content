@@ -70,10 +70,6 @@ export const syncChannel = async (channelId: string, name: string, monitoringInt
               [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);
             console.log(`[AI] Evaluation complete for ${videoId}: Score ${evaluation.score}/100, Lang: ${evaluation.detected_language}`);
             
-            if (evaluation.score >= 80) {
-              console.log(`[Auto] High score (${evaluation.score}) detected for ${videoId}. Automatically approving...`);
-              await query("UPDATE videos SET status = 'approved' WHERE id = $1", [videoId]);
-            }
           } else {
             console.error(`[AI] Evaluation failed for ${videoId}`);
           }

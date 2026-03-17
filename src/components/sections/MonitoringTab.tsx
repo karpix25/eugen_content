@@ -129,7 +129,7 @@ export function MonitoringTab({
                 {channel.thumbnail && (
                   <img src={channel.thumbnail} className="w-10 h-10 rounded-full border border-white/10 object-cover shrink-0" alt="" />
                 )}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-16">
                   <div className="flex items-center gap-2 mb-0.5">
                     <h4 className="text-sm font-medium truncate">{channel.name || channel.id}</h4>
                     {channel.subscribers !== undefined && (
@@ -147,7 +147,7 @@ export function MonitoringTab({
                     )}
                   </div>
                 </div>
-                <div className="absolute top-2 right-2 flex flex-row gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute bottom-2 right-2 flex flex-row gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
                   {currentUserProfile?.is_admin && onToggleChannelPublic ? (
                     <button
                       onClick={() => onToggleChannelPublic(channel.id, !channel.is_public)}

@@ -16,6 +16,8 @@ interface VideoCardProps {
 export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }: VideoCardProps) {
   const [showDubModal, setShowDubModal] = useState(false);
 
+
+
   const getDubbingOptions = () => {
     if (video.detected_language === 'ru') {
       return [
@@ -113,11 +115,11 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
               </div>
             )}
 
-            {video.status === 'approved' && (
+            {(video.status === 'approved' || video.status === 'sent_to_vizard') && (
               <div className="ml-auto flex flex-col items-end gap-1">
                 <div className="flex items-center gap-2 text-blue-500 text-sm font-medium">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  В обработке Vizard...
+                  {video.status === 'approved' ? 'Одобрено, отправляю...' : 'В обработке Vizard...'}
                 </div>
                 {video.target_language && (
                   <div className="text-[10px] uppercase font-bold text-blue-600/60 tracking-wider">
@@ -126,6 +128,7 @@ export function VideoCard({ video, onEvaluate, onApprove, onComplete, loading }:
                 )}
               </div>
             )}
+
 
             {video.status === 'completed' && (
               <div className="ml-auto flex flex-col items-end gap-1">
