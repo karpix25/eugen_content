@@ -12,6 +12,8 @@ import { SettingsTab } from './components/sections/SettingsTab';
 import CarouselWizard from './components/CarouselWizard';
 import StyleManager from './components/StyleManager';
 import { useAppStore } from './hooks/useAppStore';
+import { useProfileSetup } from './hooks/useProfileSetup';
+import { SetupRequiredEmptyState } from './components/sections/SetupRequiredEmptyState';
 
 function App() {
   const {
@@ -52,6 +54,7 @@ function App() {
   } = useAppStore();
 
   const [selectedCarouselClip, setSelectedCarouselClip] = React.useState<any>(null);
+  const { isComplete } = useProfileSetup(currentUser);
 
   if (!authToken) {
     return <Auth onLogin={setAuthToken} />;
@@ -64,6 +67,95 @@ function App() {
       </div>
     );
   }
+
+  const isTabLocked = (tab: string) => {
+    if (tab === 'settings' || tab === 'styles') return false;
+    return !isComplete;
+  };
+
+  const renderContent = () => {
+    if (isTabLocked(activeTab)) {
+      return (
+        <SetupRequiredEmptyState onGoToSettings={() => setActiveTab('settings')} />
+      );
+    }
+
+    switch (activeTab) {
+      case 'dashboard':
+        return currentUser.is_admin && <DashboardTab authToken={authToken} />;
+      
+      case 'monitor':
+        return (
+          <MonitoringTab 
+            videos={videos}
+            channels={channels}
+            loadingVideos={loading}
+            onEvaluate={handleEvaluateVideo}
+            onApprove={handleApproveVideo}
+            onComplete={handleCompleteVideo}
+            onDelete={handleDeleteVideo}
+            onDeleteChannel={handleDeleteChannel}
+            onSyncChannel={handleSyncChannel}
+            onToggleChannelPublic={handleToggleChannelPublic}
+            onRefresh={updateData}
+            onAddChannel={handleAddChannel}
+            processingId={processingId}
+            currentUserProfile={currentUser}
+          />
+        );
+
+      case 'clips':
+        return (
+          <ClipsTab 
+            clips={clips} 
+            totalClips={totalClips}
+            loadMoreClips={loadMoreClips}
+            plaques={plaques}
+            onUpdate={updateData} 
+            authToken={authToken} 
+            isAdmin={currentUser.is_admin}
+            onOpenCarouselWizard={setSelectedCarouselClip}
+            loading={loading}
+            onTogglePublic={handleToggleClipPublic}
+            onToggleFolderPublic={handleToggleFolderPublic}
+            onDeleteFolder={handleDeleteVideo}
+            currentUserProfile={currentUser}
+          />
+        );
+
+      case 'workers':
+        return currentUser.is_admin && (
+          <UsersTab 
+            users={users} 
+            onUpdate={updateData} 
+            authToken={authToken} 
+          />
+        );
+
+      case 'styles':
+        return currentUser.is_admin && (
+          <StyleManager 
+            authToken={authToken} 
+            isAdmin={currentUser.is_admin} 
+          />
+        );
+
+      case 'settings':
+        return (
+          <SettingsTab 
+            currentUser={currentUser} 
+            authToken={authToken} 
+            onUpdate={updateData} 
+            plaques={plaques} 
+            onAddPlaque={addPlaque} 
+            onDeletePlaque={deletePlaque} 
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex overflow-hidden font-sans selection:bg-blue-600/30 selection:text-blue-500">
@@ -84,73 +176,7 @@ function App() {
             isSidebarOpen={isSidebarOpen}
           />
 
-          {activeTab === 'dashboard' && currentUser.is_admin && (
-            <DashboardTab authToken={authToken} />
-          )}
-
-          {activeTab === 'monitor' && (
-            <MonitoringTab 
-              videos={videos}
-              channels={channels}
-              loadingVideos={loading}
-              onEvaluate={handleEvaluateVideo}
-              onApprove={handleApproveVideo}
-              onComplete={handleCompleteVideo}
-              onDelete={handleDeleteVideo}
-              onDeleteChannel={handleDeleteChannel}
-              onSyncChannel={handleSyncChannel}
-              onToggleChannelPublic={handleToggleChannelPublic}
-              onRefresh={updateData}
-              onAddChannel={handleAddChannel}
-              processingId={processingId}
-              currentUserProfile={currentUser}
-            />
-          )}
-
-          {activeTab === 'clips' && (
-            <ClipsTab 
-              clips={clips} 
-              totalClips={totalClips}
-              loadMoreClips={loadMoreClips}
-              plaques={plaques}
-              onUpdate={updateData} 
-              authToken={authToken} 
-              isAdmin={currentUser.is_admin}
-              onOpenCarouselWizard={setSelectedCarouselClip}
-              loading={loading}
-              onTogglePublic={handleToggleClipPublic}
-              onToggleFolderPublic={handleToggleFolderPublic}
-              onDeleteFolder={handleDeleteVideo}
-              currentUserProfile={currentUser}
-            />
-          )}
-
-          {activeTab === 'workers' && currentUser.is_admin && (
-            <UsersTab 
-              users={users} 
-              onUpdate={updateData} 
-              authToken={authToken} 
-            />
-          )}
-
-
-          {activeTab === 'styles' && currentUser.is_admin && (
-            <StyleManager 
-              authToken={authToken} 
-              isAdmin={currentUser.is_admin} 
-            />
-          )}
-
-          {activeTab === 'settings' && (
-            <SettingsTab 
-              currentUser={currentUser} 
-              authToken={authToken} 
-              onUpdate={updateData} 
-              plaques={plaques} 
-              onAddPlaque={addPlaque} 
-              onDeletePlaque={deletePlaque} 
-            />
-          )}
+          {renderContent()}
         </div>
 
         <AnimatePresence>

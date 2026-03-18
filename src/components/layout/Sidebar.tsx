@@ -8,11 +8,13 @@ import {
   LogOut, 
   RefreshCw,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Lock
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { User } from '../../types';
 import { NavButton } from './NavButton';
+import { useProfileSetup } from '../../hooks/useProfileSetup';
 
 interface SidebarProps {
   activeTab: string;
@@ -32,6 +34,13 @@ export function Sidebar({
   setIsOpen 
 }: SidebarProps) {
   const isAdmin = currentUser?.is_admin;
+  const { isComplete, percent } = useProfileSetup(currentUser);
+
+  const isTabLocked = (tab: string) => {
+    // Only 'settings' and 'styles' (for admin) are always unlocked
+    if (tab === 'settings' || tab === 'styles') return false;
+    return !isComplete;
+  };
 
   return (
     <>
@@ -102,6 +111,7 @@ export function Sidebar({
             icon={<Bot className="w-5 h-5" />} 
             label="Мониторинг"
             collapsed={!isOpen}
+            locked={isTabLocked('monitor')}
           />
           {isAdmin && (
             <NavButton 
@@ -110,6 +120,7 @@ export function Sidebar({
               icon={<ClipboardList className="w-5 h-5" />} 
               label="Дашборд"
               collapsed={!isOpen}
+              locked={isTabLocked('dashboard')}
             />
           )}
 
@@ -125,6 +136,7 @@ export function Sidebar({
             icon={<Video className="w-5 h-5" />} 
             label="Видео-нарезки"
             collapsed={!isOpen}
+            locked={isTabLocked('clips')}
           />
           {isAdmin && (
             <NavButton 
@@ -133,6 +145,7 @@ export function Sidebar({
               icon={<Users className="w-5 h-5" />} 
               label="Работники"
               collapsed={!isOpen}
+              locked={isTabLocked('workers')}
             />
           )}
           
@@ -159,6 +172,21 @@ export function Sidebar({
           "pt-6 border-t border-white/5 space-y-4",
           !isOpen && "flex flex-col items-center"
         )}>
+          {isOpen && !isComplete && (
+            <div className="px-2 space-y-2">
+              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-white/30">
+                <span>Настройка профиля</span>
+                <span className="text-blue-500">{percent}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-blue-600 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className={cn(
             "flex items-center gap-3 bg-white/5 rounded-2xl border border-white/5 transition-all duration-500",
             isOpen ? "px-4 py-2 w-full" : "p-2"
