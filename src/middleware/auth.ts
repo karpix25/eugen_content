@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { query } from "../lib/db.js";
 
 const token = process.env.TELEGRAM_BOT_TOKEN || "";
 export const JWT_SECRET = process.env.JWT_SECRET || 
@@ -17,7 +18,7 @@ export interface AuthUser {
   is_admin?: boolean;
 }
 
-export const isAdmin = (telegramId: string | number): boolean => {
+export const isEnvAdmin = (telegramId: string | number): boolean => {
   const tid = String(telegramId);
   if (tid === 'dev') return true;
 
@@ -55,8 +56,24 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   });
 };
 
-export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) return res.sendStatus(401);
-  if (!isAdmin(req.user.id)) return res.sendStatus(403);
-  next();
+  
+  // 1. Check environment variables (master override)
+  if (isEnvAdmin(req.user.id)) return next();
+  
+  // 2. Check JWT payload
+  if (req.user.is_admin) return next();
+  
+  // 3. Check database (real-time fallback)
+  try {
+    const result = await query("SELECT is_admin FROM users WHERE telegram_id = $1", [String(req.user.id)]);
+    if (result.rows[0]?.is_admin === true) {
+      return next();
+    }
+  } catch (err) {
+    console.error("Admin check database error:", err);
+  }
+
+  res.sendStatus(403);
 };

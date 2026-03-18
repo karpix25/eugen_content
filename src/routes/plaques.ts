@@ -5,7 +5,7 @@ import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { query } from "../lib/db.js";
 import { uploadToS3 } from "../lib/s3.js";
-import { authenticateToken, isAdmin, requireAdmin, JWT_SECRET } from "../middleware/auth.js";
+import { authenticateToken, isEnvAdmin, requireAdmin, JWT_SECRET } from "../middleware/auth.js";
 import { generatePlaqueImage } from "../services/gemini.js";
 import { plaqueQueue } from "../lib/queues.js";
 

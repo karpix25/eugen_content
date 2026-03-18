@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
 import { query } from "../lib/db.js";
-import { authenticateToken, isAdmin, requireAdmin, JWT_SECRET } from "../middleware/auth.js";
+import { authenticateToken, isEnvAdmin, requireAdmin, JWT_SECRET } from "../middleware/auth.js";
 import { processClip, extractScreenshots } from "../services/processor.js";
 import { analyzeStyle, generateCarouselScript, generateGridImage, detectLanguage } from "../services/gemini.js";
 import { sliceCarouselGrid } from "../services/slicer.js";
@@ -19,7 +19,7 @@ const router = Router();
 router.get("/", authenticateToken, async (req: any, res) => {
   try {
     const userId = String(req.user.id);
-    const isUserAdmin = isAdmin(userId);
+    const isUserAdmin = req.user.is_admin || isEnvAdmin(userId);
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -69,7 +69,7 @@ router.get("/", authenticateToken, async (req: any, res) => {
 });
 
 router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req: any, res) => {
-  if (!isAdmin(req.user.id)) return res.sendStatus(403);
+  if (!req.user.is_admin && !isEnvAdmin(req.user.id)) return res.sendStatus(403);
   const { id } = req.params;
   const { is_public } = req.body;
   

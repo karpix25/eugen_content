@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { query } from "../lib/db.js";
-import { authenticateToken, isAdmin, JWT_SECRET } from "../middleware/auth.js";
+import { authenticateToken, isEnvAdmin, JWT_SECRET } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -26,11 +26,12 @@ router.get("/check/:sessionId", async (req, res) => {
 
     const session = result.rows[0];
     if (session.status === 'authorized') {
+      const decoded: any = jwt.decode(session.jwt);
       const userObj = {
         id: session.telegram_id,
         username: session.username,
         first_name: session.first_name,
-        is_admin: isAdmin(session.telegram_id)
+        is_admin: decoded?.is_admin || isEnvAdmin(session.telegram_id)
       };
       res.json({
         status: 'authorized',
@@ -73,10 +74,9 @@ router.get("/check", authenticateToken, async (req: any, res) => {
       console.log(`✅ User ${userId} hydrated from DB`);
       res.json({
         user: {
-          ...req.user,
           ...dbUser,
           id: dbUser.telegram_id,
-          is_admin: isAdmin(req.user.id)
+          is_admin: isEnvAdmin(req.user.id) || dbUser.is_admin === true
         }
       });
     } else {
@@ -84,7 +84,7 @@ router.get("/check", authenticateToken, async (req: any, res) => {
       res.json({
         user: {
           ...req.user,
-          is_admin: isAdmin(req.user.id)
+          is_admin: isEnvAdmin(req.user.id)
         }
       });
     }
@@ -93,7 +93,7 @@ router.get("/check", authenticateToken, async (req: any, res) => {
     res.json({
       user: {
         ...req.user,
-        is_admin: isAdmin(req.user.id)
+        is_admin: isEnvAdmin(req.user.id)
       }
     });
   }
@@ -126,7 +126,9 @@ router.post("/telegram", async (req, res) => {
     return res.status(401).json({ error: "Auth data expired" });
   }
 
-  const adminStatus = isAdmin(data.id);
+  const dbUserRes = await query("SELECT is_admin FROM users WHERE telegram_id = $1", [String(data.id)]);
+  const isAdminInDb = dbUserRes.rows[0]?.is_admin === true;
+  const adminStatus = isEnvAdmin(data.id) || isAdminInDb;
   const userPayload = { ...data, is_admin: adminStatus };
   const jwtToken = jwt.sign({ id: String(data.id), username: data.username, is_admin: adminStatus }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token: jwtToken, user: userPayload });

@@ -49,9 +49,13 @@ bot.start(async (ctx) => {
             }
 
             // Mark session as authorized
+            const dbUserRes = await query('SELECT is_admin FROM users WHERE telegram_id = $1', [String(from.id)]);
+            const isAdminInDb = dbUserRes.rows[0]?.is_admin === true;
+            
             const isAdminUser = (process.env.ADMIN_TELEGRAM_IDS || "").split(",").map(id => id.trim()).includes(String(from.id)) || 
                                 (process.env.ADMIN_TELEGRAM_ID || "").trim() === String(from.id) ||
-                                from.id === 0; // fallback for dev
+                                from.id === 0 || // fallback for dev
+                                isAdminInDb;
 
             const token = jwt.sign(
                 { id: String(from.id), username: from.username, first_name: from.first_name, is_admin: isAdminUser },

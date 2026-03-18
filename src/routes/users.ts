@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { uploadToS3 } from "../lib/s3.js";
-import { authenticateToken, isAdmin } from "../middleware/auth.js";
+import { authenticateToken, isEnvAdmin } from "../middleware/auth.js";
 import { UserManager } from "../services/UserManager.js";
 import { UserSettingsSchema } from "../lib/schemas.js";
 import multer from "multer";
@@ -9,7 +9,7 @@ const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.get("/", authenticateToken, async (req: any, res) => {
-  if (!isAdmin(req.user.id)) return res.sendStatus(403);
+  if (!isEnvAdmin(req.user.id) && !req.user.is_admin) return res.sendStatus(403);
   try {
     const users = await UserManager.getAllUsers();
     res.json(users);
@@ -42,7 +42,7 @@ router.post("/settings", authenticateToken, async (req: any, res) => {
 });
 
 router.post("/:id/authorize", authenticateToken, async (req: any, res) => {
-  if (!isAdmin(req.user.id)) return res.sendStatus(403);
+  if (!isEnvAdmin(req.user.id) && !req.user.is_admin) return res.sendStatus(403);
   const { id } = req.params;
   const { authorize } = req.body;
   try {

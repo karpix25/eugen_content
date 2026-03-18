@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { query } from "../lib/db.js";
-import { authenticateToken, isAdmin, requireAdmin } from "../middleware/auth.js";
+import { authenticateToken, requireAdmin, isEnvAdmin } from "../middleware/auth.js";
 import { syncChannel } from "../workers/monitoring-worker.js";
 
 import { getChannelInfo } from "../services/apify.js";
@@ -9,7 +9,7 @@ const router = Router();
 
 router.get("/", authenticateToken, async (req: any, res) => {
   const userId = String(req.user.id);
-  const isUserAdmin = isAdmin(userId);
+  const isUserAdmin = req.user.is_admin || isEnvAdmin(userId);
   
   try {
     const result = isUserAdmin 
@@ -69,7 +69,7 @@ router.post("/", authenticateToken, async (req: any, res) => {
 });
 
 router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req: any, res) => {
-  if (!isAdmin(req.user.id)) return res.sendStatus(403);
+  if (!req.user.is_admin && !isEnvAdmin(req.user.id)) return res.sendStatus(403);
   const { id } = req.params;
   const { is_public } = req.body;
   
@@ -125,7 +125,7 @@ router.delete("/:id", authenticateToken, async (req: any, res) => {
       return res.status(404).json({ error: "Channel not found" });
     }
     
-    const isUserAdmin = isAdmin(userId);
+    const isUserAdmin = req.user.is_admin || isEnvAdmin(userId);
     const isOwner = channel.user_id ? String(channel.user_id) === userId : false;
 
     console.log(`[DELETE CHANNEL] Request details - Channel: "${channel.name}", ID: ${id}, Owner: ${channel.user_id}, Requester: ${userId}, IsAdmin: ${isUserAdmin}, IsOwner: ${isOwner}`);
