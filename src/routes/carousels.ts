@@ -89,10 +89,13 @@ router.post("/generate", authenticateToken, async (req: any, res) => {
 
   try {
     // Deterministic ID based on clip and style
-    const carouselId = crypto
+    const hash = crypto
       .createHash("sha256")
       .update(`${clipId}-${styleId}`)
       .digest("hex");
+    
+    // Format the first 32 chars of hash into a valid UUID format: 8-4-4-4-12
+    const carouselId = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
 
     await query(`
       INSERT INTO carousels (id, clip_id, user_id, status, style_id, target_audience, topic)
@@ -120,8 +123,17 @@ router.post("/generate", authenticateToken, async (req: any, res) => {
 });
 
 router.get("/:id", authenticateToken, async (req: any, res) => {
-    const result = await query("SELECT * FROM carousels WHERE id = $1", [req.params.id]);
+  try {
+    const { id } = req.params;
+    if (!id || id === 'undefined' || id.length < 32) {
+      return res.status(400).json({ error: "Invalid carousel ID" });
+    }
+    const result = await query("SELECT * FROM carousels WHERE id = $1", [id]);
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Carousel fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch carousel" });
+  }
 });
 
 export default router;
