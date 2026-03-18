@@ -13,7 +13,7 @@ export const UserSettingsSchema = z.object({
   subtitle_highlight_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
   subtitle_highlight_enabled: z.boolean().optional(),
   subtitle_outline_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-  default_plaque_id: z.string().uuid().nullable().optional(),
+  default_plaque_id: z.string().nullable().optional(),
   plaque_position: z.enum(['top', 'center', 'bottom']).optional(),
   plaque_size: z.number().min(10).max(100).optional(),
   plaque_timerange: z.number().min(0).optional(),

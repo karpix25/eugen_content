@@ -96,7 +96,7 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
         // Default values for remaining schema fields
         subtitle_enabled: true,
         subtitle_font_size: 48,
-        subtitle_position: '100',
+        subtitle_position: '80',
         subtitle_outline_color: '#000000',
         subtitle_highlight_enabled: true,
         plaque_size: 80,
@@ -107,15 +107,14 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
       };
 
       const result = await api.users.saveSettings(settings);
-
-      if (result.success) {
-        onComplete();
-      } else {
-        alert(result.error || 'Ошибка при сохранении настроек.');
+      if (result.error) {
+        alert(`Ошибка при сохранении: ${result.error}${result.details ? ': ' + JSON.stringify(result.details) : ''}`);
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      alert('Ошибка соединения с сервером.');
+      onComplete();
+    } catch (e) {
+      console.error(e);
+      alert('Ошибка при сохранении.');
     } finally {
       setSaving(false);
     }
