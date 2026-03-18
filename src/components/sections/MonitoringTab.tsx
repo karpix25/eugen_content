@@ -8,7 +8,8 @@ import {
   Eye,
   EyeOff,
   Check,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { VideoData, Channel } from '../../types';
@@ -101,14 +102,15 @@ export function MonitoringTab({
           <input
             value={newChannelUrl}
             onChange={(e) => setNewChannelUrl(e.target.value)}
+            disabled={addingChannel}
             placeholder="YouTube URL или ID канала"
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-600 outline-none transition-all"
+            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-600 outline-none transition-all disabled:opacity-50"
           />
           <div className="flex gap-3">
             <select
               value={currentUserProfile?.is_admin ? monitoringInterval : 'manual'}
               onChange={(e) => setMonitoringInterval(e.target.value)}
-              disabled={!currentUserProfile?.is_admin}
+              disabled={!currentUserProfile?.is_admin || addingChannel}
               className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-600 text-sm flex-1 disabled:opacity-50"
             >
               <option value="manual">Вручную</option>
@@ -119,7 +121,10 @@ export function MonitoringTab({
                 </>
               )}
             </select>
-            <div className="flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 focus-within:border-blue-600 items-center">
+            <div className={cn(
+               "flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 transition-all items-center",
+               addingChannel ? "opacity-50 pointer-events-none" : "focus-within:border-blue-600"
+             )}>
               <span className="pl-4 text-white/40 text-[10px] uppercase font-bold whitespace-nowrap">Видео за:</span>
               <input
                 type="number"
@@ -143,9 +148,18 @@ export function MonitoringTab({
             <button
               onClick={handleAddChannel}
               disabled={addingChannel || !newChannelUrl}
-              className="px-6 py-3 bg-blue-600 text-black font-bold rounded-xl hover:bg-blue-500 disabled:opacity-50 transition-all whitespace-nowrap"
+              className="px-6 py-3 bg-blue-600 text-black font-bold rounded-xl hover:bg-blue-500 disabled:opacity-50 transition-all whitespace-nowrap flex items-center justify-center gap-2 min-w-[160px]"
             >
-              {addingChannel ? 'Загрузка...' : 'Добавить канал'}
+              {addingChannel ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Загрузка...
+                </>
+              ) : (
+                <>
+                  Добавить канал
+                </>
+              )}
             </button>
           </div>
         </div>

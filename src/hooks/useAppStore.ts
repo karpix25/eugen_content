@@ -91,6 +91,7 @@ export function useAppStore() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: ['videos'] });
     }
   });
 
@@ -202,6 +203,7 @@ export function useAppStore() {
         });
         if (res.ok) {
           queryClient.invalidateQueries({ queryKey: ['channels'] });
+          queryClient.invalidateQueries({ queryKey: ['videos'] });
           return true;
         }
       } catch (err) { console.error(err); }
