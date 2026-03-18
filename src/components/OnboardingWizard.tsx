@@ -65,7 +65,12 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
   
   const [useFace, setUseFace] = useState(currentUser.use_face_in_carousels || false);
   
-  const [defaultPlaqueId, setDefaultPlaqueId] = useState<string | null>(currentUser.default_plaque_id || (plaques.length > 0 ? plaques[0].id : null));
+  const [defaultPlaqueId, setDefaultPlaqueId] = useState<string | null>(() => {
+    if (currentUser.default_plaque_id) return currentUser.default_plaque_id;
+    if (plaques.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * plaques.length);
+    return plaques[randomIndex].id;
+  });
   const [plaquePosition, setPlaquePosition] = useState(currentUser.plaque_position || 'bottom');
   
   const [watermarkText, setWatermarkText] = useState(currentUser.watermark_text || `@${currentUser.username || currentUser.first_name || 'user'}`);
