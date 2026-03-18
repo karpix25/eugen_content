@@ -239,7 +239,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                 <p className="text-sm text-white/40">Какую рекламу наложить на это видео?</p>
               </div>
 
-              <div className="space-y-2 pt-2">
+              <div className="grid grid-cols-1 gap-3 pt-2">
                 {plaques.length === 0 && (
                   <p className="text-center text-[10px] text-white/30 py-4 font-medium uppercase tracking-widest leading-loose px-4">
                     Нет добавленных плашек.<br />
@@ -250,12 +250,23 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                   <button
                     key={plaque.id}
                     onClick={() => handleSend(plaque.id)}
-                    className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-blue-600/50 transition-all flex items-center gap-4 group"
+                    className="w-full relative aspect-video rounded-2xl overflow-hidden group border border-white/5 hover:border-blue-500/50 transition-all duration-500 shadow-xl"
                   >
-                    <img src={plaque.image_url} alt="" className="w-12 h-12 rounded object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate text-white group-hover:text-blue-500 transition-colors">{plaque.name}</p>
+                    <img 
+                      src={plaque.image_url} 
+                      alt="" 
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                    
+                    <div className="absolute top-3 left-3 px-3 py-1.5 bg-black/40 backdrop-blur-xl rounded-lg border border-white/10 flex items-center gap-2 group-hover:bg-blue-600/20 group-hover:border-blue-500/30 transition-all">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                      <p className="font-black text-[10px] uppercase tracking-[0.2em] text-white/90 group-hover:text-white transition-colors">
+                        {plaque.name}
+                      </p>
                     </div>
+
+                    <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-500/20 rounded-2xl transition-all pointer-events-none" />
                   </button>
                 ))}
               </div>
