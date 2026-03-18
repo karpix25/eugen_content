@@ -10,8 +10,6 @@ export class VideoManager {
       FROM videos v 
       LEFT JOIN channels ch ON v.channel_id = ch.id 
       WHERE ($2 = true) 
-         OR (v.is_public = true) 
-         OR (ch.is_public = true) 
          OR (ch.user_id = $1)
          OR (v.user_id = $1)
       ORDER BY v.published_at DESC
