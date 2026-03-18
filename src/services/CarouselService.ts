@@ -2,7 +2,7 @@ import path from "path";
 import { query } from "../lib/db.js";
 import { generateCarouselScript, generateGridImage, detectLanguage } from "./gemini.js";
 import { sliceCarouselGrid } from "./slicer.js";
-import { sendCarouselToTelegram } from "./telegram.js";
+import { sendCarouselToTelegram, updateCarouselControlMessage } from "./telegram.js";
 import { SettingsManager } from "./SettingsManager.js";
 
 export interface CarouselParams {
@@ -94,6 +94,11 @@ export class CarouselService {
         } catch (err: any) {
             console.error(`Carousel generation failed for ${carouselId}:`, err);
             await query("UPDATE carousels SET status = 'error', error_message = $1 WHERE id = $2", [err.message, carouselId]);
+            try {
+                await updateCarouselControlMessage(String(userId), carouselId, 'error');
+            } catch (editErr) {
+                console.warn(`[CarouselService] Failed to update control message for ${carouselId} after error:`, editErr);
+            }
             throw err;
         }
     }

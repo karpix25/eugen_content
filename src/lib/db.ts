@@ -320,6 +320,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE channels ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(telegram_id)",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE",
       "ALTER TABLE carousels ADD COLUMN IF NOT EXISTS topic TEXT",
+      "ALTER TABLE carousels ADD COLUMN IF NOT EXISTS control_message_id BIGINT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(telegram_id)",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"
     ];

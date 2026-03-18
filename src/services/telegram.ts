@@ -10,6 +10,54 @@ dotenv.config();
 
 export const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
 
+const getCarouselControlText = (status: 'ready' | 'generating' | 'error') => {
+    if (status === 'generating') return 'Статус карусели: генерируется...';
+    if (status === 'error') return 'Статус карусели: ошибка генерации.';
+    return 'Статус карусели: готово.';
+};
+
+const getCarouselControlKeyboard = (carouselId: string, publicationId?: string | null, status: 'ready' | 'generating' | 'error' = 'ready') => {
+    const inlineKeyboard: Array<Array<{ text: string; callback_data: string }>> = [];
+
+    if (publicationId) {
+        inlineKeyboard.push([{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]);
+    }
+
+    if (status === 'generating') {
+        inlineKeyboard.push([{ text: "⏳ Генерируется...", callback_data: `carousel_status_${carouselId}` }]);
+    } else if (status === 'error') {
+        inlineKeyboard.push([{ text: "🔄 Попробовать снова", callback_data: `regen_carousel_${carouselId}` }]);
+    } else {
+        inlineKeyboard.push([{ text: "✅ Готово", callback_data: `carousel_status_${carouselId}` }]);
+        inlineKeyboard.push([{ text: "🔄 Пересоздать", callback_data: `regen_carousel_${carouselId}` }]);
+    }
+
+    return inlineKeyboard;
+};
+
+export const updateCarouselControlMessage = async (
+    telegramId: string,
+    carouselId: string,
+    status: 'ready' | 'generating' | 'error',
+    publicationId?: string | null
+) => {
+    const carouselRes = await query("SELECT control_message_id FROM carousels WHERE id = $1", [carouselId]);
+    const controlMessageId = carouselRes.rows[0]?.control_message_id;
+
+    if (!controlMessageId) return null;
+
+    const keyboard = getCarouselControlKeyboard(carouselId, publicationId, status);
+    await bot.telegram.editMessageText(
+        telegramId,
+        Number(controlMessageId),
+        undefined,
+        getCarouselControlText(status),
+        { reply_markup: { inline_keyboard: keyboard } }
+    );
+
+    return Number(controlMessageId);
+};
+
 // Authorization check middleware
 const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
     const from = ctx.from;
@@ -266,6 +314,24 @@ bot.action(/^report_link_(.+)$/, async (ctx) => {
     });
 });
 
+bot.action(/^carousel_status_(.+)$/, async (ctx) => {
+    const carouselId = ctx.match[1];
+    const res = await query("SELECT status FROM carousels WHERE id = $1", [carouselId]);
+    const status = res.rows[0]?.status;
+
+    if (status === 'ready') {
+        await ctx.answerCbQuery('Карусель уже готова.');
+        return;
+    }
+
+    if (status === 'error') {
+        await ctx.answerCbQuery('Генерация завершилась с ошибкой.');
+        return;
+    }
+
+    await ctx.answerCbQuery('Карусель еще генерируется...');
+});
+
 // Action for re-generating carousels
 bot.action(/^regen_carousel_(.+)$/, async (ctx) => {
     const carouselId = ctx.match[1];
@@ -288,10 +354,35 @@ bot.action(/^regen_carousel_(.+)$/, async (ctx) => {
         
         const { clip_id, style_id, topic, target_audience } = res.rows[0];
         
-        // Reset status to pending/generating to indicate we are starting over
-        await query("UPDATE carousels SET status = 'pending', slides = NULL, image_url = NULL WHERE id = $1", [carouselId]);
+        // Persist the current control message so worker can update the same message after completion.
+        const currentControlMessageId = ctx.callbackQuery && 'message' in ctx.callbackQuery ? ctx.callbackQuery.message?.message_id : null;
+        await query(
+            "UPDATE carousels SET status = 'pending', slides = NULL, image_url = NULL, control_message_id = COALESCE($2, control_message_id) WHERE id = $1",
+            [carouselId, currentControlMessageId || null]
+        );
 
-        await ctx.reply('🔄 Запрос на повторную генерацию добавлен в очередь. Это может занять несколько минут...');
+        if (currentControlMessageId) {
+            try {
+                const pubRes = await query(
+                    "SELECT id FROM publications WHERE user_id = $1 AND clip_id = $2 AND type = 'carousel' ORDER BY created_at DESC LIMIT 1",
+                    [String(from.id), clip_id]
+                );
+                const publicationId = pubRes.rows[0]?.id || null;
+                await bot.telegram.editMessageText(
+                    from.id,
+                    currentControlMessageId,
+                    undefined,
+                    getCarouselControlText('generating'),
+                    {
+                        reply_markup: {
+                            inline_keyboard: getCarouselControlKeyboard(carouselId, publicationId, 'generating')
+                        }
+                    }
+                );
+            } catch (editErr) {
+                console.warn('Failed to update carousel control message to generating:', editErr);
+            }
+        }
         
         // Add to BullMQ queue
         await carouselQueue.add(`regen-${carouselId}`, {
@@ -307,6 +398,11 @@ bot.action(/^regen_carousel_(.+)$/, async (ctx) => {
 
     } catch (err: any) {
         console.error('Regen action error:', err);
+        try {
+            await updateCarouselControlMessage(String(from.id), carouselId, 'error');
+        } catch (editErr) {
+            console.warn('Failed to update carousel control message to error:', editErr);
+        }
         await ctx.reply(`❌ Произошла ошибка: ${err.message}`);
     }
 });
@@ -337,15 +433,32 @@ export const sendCarouselToTelegram = async (telegramId: string, slicePaths: str
         }
 
         if (carouselId) {
-            inline_keyboard.push([{ text: "🔄 Пересоздать", callback_data: `regen_carousel_${carouselId}` }]);
-        }
+            let controlMessageId: number | null = null;
+            try {
+                controlMessageId = await updateCarouselControlMessage(String(telegramId), carouselId, 'ready', pubId);
+            } catch (editErr) {
+                console.warn('Failed to reuse carousel control message, sending a new one:', editErr);
+            }
 
-        if (inline_keyboard.length > 0) {
+            if (!controlMessageId) {
+                const controlMsg = await bot.telegram.sendMessage(telegramId, getCarouselControlText('ready'), {
+                    reply_markup: { inline_keyboard: getCarouselControlKeyboard(carouselId, pubId, 'ready') }
+                });
+                controlMessageId = controlMsg.message_id;
+                await query("UPDATE carousels SET control_message_id = $1 WHERE id = $2", [controlMessageId, carouselId]);
+            }
+
+            if (pubId && controlMessageId) {
+                await query(
+                    "UPDATE publications SET control_message_id = $1 WHERE id = $2",
+                    [controlMessageId, pubId]
+                );
+            }
+        } else if (inline_keyboard.length > 0) {
             const controlMsg = await bot.telegram.sendMessage(telegramId, 'Используйте кнопки ниже для управления:', {
                 reply_markup: { inline_keyboard }
             });
 
-            // If we created a publication, also store the control message ID so user can reply to it
             if (pubId) {
                 await query(
                     "UPDATE publications SET control_message_id = $1 WHERE id = $2",
