@@ -195,17 +195,22 @@ export const generateImagePrompt = async (
 ): Promise<string> => {
   if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not set");
 
+  let artStyle = styleAnalysis?.visual_elements?.art_style || "Flat Graphic";
+  if (hasFaceRef && artStyle.toLowerCase().includes("flat")) {
+      artStyle = "Mixed Media (Clean Graphic background with a Realistic Photographic Character)";
+  }
+
   const faceInstruction = hasFaceRef ? `
-    - CHARACTER INTEGRATION: The main character/subject in the scenes MUST be a person matching the provided reference image (e.g., an expert, speaker, or entrepreneur).
-    - Consistency: Integrate this character naturally into the thematic logic of EACH slide's illustration.
+    - CRITICAL CHARACTER REPLACEMENT: Focus heavily on featuring a realistic, photograph-quality human subject (the narrator/expert) prominently in at least half of the panels.
+    - IMPORTANT: The human subject MUST be rendered in a realistic, high-fidelity photographic style, even if the rest of the layout is flat graphics.
   ` : "";
 
   const prompt = `
     Create a professional Instagram carousel as a single, unified, continuous vertical artwork.
-    The goal is to create a high-end 2x3 grid (2 columns wide, 3 rows tall) of 6 slides.
+    The goal is to create an EXACT 6-panel storyboard grid: exactly 2 columns wide by 3 rows tall.
     
     CONTENT TO RENDER (STRICT HIERARCHY):
-    ${script.map((s, i) => `Slide ${i + 1}: TITLE: "${s.title}" | BODY: "${s.body}"`).join('\n')}
+    ${script.map((s, i) => `Panel ${i + 1}: TITLE: "${s.title}" | BODY: "${s.body}"`).join('\n')}
     
     LANGUAGE PRESERVATION RULE:
     - MANDATORY: DO NOT translate the TITLE or BODY text into English. 
@@ -214,7 +219,7 @@ export const generateImagePrompt = async (
     STYLE DESCRIPTION & DESIGN RULES:
     - ${styleAnalysis?.styleDescription || "Minimalist Professional Design"}
     - BRAIN ANALYSIS: ${styleAnalysis?.design_dna?.vibe || "Business Luxury"}
-    - ART STYLE: ${styleAnalysis?.visual_elements?.art_style || "Flat Graphic"}.
+    - ART STYLE: ${artStyle}.
     - COLORS: ${styleAnalysis?.color_system?.primary_hex?.join(", ") || "Corporate Blues"}.
     - ACCENT: ${styleAnalysis?.color_system?.accent_hex || "None"}.
     - LAYOUT RULES: ${styleAnalysis?.layout_logic?.grid_math || "Clean grid placement"}.
@@ -236,23 +241,20 @@ export const generateImagePrompt = async (
     - LETTER SPACING: ${styleAnalysis?.typography?.letter_spacing || "Normal"}.
     
     PLACEMENT GUIDELINES (STRICT HARD CONSTRAINTS):
-    1. STRUCTURE: You MUST generate a 2x3 GRID (Exactly 2 columns wide and 3 rows tall). 
-       Total Slides: 6.
+    1. STRUCTURE: You MUST explicitly instruct the AI to generate a 6-panel grid layout (Exactly 2 vertical columns and exactly 3 horizontal rows). 
+       Total Panels: 6.
        Layout Schema:
-       [Slide 1] [Slide 2]
-       [Slide 3] [Slide 4]
-       [Slide 5] [Slide 6]
+       [Panel 1] [Panel 2]
+       [Panel 3] [Panel 4]
+       [Panel 5] [Panel 6]
     2. HIERARCHY: Titles must be Bold and significantly larger than the body text.
-    3. PLACEMENT: Place exactly one title+body pair within each of the 6 slide zones.
-    4. ALIGNMENT: Strict vertical and horizontal centering within each slide's zone.
-    5. NO LOGO RENDER: DO NOT attempt to render any logos, watermarks, or small icons. The system will add them later. Focus ONLY on the text and artwork.
+    3. PLACEMENT: Place exactly one title+body pair within each of the 6 panel zones.
+    4. ALIGNMENT: Strict vertical and horizontal centering within each panel's zone.
+    5. NO LOGO RENDER: DO NOT attempt to render any logos or watermarks. The system will add them later.
     
     NEGATIVE CONSTRAINTS (ZERO TOLERANCE):
-    - DO NOT generate a 3x3 grid (9 slides). 
-    - DO NOT generate a 2x4 grid (8 slides).
-    - DO NOT generate a 1x6 or 6x1 vertical/horizontal strip.
-    - DO NOT deviate from the 2x3 grid structure.
-    - DO NOT add extra slides or labels like "Slide 1".
+    - Include explicitly in your prompt: "--no 9 panels, 3x3 grid, 8 panels, 4 columns, 3 columns"
+    - DO NOT deviate from the 6 panels (2 columns x 3 rows) structure.
     
     Return ONLY the Midjourney-style prompt string in English.
     
