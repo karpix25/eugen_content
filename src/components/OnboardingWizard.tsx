@@ -50,11 +50,18 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  // Helper to ensure valid hex color for preview and saving
+  const getValidHex = (val: string | undefined, defaultHex: string) => {
+    if (!val) return defaultHex;
+    if (/^#[0-9A-F]{6}$/i.test(val)) return val;
+    return defaultHex;
+  };
+
   // States for the wizard
   const [subtitleStyle, setSubtitleStyle] = useState(currentUser.subtitle_style || 'karaoke');
   const [subtitleFontFamily, setSubtitleFontFamily] = useState(currentUser.subtitle_font_family || 'Anton');
-  const [fontColor, setFontColor] = useState(currentUser.subtitle_font_color || '#FFFFFF');
-  const [highlightColor, setHighlightColor] = useState(currentUser.subtitle_highlight_color || '#FFFF00');
+  const [fontColor, setFontColor] = useState(getValidHex(currentUser.subtitle_font_color, '#FFFFFF'));
+  const [highlightColor, setHighlightColor] = useState(getValidHex(currentUser.subtitle_highlight_color, '#FFFF00'));
   
   const [useFace, setUseFace] = useState(currentUser.use_face_in_carousels || false);
   
