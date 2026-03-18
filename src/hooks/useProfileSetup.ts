@@ -5,6 +5,10 @@ export function useProfileSetup(user: User | null) {
   const setupStatus = useMemo(() => {
     if (!user) return { isComplete: false, percent: 0, missing: [] };
 
+    if (user.onboarding_completed) {
+      return { isComplete: true, percent: 100, missing: [] };
+    }
+
     const items = [
       { key: 'watermark_text', label: 'Водяной знак', value: user.watermark_text },
       { key: 'subtitle_style', label: 'Стиль субтитров', value: user.subtitle_style },

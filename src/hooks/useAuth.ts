@@ -41,7 +41,7 @@ export function useAuth() {
 
   useEffect(() => {
     verifyAuth();
-  }, []);
+  }, [verifyAuth]);
 
   return {
     authToken,
