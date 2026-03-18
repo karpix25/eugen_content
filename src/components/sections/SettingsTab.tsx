@@ -153,12 +153,10 @@ export function SettingsTab({
     { id: 'subtitles' as const, label: 'Субтитры', icon: <Layers className="w-4 h-4" /> },
     { id: 'brand' as const, label: 'Бренд', icon: <UserIcon className="w-4 h-4" /> },
     { id: 'plaque' as const, label: 'Плашка', icon: <ImageIcon className="w-4 h-4" /> },
-    ...(currentUser.is_admin ? [
-      { id: 'ai_gen' as const, label: 'Генератор плашек', icon: <Wand2 className="w-4 h-4" /> }
-    ] : []),
     { id: 'watermark' as const, label: 'Водяной знак', icon: <Zap className="w-4 h-4" /> },
-    { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
     ...(currentUser.is_admin ? [
+      { id: 'auto' as const, label: 'Авто-режим', icon: <Bot className="w-4 h-4" /> },
+      { id: 'ai_gen' as const, label: 'Генератор плашек', icon: <Wand2 className="w-4 h-4" /> },
       { id: 'global' as const, label: 'Глобальные', icon: <Globe className="w-4 h-4" /> },
       { id: 'vizard' as const, label: 'Vizard AI', icon: <Scissors className="w-4 h-4" /> }
     ] : []),

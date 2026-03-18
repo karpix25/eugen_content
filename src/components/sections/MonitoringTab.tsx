@@ -67,7 +67,8 @@ export function MonitoringTab({
     if (!newChannelUrl) return;
     setAddingChannel(true);
     try {
-      await onAddChannel(newChannelUrl, monitoringInterval, scrapeDays);
+      const intervalToUse = currentUserProfile?.is_admin ? monitoringInterval : 'manual';
+      await onAddChannel(newChannelUrl, intervalToUse, scrapeDays);
       setNewChannelUrl('');
     } finally {
       setAddingChannel(false);
@@ -104,13 +105,18 @@ export function MonitoringTab({
           />
           <div className="flex gap-3">
             <select
-              value={monitoringInterval}
+              value={currentUserProfile?.is_admin ? monitoringInterval : 'manual'}
               onChange={(e) => setMonitoringInterval(e.target.value)}
-              className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-600 text-sm flex-1"
+              disabled={!currentUserProfile?.is_admin}
+              className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-600 text-sm flex-1 disabled:opacity-50"
             >
-              <option value="daily">Каждый день</option>
-              <option value="weekly">Каждую неделю</option>
               <option value="manual">Вручную</option>
+              {currentUserProfile?.is_admin && (
+                <>
+                  <option value="daily">Каждый день</option>
+                  <option value="weekly">Каждую неделю</option>
+                </>
+              )}
             </select>
             <div className="flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 focus-within:border-blue-600 items-center">
               <span className="pl-4 text-white/40 text-[10px] uppercase font-bold whitespace-nowrap">Видео за:</span>
