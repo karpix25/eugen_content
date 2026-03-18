@@ -27,6 +27,7 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
   const [carouselId, setCarouselId] = useState<string | null>(null);
   const [status, setStatus] = useState<'generating' | 'ready' | 'error'>('generating');
   const [pollInterval, setPollInterval] = useState<number | null>(null);
+  const [generatedSlides, setGeneratedSlides] = useState<string[]>([]);
 
   useEffect(() => {
     fetchStyles();
@@ -71,6 +72,7 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
         const pollData = await pollRes.json();
         if (pollData.status === 'ready') {
           setStatus('ready');
+          setGeneratedSlides(pollData.slides || []);
           setStep('success');
           window.clearInterval(interval);
         } else if (pollData.status === 'error') {
@@ -219,13 +221,24 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
                 <div className="w-32 h-32 bg-blue-600 rounded-[2.5rem] flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.4)]">
                   <CheckCircle className="w-16 h-16 text-black" />
                 </div>
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-2 mb-4">
                   <h4 className="text-3xl font-black uppercase italic tracking-tighter">Готово!</h4>
-                  <p className="text-white/60">Ваша карусель сгенерирована и скоро придет в Telegram.</p>
+                  <p className="text-white/60">Ваша карусель сгенерирована и отправлена в Telegram.</p>
                 </div>
+
+                {generatedSlides.length > 0 && (
+                  <div className="w-full overflow-x-auto flex gap-4 pb-4 snap-x no-scrollbar">
+                    {generatedSlides.map((slideUrl, idx) => (
+                      <div key={idx} className="shrink-0 w-32 md:w-40 aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 snap-center shadow-2xl">
+                        <img src={slideUrl} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <button 
                   onClick={onClose}
-                  className="w-full h-16 bg-white text-black rounded-2xl font-bold text-lg hover:bg-blue-600 transition-all shadow-xl"
+                  className="w-full mt-4 h-16 bg-white text-black rounded-2xl font-bold text-lg hover:bg-blue-600 transition-all shadow-xl"
                 >
                   Шикарно!
                 </button>
