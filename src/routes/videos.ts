@@ -37,11 +37,11 @@ router.post("/manual", authenticateToken, async (req, res) => {
   }
 });
 
-router.post("/:id/evaluate", authenticateToken, requireAdmin, async (req, res) => {
+router.post("/:id/evaluate", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { targetAudience } = req.body;
-    const evaluation = await VideoManager.evaluateVideo(id, targetAudience);
+    const evaluation = await VideoManager.evaluateVideo(id, String(req.user!.id), req.user?.is_admin || false, targetAudience);
     res.json(evaluation);
   } catch (error) {
     console.error("AI Evaluation error:", error);
@@ -49,11 +49,11 @@ router.post("/:id/evaluate", authenticateToken, requireAdmin, async (req, res) =
   }
 });
 
-router.post("/:id/approve", authenticateToken, requireAdmin, async (req, res) => {
+router.post("/:id/approve", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { target_language } = req.body;
-    const vizardId = await VideoManager.approveVideo(id, String(req.user.id), target_language);
+    const vizardId = await VideoManager.approveVideo(id, String(req.user!.id), req.user?.is_admin || false, target_language);
     res.json({ success: true, vizardId });
   } catch (error) {
     console.error("Approval error:", error);

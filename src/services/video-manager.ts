@@ -19,6 +19,27 @@ export class VideoManager {
     return result.rows;
   }
 
+  static async canUserActionVideo(id: string, userId: string, isAdmin: boolean) {
+    if (isAdmin) return true;
+
+    const result = await query(`
+      SELECT v.user_id as video_user_id, ch.user_id as channel_user_id, v.is_public as video_public, ch.is_public as channel_public
+      FROM videos v
+      LEFT JOIN channels ch ON v.channel_id = ch.id
+      WHERE v.id = $1
+    `, [id]);
+
+    const video = result.rows[0];
+    if (!video) return false;
+
+    return (
+      video.video_user_id === userId ||
+      video.channel_user_id === userId ||
+      video.video_public === true ||
+      video.channel_public === true
+    );
+  }
+
   static async monitorChannels() {
     const channelsResult = await query("SELECT * FROM channels");
     const results = [];
@@ -75,7 +96,11 @@ export class VideoManager {
     }
   }
 
-  static async evaluateVideo(id: string, targetAudience: string) {
+  static async evaluateVideo(id: string, userId: string, isAdmin: boolean, targetAudience: string) {
+    if (!(await this.canUserActionVideo(id, userId, isAdmin))) {
+      throw new Error("You don't have permission to evaluate this video");
+    }
+
     const result = await query("SELECT * FROM videos WHERE id = $1", [id]);
     const video = result.rows[0];
 
@@ -91,7 +116,11 @@ export class VideoManager {
     return evaluation;
   }
 
-  static async approveVideo(id: string, userId: string, targetLanguage?: string) {
+  static async approveVideo(id: string, userId: string, isAdmin: boolean, targetLanguage?: string) {
+    if (!(await this.canUserActionVideo(id, userId, isAdmin))) {
+      throw new Error("You don't have permission to approve this video");
+    }
+
     await query("UPDATE videos SET status = 'approved', target_language = $2, approved_by = $3 WHERE id = $1", [id, targetLanguage || null, userId]);
     const videoUrl = `https://www.youtube.com/watch?v=${id}`;
     const settingsRes = await query("SELECT key, value FROM global_settings WHERE key IN ('vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll')");

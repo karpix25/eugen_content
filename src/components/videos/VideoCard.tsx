@@ -106,16 +106,12 @@ export function VideoCard({ video, onEvaluate, onApprove, onDelete, loading }: V
                   onClick={() => setShowDubModal(true)}
                   disabled={loading}
                   className={cn(
-                    "p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors flex items-center justify-center min-w-[36px] min-h-[36px]",
+                    "p-2 bg-blue-600 text-black rounded-lg hover:bg-blue-500 transition-colors",
                     loading && "opacity-50 cursor-not-allowed"
                   )}
                   title="Одобрить и выбрать язык"
                 >
-                  {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-5 h-5" />
-                  )}
+                  <CheckCircle className="w-5 h-5" />
                 </button>
                 <button 
                   onClick={onDelete}
