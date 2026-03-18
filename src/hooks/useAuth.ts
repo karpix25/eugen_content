@@ -49,6 +49,7 @@ export function useAuth() {
     isAuthChecking,
     setIsAuthChecking,
     handleLogin,
-    handleLogout
+    handleLogout,
+    verifyAuth
   };
 }

@@ -5,7 +5,7 @@ import { useAppData } from './useAppData';
 import { api } from '../services/api';
 
 export function useAppStore() {
-  const { authToken, currentUser, handleLogin, handleLogout } = useAuth();
+  const { authToken, currentUser, handleLogin, handleLogout, verifyAuth } = useAuth();
   const data = useAppData(authToken, currentUser, handleLogout);
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('clips');
@@ -181,7 +181,10 @@ export function useAppStore() {
     setSidebarOpen,
     toggleSidebar,
     ...data,
-    updateData: () => queryClient.invalidateQueries(),
+    updateData: () => {
+      queryClient.invalidateQueries();
+      verifyAuth();
+    },
     handleLogout,
     addPlaque: async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -236,5 +239,5 @@ export function useAppStore() {
     manualYoutubeUrl,
     setManualYoutubeUrl,
     processingId
-  }), [authToken, handleLogin, currentUser, activeTab, isSidebarOpen, data, handleLogout, addPlaqueMutation, deletePlaqueMutation, videoActionMutation, deleteVideoMutation, channelMutation, deleteChannelMutation, queryClient, manualYoutubeUrl, processingId]);
+  }), [authToken, handleLogin, currentUser, activeTab, isSidebarOpen, data, handleLogout, addPlaqueMutation, deletePlaqueMutation, videoActionMutation, deleteVideoMutation, channelMutation, deleteChannelMutation, queryClient, manualYoutubeUrl, processingId, verifyAuth]);
 }
