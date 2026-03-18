@@ -67,14 +67,26 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
   
   const [defaultPlaqueId, setDefaultPlaqueId] = useState<string | null>(() => {
     if (currentUser.default_plaque_id) return currentUser.default_plaque_id;
-    if (plaques.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * plaques.length);
-    return plaques[randomIndex].id;
+    // When plaques are already available on first render, preselect one at random
+    if (plaques.length > 0) {
+      const randomIndex = Math.floor(Math.random() * plaques.length);
+      return plaques[randomIndex].id;
+    }
+    return null;
   });
   const [plaquePosition, setPlaquePosition] = useState(currentUser.plaque_position || 'bottom');
   
   const [watermarkText, setWatermarkText] = useState(currentUser.watermark_text || `@${currentUser.username || currentUser.first_name || 'user'}`);
   const [watermarkPosition, setWatermarkPosition] = useState(currentUser.watermark_position || 'center');
+
+  // If plaques arrive after initial render (e.g., fetched async) and the user has no default,
+  // pick a random one exactly once to ensure the mandatory plaque step is preselected.
+  React.useEffect(() => {
+    if (defaultPlaqueId || currentUser.default_plaque_id) return;
+    if (plaques.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * plaques.length);
+    setDefaultPlaqueId(plaques[randomIndex].id);
+  }, [plaques, defaultPlaqueId, currentUser.default_plaque_id]);
 
   const currentStep = STEPS[currentStepIndex];
 
