@@ -17,6 +17,7 @@ import { SetupRequiredEmptyState } from './components/sections/SetupRequiredEmpt
 import OnboardingWizard from './components/OnboardingWizard';
 
 function App() {
+  const [onboardingCompleted, setOnboardingCompleted] = React.useState(false);
   const {
     authToken,
     setAuthToken,
@@ -56,6 +57,24 @@ function App() {
 
   const [selectedCarouselClip, setSelectedCarouselClip] = React.useState<any>(null);
   const { isComplete } = useProfileSetup(currentUser);
+  const onboardingKey = React.useMemo(
+    () => currentUser ? `onboarding_done_${currentUser.id}` : null,
+    [currentUser]
+  );
+
+  React.useEffect(() => {
+    if (!onboardingKey) return;
+    const stored = localStorage.getItem(onboardingKey);
+    setOnboardingCompleted(stored === 'true');
+  }, [onboardingKey]);
+
+  const handleOnboardingComplete = () => {
+    if (onboardingKey) {
+      localStorage.setItem(onboardingKey, 'true');
+      setOnboardingCompleted(true);
+    }
+    updateData();
+  };
 
   if (!authToken) {
     return <Auth onLogin={setAuthToken} />;
@@ -85,10 +104,10 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
         return currentUser.is_admin && <DashboardTab authToken={authToken} />;
-      
+
       case 'monitor':
         return (
-          <MonitoringTab 
+          <MonitoringTab
             videos={videos}
             channels={channels}
             loadingVideos={loading}
@@ -108,13 +127,13 @@ function App() {
 
       case 'clips':
         return (
-          <ClipsTab 
-            clips={clips} 
+          <ClipsTab
+            clips={clips}
             totalClips={totalClips}
             loadMoreClips={loadMoreClips}
             plaques={plaques}
-            onUpdate={updateData} 
-            authToken={authToken} 
+            onUpdate={updateData}
+            authToken={authToken}
             isAdmin={currentUser.is_admin}
             onOpenCarouselWizard={setSelectedCarouselClip}
             loading={loading}
@@ -127,30 +146,30 @@ function App() {
 
       case 'workers':
         return currentUser.is_admin && (
-          <UsersTab 
-            users={users} 
-            onUpdate={updateData} 
-            authToken={authToken} 
+          <UsersTab
+            users={users}
+            onUpdate={updateData}
+            authToken={authToken}
           />
         );
 
       case 'styles':
         return currentUser.is_admin && (
-          <StyleManager 
-            authToken={authToken} 
-            isAdmin={currentUser.is_admin} 
+          <StyleManager
+            authToken={authToken}
+            isAdmin={currentUser.is_admin}
           />
         );
 
       case 'settings':
         return (
-          <SettingsTab 
-            currentUser={currentUser} 
-            authToken={authToken} 
-            onUpdate={updateData} 
-            plaques={plaques} 
-            onAddPlaque={addPlaque} 
-            onDeletePlaque={deletePlaque} 
+          <SettingsTab
+            currentUser={currentUser}
+            authToken={authToken}
+            onUpdate={updateData}
+            plaques={plaques}
+            onAddPlaque={addPlaque}
+            onDeletePlaque={deletePlaque}
           />
         );
 
@@ -161,18 +180,18 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex overflow-hidden font-sans selection:bg-blue-600/30 selection:text-blue-500">
-      {!isComplete && (
-        <OnboardingWizard 
-          currentUser={currentUser} 
-          authToken={authToken} 
-          plaques={plaques} 
-          onComplete={updateData} 
+      {!isComplete && !onboardingCompleted && (
+        <OnboardingWizard
+          currentUser={currentUser}
+          authToken={authToken}
+          plaques={plaques}
+          onComplete={handleOnboardingComplete}
         />
       )}
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        onLogout={handleLogout} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onLogout={handleLogout}
         currentUser={currentUser}
         isOpen={isSidebarOpen}
         setIsOpen={setSidebarOpen}
@@ -180,9 +199,9 @@ function App() {
 
       <main className="flex-1 min-w-0 h-screen overflow-y-auto custom-scrollbar relative">
         <div className="max-w-[1200px] mx-auto p-4 md:p-8">
-          <Header 
-            currentUser={currentUser} 
-            onMenuToggle={() => setSidebarOpen(!isSidebarOpen)} 
+          <Header
+            currentUser={currentUser}
+            onMenuToggle={() => setSidebarOpen(!isSidebarOpen)}
             isSidebarOpen={isSidebarOpen}
           />
 
@@ -191,11 +210,11 @@ function App() {
 
         <AnimatePresence>
           {selectedCarouselClip && (
-            <CarouselWizard 
-              clip={selectedCarouselClip} 
-              authToken={authToken} 
-              targetAudience={targetAudience} 
-              onClose={() => setSelectedCarouselClip(null)} 
+            <CarouselWizard
+              clip={selectedCarouselClip}
+              authToken={authToken}
+              targetAudience={targetAudience}
+              onClose={() => setSelectedCarouselClip(null)}
             />
           )}
         </AnimatePresence>
