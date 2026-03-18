@@ -14,6 +14,7 @@ import StyleManager from './components/StyleManager';
 import { useAppStore } from './hooks/useAppStore';
 import { useProfileSetup } from './hooks/useProfileSetup';
 import { SetupRequiredEmptyState } from './components/sections/SetupRequiredEmptyState';
+import OnboardingWizard from './components/OnboardingWizard';
 
 function App() {
   const {
@@ -69,6 +70,7 @@ function App() {
   }
 
   const isTabLocked = (tab: string) => {
+    // During setup, settings are always unlocked, but other tabs are locked until complete
     if (tab === 'settings' || tab === 'styles') return false;
     return !isComplete;
   };
@@ -159,6 +161,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex overflow-hidden font-sans selection:bg-blue-600/30 selection:text-blue-500">
+      {!isComplete && (
+        <OnboardingWizard 
+          currentUser={currentUser} 
+          authToken={authToken} 
+          plaques={plaques} 
+          onComplete={updateData} 
+        />
+      )}
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 

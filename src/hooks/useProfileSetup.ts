@@ -14,9 +14,8 @@ export function useProfileSetup(user: User | null) {
     const completedItems = items.filter(item => !!item.value);
     const percent = Math.round((completedItems.length / items.length) * 100);
     
-    // We consider it complete if the first two are there (minimum for video generation)
-    // or customize this logic as needed.
-    const isComplete = user.watermark_text && user.subtitle_font_family;
+    // We consider it complete if mandatory onboarding fields are present
+    const isComplete = user.watermark_text && user.subtitle_style && user.default_plaque_id;
 
     return {
       isComplete: !!isComplete,
