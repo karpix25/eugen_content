@@ -148,17 +148,25 @@ export function MonitoringTab({
             <button
               onClick={handleAddChannel}
               disabled={addingChannel || !newChannelUrl}
-              className="px-6 py-3 bg-blue-600 text-black font-bold rounded-xl hover:bg-blue-500 disabled:opacity-50 transition-all whitespace-nowrap flex items-center justify-center gap-2 min-w-[160px]"
+              className={cn(
+                "px-8 py-3 bg-blue-600 text-black font-black uppercase text-[11px] tracking-[0.2em] rounded-xl transition-all duration-300 whitespace-nowrap flex items-center justify-center gap-2 min-w-[140px] relative overflow-hidden group shadow-[0_0_20px_rgba(37,99,235,0.2)]",
+                addingChannel ? "cursor-wait" : "hover:bg-blue-500 hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)]",
+                (!newChannelUrl && !addingChannel) && "opacity-30 grayscale cursor-not-allowed"
+              )}
             >
               {addingChannel ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Загрузка...
+                  <Loader2 className="w-4 h-4 animate-spin text-black/60" />
+                  <span className="animate-pulse">Загрузка...</span>
                 </>
               ) : (
                 <>
-                  Добавить канал
+                  <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                  <span>Добавить</span>
                 </>
+              )}
+              {addingChannel && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer" />
               )}
             </button>
           </div>

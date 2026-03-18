@@ -193,7 +193,7 @@ export function useAppStore() {
       if (confirm('Удалить это видео из мониторинга?')) deleteVideoMutation.mutate(id);
     },
     handleAddManualVideo,
-    handleAddChannel: (url: string, interval: string, scrapeDays: number) => channelMutation.mutate({ url, interval, scrapeDays }),
+    handleAddChannel: (url: string, interval: string, scrapeDays: number) => channelMutation.mutateAsync({ url, interval, scrapeDays }),
     handleDeleteChannel: (id: string) => deleteChannelMutation.mutate(id),
     handleSyncChannel: async (id: string) => {
       try {
