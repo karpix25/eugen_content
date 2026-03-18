@@ -75,24 +75,10 @@ router.post("/", authenticateToken, async (req: any, res) => {
           VALUES ($1, $2, $3, $4, $5, $6)
         `, [videoId, channelId, 'Processing...', 'pending', new Date().toISOString(), userId]);
         
-        // Background process the video
-        (async () => {
-          try {
-            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-            const transcript = await getTranscript(videoUrl);
-            if (transcript) {
-              await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
-              // Also try to get title from channel search if we don't have it
-              const evaluation = await evaluateContent("Manual Video", transcript, "Предприниматели, интересующиеся ИИ и автоматизацией");
-              if (evaluation) {
-                await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4", 
-                  [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);
-              }
-            }
-          } catch (e) {
-            console.error(`Error background processing video ${videoId}:`, e);
-          }
-        })();
+        // Background process the video using centralized VideoManager
+        import('../services/video-manager').then(({ VideoManager }) => {
+          VideoManager.processVideoBackground(videoId, { id: videoId, title: 'Processing...' });
+        }).catch(e => console.error(`Error loading VideoManager for background processing:`, e));
       }
     }
 

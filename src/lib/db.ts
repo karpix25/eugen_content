@@ -193,6 +193,18 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `
+      },
+      {
+        name: 'video_evaluations',
+        query: `
+          CREATE TABLE IF NOT EXISTS video_evaluations (
+            video_id TEXT REFERENCES videos(id) ON DELETE CASCADE,
+            user_id TEXT REFERENCES users(telegram_id) ON DELETE CASCADE,
+            status TEXT DEFAULT 'evaluating',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (video_id, user_id)
+          )
+        `
       }
     ];
 

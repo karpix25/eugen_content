@@ -82,9 +82,17 @@ router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req, r
   }
 });
 
-router.delete("/:id", authenticateToken, requireAdmin, async (req, res) => {
+router.delete("/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = String(req.user!.id);
+    const isAdmin = req.user?.is_admin || false;
+
+    const canDelete = await VideoManager.canUserDeleteVideo(id, userId, isAdmin);
+    if (!canDelete) {
+      return res.status(403).json({ error: "Permission denied. You can only delete your own videos." });
+    }
+
     await VideoManager.deleteVideo(id);
     res.json({ success: true });
   } catch (err) {

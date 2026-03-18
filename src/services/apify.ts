@@ -228,7 +228,7 @@ export const getLatestVideos = async (channelUrl: string, limit: number = 20, sc
     return [];
 };
 
-export const getTranscript = async (videoUrl: string): Promise<string | null> => {
+export const getTranscript = async (videoUrl: string): Promise<{ transcript: string | null, title?: string, description?: string, thumbnail?: string } | null> => {
     if (!APIFY_TOKEN) return null;
     try {
         console.log(`Starting Apify YouTube Scraper for: ${videoUrl}`);
@@ -254,18 +254,25 @@ export const getTranscript = async (videoUrl: string): Promise<string | null> =>
         const items = await getDatasetItems(datasetId);
         if (items && items.length > 0) {
             const videoData = items[0];
+            let transcript = null;
             if (videoData.subtitles && Array.isArray(videoData.subtitles)) {
                 if (typeof videoData.subtitles[0] === 'string') {
-                    return videoData.subtitles.join('\n');
+                    transcript = videoData.subtitles.join('\n');
                 } else if (videoData.subtitles[0].text) {
-                    return videoData.subtitles.map((s: any) => s.text).join('\n');
+                    transcript = videoData.subtitles.map((s: any) => s.text).join('\n');
                 } else {
-                    return JSON.stringify(videoData.subtitles);
+                    transcript = JSON.stringify(videoData.subtitles);
                 }
             } else if (typeof videoData.subtitles === 'string') {
-                return videoData.subtitles;
+                transcript = videoData.subtitles;
             }
-            return videoData.description || videoData.title || null;
+
+            return {
+                transcript: transcript || videoData.description || videoData.title || null,
+                title: videoData.title,
+                description: videoData.description,
+                thumbnail: videoData.thumbnailUrl || videoData.thumbnail
+            };
         }
         return null;
     } catch (error) {

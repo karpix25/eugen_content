@@ -6,15 +6,35 @@ import { sendToVizard } from './vizard';
 export class VideoManager {
   static async getAllVideos(userId?: string, isAdmin?: boolean) {
     const result = await query(`
-      SELECT v.* 
+      SELECT v.*, ve.status as user_evaluation_status
       FROM videos v 
       LEFT JOIN channels ch ON v.channel_id = ch.id 
+      LEFT JOIN video_evaluations ve ON v.id = ve.video_id AND ve.user_id = $1
       WHERE ($2 = true) 
          OR (ch.user_id = $1)
          OR (v.user_id = $1)
       ORDER BY v.published_at DESC
     `, [userId, isAdmin || false]);
     return result.rows;
+  }
+
+  static async canUserDeleteVideo(id: string, userId: string, isAdmin: boolean) {
+    if (isAdmin) return true;
+
+    const result = await query(`
+      SELECT v.user_id as video_user_id, ch.user_id as channel_user_id
+      FROM videos v
+      LEFT JOIN channels ch ON v.channel_id = ch.id
+      WHERE v.id = $1
+    `, [id]);
+
+    const video = result.rows[0];
+    if (!video) return false;
+
+    return (
+      video.video_user_id === userId ||
+      video.channel_user_id === userId
+    );
   }
 
   static async canUserActionVideo(id: string, userId: string, isAdmin: boolean) {
@@ -77,13 +97,25 @@ export class VideoManager {
     return results;
   }
 
-  private static async processVideoBackground(videoId: string, item: any) {
+  public static async processVideoBackground(videoId: string, item: any) {
     try {
       const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      const transcript = await getTranscript(videoUrl);
-      if (transcript) {
-        await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
-        const evaluation = await evaluateContent(item.title, transcript, "Предприниматели, интересующиеся ИИ и автоматизацией");
+      const apifyData = await getTranscript(videoUrl);
+      
+      if (apifyData) {
+        const { transcript, title, description, thumbnail } = apifyData;
+        
+        // Update basic info if it was missing or placeholder
+        await query(`
+          UPDATE videos 
+          SET transcript = $1, 
+              title = COALESCE(NULLIF($2, ''), title),
+              description = COALESCE(NULLIF($3, ''), description),
+              thumbnail = COALESCE(NULLIF($4, ''), thumbnail)
+          WHERE id = $5
+        `, [transcript, title || '', description || '', thumbnail || '', videoId]);
+
+        const evaluation = await evaluateContent(title || item.title, transcript || '', "Предприниматели, интересующиеся ИИ и автоматизацией");
         if (evaluation) {
           await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4", 
             [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);
@@ -105,13 +137,26 @@ export class VideoManager {
     if (!video) throw new Error("Video not found");
     if (!video.transcript) throw new Error("Transcript not available for evaluation");
 
-    const evaluation = await evaluateContent(video.title, video.transcript, targetAudience);
-    if (!evaluation) throw new Error("AI Evaluation failed");
+    // Set per-user status to evaluating
+    await query("INSERT INTO video_evaluations (video_id, user_id) VALUES ($1, $2) ON CONFLICT (video_id, user_id) DO UPDATE SET status = 'evaluating'", [id, userId]);
 
-    await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4",
-      [evaluation.score, evaluation.evaluation, evaluation.detected_language, id]);
-    
-    return evaluation;
+    try {
+      const evaluation = await evaluateContent(video.title, video.transcript, targetAudience);
+      if (!evaluation) throw new Error("AI Evaluation failed");
+
+      // Update video with AI results
+      await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4",
+        [evaluation.score, evaluation.evaluation, evaluation.detected_language, id]);
+      
+      // Remove per-user evaluating record
+      await query("DELETE FROM video_evaluations WHERE video_id = $1 AND user_id = $2", [id, userId]);
+
+      return evaluation;
+    } catch (error) {
+      // Revert per-user status on failure
+      await query("DELETE FROM video_evaluations WHERE video_id = $1 AND user_id = $2", [id, userId]);
+      throw error;
+    }
   }
 
   static async approveVideo(id: string, userId: string, isAdmin: boolean, targetLanguage?: string) {
@@ -168,10 +213,10 @@ export class VideoManager {
     await query(`
       INSERT INTO videos (id, title, status, published_at, user_id)
       VALUES ($1, $2, $3, $4, $5)
-    `, [videoId, 'Manual Upload', 'pending', new Date().toISOString(), userId]);
+    `, [videoId, 'Processing...', 'pending', new Date().toISOString(), userId]);
 
-    // Process in background to get title and transcript
-    this.processVideoBackground(videoId, { id: videoId, title: 'Manual Upload' });
+    // Process in background to get title, description, thumbnail and transcript
+    this.processVideoBackground(videoId, { id: videoId, title: 'Processing...' });
 
     return { id: videoId, status: 'added' };
   }

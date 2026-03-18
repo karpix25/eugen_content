@@ -81,14 +81,14 @@ export function VideoCard({ video, onEvaluate, onApprove, onDelete, loading }: V
           <p className="text-sm text-white/40 line-clamp-2 mb-4">{video.description}</p>
 
           <div className="mt-auto flex flex-wrap items-center gap-4">
-            {!video.ai_evaluation ? (
+            {(!video.ai_evaluation || video.user_evaluation_status === 'evaluating') ? (
               <button
                 onClick={onEvaluate}
-                disabled={loading}
+                disabled={loading || video.user_evaluation_status === 'evaluating'}
                 title="Перезапустить анализ, если он завис"
                 className="text-xs text-yellow-500/80 hover:text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1 rounded-full flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                {(loading || video.user_evaluation_status === 'evaluating') ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                 Анализ ИИ...
               </button>
             ) : (

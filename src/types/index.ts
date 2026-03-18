@@ -23,8 +23,9 @@ export interface VideoData {
   ai_evaluation: string | null;
   detected_language: string | null;
   target_language: string | null;
-  status: 'pending' | 'approved' | 'rejected' | 'sent_to_vizard' | 'completed';
+  status: 'pending' | 'evaluating' | 'approved' | 'rejected' | 'sent_to_vizard' | 'completed';
   is_public?: boolean;
+  user_evaluation_status?: 'evaluating' | null;
 }
 
 export interface Clip {

@@ -70,10 +70,17 @@ export function useAppStore() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${authToken}` }
       });
-      if (!res.ok) throw new Error('Failed to delete video');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw { status: res.status, ...errData };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['videos'] });
+    },
+    onError: (err: any) => {
+      if (err.status === 403) alert('У вас нет прав на удаление этого видео.');
+      else alert(`Ошибка при удалении видео: ${err.error || 'Неизвестная ошибка'}`);
     }
   });
 
