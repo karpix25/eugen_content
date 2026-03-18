@@ -75,11 +75,11 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     enabled: !!authToken && !!currentUser,
   });
 
-  // Users Query
+  // Users Query (Admin only)
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => api.users.list(),
-    enabled: !!authToken,
+    enabled: !!authToken && !!currentUser?.is_admin,
   });
 
   const fetchData = useCallback(() => {

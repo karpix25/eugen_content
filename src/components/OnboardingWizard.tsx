@@ -10,10 +10,14 @@ import {
   Sparkles,
   MousePointer2,
   ChevronLeft,
-  Loader2
+  Loader2,
+  MessageSquare as MessageSquareIcon,
+  Sparkles as SparklesIcon,
+  Layers as LayersIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { User, AdPlaque } from '../types';
+import { api } from '../services/api';
 
 interface OnboardingWizardProps {
   currentUser: User;
@@ -30,13 +34,15 @@ const STEPS = [
 ];
 
 const SUBTITLE_STYLES = [
-  { id: 'karaoke', name: 'Karaoke', desc: 'Классический стиль с караоке-выделением' },
-  { id: 'celine', name: 'Celine', desc: 'Минималистичный профессиональный стиль' }
+  { id: '1_word', name: '1 Слово', desc: 'Отображает по одному слову' },
+  { id: 'karaoke', name: 'Караоке', desc: 'Классический стиль с караоке-выделением' },
+  { id: '3_words', name: '3 Слова', desc: 'Отображает по три слова' },
 ];
 
 const FONT_FAMILIES = [
   { id: 'Anton', name: 'Anton' },
   { id: 'Montserrat', name: 'Montserrat' },
+  { id: 'Roboto', name: 'Roboto' },
   { id: 'Oswald', name: 'Oswald' }
 ];
 
@@ -77,32 +83,35 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
   const handleFinalSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/users/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({
-          subtitle_style: subtitleStyle,
-          subtitle_font_family: subtitleFontFamily,
-          subtitle_font_color: fontColor,
-          subtitle_highlight_color: highlightColor,
-          use_face_in_carousels: useFace,
-          default_plaque_id: defaultPlaqueId,
-          plaque_position: plaquePosition,
-          watermark_text: watermarkText,
-          watermark_position: watermarkPosition,
-          subtitle_enabled: true,
-          plaque_size: 80,
-          watermark_opacity: 0.08
-        })
-      });
+      const settings = {
+        watermark_text: watermarkText,
+        watermark_position: watermarkPosition,
+        subtitle_style: subtitleStyle,
+        subtitle_font_family: subtitleFontFamily,
+        subtitle_font_color: fontColor,
+        subtitle_highlight_color: highlightColor,
+        use_face_in_carousels: useFace,
+        default_plaque_id: defaultPlaqueId,
+        plaque_position: plaquePosition,
+        // Default values for remaining schema fields
+        subtitle_enabled: true,
+        subtitle_font_size: 48,
+        subtitle_position: 'Bottom',
+        subtitle_outline_color: '#000000',
+        subtitle_highlight_enabled: true,
+        plaque_size: 80,
+        plaque_timerange: 0,
+        auto_mode_enabled: false,
+        auto_mode_videos_per_day: 3,
+        watermark_opacity: 0.08
+      };
 
-      if (res.ok) {
+      const result = await api.users.saveSettings(settings);
+
+      if (result.success) {
         onComplete();
       } else {
-        alert('Ошибка при сохранении настроек.');
+        alert(result.error || 'Ошибка при сохранении настроек.');
       }
     } catch (err) {
       console.error(err);

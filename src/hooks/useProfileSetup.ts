@@ -7,8 +7,8 @@ export function useProfileSetup(user: User | null) {
 
     const items = [
       { key: 'watermark_text', label: 'Водяной знак', value: user.watermark_text },
-      { key: 'subtitle_font_family', label: 'Шрифт субтитров', value: user.subtitle_font_family },
-      { key: 'face_image_url', label: 'Брендинг (Фото)', value: user.face_image_url },
+      { key: 'subtitle_style', label: 'Стиль субтитров', value: user.subtitle_style },
+      { key: 'default_plaque_id', label: 'Плашка по умолчанию', value: user.default_plaque_id },
     ];
 
     const completedItems = items.filter(item => !!item.value);
