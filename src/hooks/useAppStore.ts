@@ -1,17 +1,45 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { useAppData } from './useAppData';
 import { api } from '../services/api';
 
+const ACTIVE_TAB_STORAGE_KEY = 'app_active_tab';
+
+const getInitialActiveTab = () => {
+  return localStorage.getItem(ACTIVE_TAB_STORAGE_KEY) || 'clips';
+};
+
+const getValidActiveTab = (tab: string, isAdmin?: boolean) => {
+  const allowedTabs = isAdmin
+    ? ['monitor', 'dashboard', 'clips', 'workers', 'settings', 'styles']
+    : ['monitor', 'clips', 'settings'];
+
+  return allowedTabs.includes(tab) ? tab : 'clips';
+};
+
 export function useAppStore() {
   const { authToken, currentUser, handleLogin, handleLogout, verifyAuth } = useAuth();
   const data = useAppData(authToken, currentUser, handleLogout);
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('clips');
+  const [activeTab, setActiveTabState] = useState(getInitialActiveTab);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [manualYoutubeUrl, setManualYoutubeUrl] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const nextTab = getValidActiveTab(activeTab, currentUser?.is_admin);
+    if (nextTab !== activeTab) {
+      setActiveTabState(nextTab);
+      localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, nextTab);
+    }
+  }, [activeTab, currentUser?.is_admin]);
+
+  const setActiveTab = useCallback((tab: string) => {
+    const nextTab = getValidActiveTab(tab, currentUser?.is_admin);
+    setActiveTabState(nextTab);
+    localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, nextTab);
+  }, [currentUser?.is_admin]);
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
 
@@ -49,9 +77,9 @@ export function useAppStore() {
       setProcessingId(id);
       const res = await fetch(`/api/videos/${id}/${action}`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}` 
+          Authorization: `Bearer ${authToken}`
         },
         body: body ? JSON.stringify(body) : undefined
       });
@@ -129,9 +157,9 @@ export function useAppStore() {
     try {
       const res = await fetch('/api/videos/manual', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}` 
+          Authorization: `Bearer ${authToken}`
         },
         body: JSON.stringify({ url: manualYoutubeUrl })
       });
