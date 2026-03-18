@@ -3,7 +3,8 @@ import { query } from "../lib/db.js";
 import { authenticateToken, requireAdmin, isEnvAdmin } from "../middleware/auth.js";
 import { syncChannel } from "../workers/monitoring-worker.js";
 
-import { getChannelInfo } from "../services/apify.js";
+import { getChannelInfo, getTranscript } from "../services/apify.js";
+import { evaluateContent } from "../services/gemini.js";
 
 const router = Router();
 
@@ -27,7 +28,13 @@ router.post("/", authenticateToken, async (req: any, res) => {
   const userId = String(req.user.id);
   
   try {
-    console.log(`Adding new channel. Input: ${inputUrl}`);
+    console.log(`Adding new channel/video. Input: ${inputUrl}`);
+    
+    // Detect if it's a video URL
+    const videoRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/;
+    const videoMatch = inputUrl.match(videoRegex);
+    const videoId = videoMatch ? videoMatch[1] : null;
+
     const channelInfo = await getChannelInfo(inputUrl);
     
     if (!channelInfo) {
@@ -58,10 +65,41 @@ router.post("/", authenticateToken, async (req: any, res) => {
         subscribers = EXCLUDED.subscribers
     `, [channelId, name, handle, scrape_days || 7, monitoring_interval || 'daily', userId, thumbnail, subscribers]);
     
-    // Trigger initial sync
+    // If a specific video was provided, add it immediately
+    if (videoId) {
+      console.log(`Direct video detected: ${videoId}. Adding to database...`);
+      const existingVideo = await query("SELECT id FROM videos WHERE id = $1", [videoId]);
+      if (existingVideo.rows.length === 0) {
+        await query(`
+          INSERT INTO videos (id, channel_id, title, status, published_at, user_id)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [videoId, channelId, 'Processing...', 'pending', new Date().toISOString(), userId]);
+        
+        // Background process the video
+        (async () => {
+          try {
+            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            const transcript = await getTranscript(videoUrl);
+            if (transcript) {
+              await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
+              // Also try to get title from channel search if we don't have it
+              const evaluation = await evaluateContent("Manual Video", transcript, "Предприниматели, интересующиеся ИИ и автоматизацией");
+              if (evaluation) {
+                await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4", 
+                  [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);
+              }
+            }
+          } catch (e) {
+            console.error(`Error background processing video ${videoId}:`, e);
+          }
+        })();
+      }
+    }
+
+    // Trigger initial sync for other recent videos
     syncChannel(channelId, name, monitoring_interval || 'daily', scrape_days || 7, handle).catch(console.error);
     
-    res.json({ success: true, channelId });
+    res.json({ success: true, channelId, videoId });
   } catch (err) {
     console.error("Channel add error:", err);
     res.status(500).json({ error: "Failed to add channel" });
