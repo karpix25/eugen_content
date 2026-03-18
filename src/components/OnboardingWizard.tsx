@@ -96,7 +96,7 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
         // Default values for remaining schema fields
         subtitle_enabled: true,
         subtitle_font_size: 48,
-        subtitle_position: 'Bottom',
+        subtitle_position: '100',
         subtitle_outline_color: '#000000',
         subtitle_highlight_enabled: true,
         plaque_size: 80,
