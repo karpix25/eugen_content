@@ -163,5 +163,24 @@ export const api = {
       const res = await fetch('/api/admin/stats', { headers: getHeaders() });
       return handleResponse(res);
     }
+  },
+  
+  carousels: {
+    async get(id: string) {
+      const res = await fetch(`/api/carousel/${id}`, { headers: getHeaders() });
+      return handleResponse(res);
+    },
+    async generate(data: { clipId: string, styleId: string, topic: string, targetAudience: string }) {
+      const res = await fetch('/api/carousel/generate', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data)
+      });
+      return handleResponse(res);
+    },
+    async listStyles() {
+      const res = await fetch('/api/carousel/styles', { headers: getHeaders() });
+      return handleResponse(res);
+    }
   }
 };

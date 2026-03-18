@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Sparkles, Layout, ImageIcon, Loader2, CheckCircle, AlertCircle, ChevronRight, Hash } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../services/api';
 import { cn } from '../lib/utils';
 
 interface CarouselStyle {
@@ -21,76 +23,56 @@ interface CarouselWizardProps {
 export default function CarouselWizard({ clip, authToken, targetAudience, onClose }: CarouselWizardProps) {
   const [step, setStep] = useState<'style' | 'progress' | 'success'>('style');
   const [topic, setTopic] = useState(clip.hook || clip.title);
-  const [styles, setStyles] = useState<CarouselStyle[]>([]);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
-  const [loadingStyles, setLoadingStyles] = useState(false);
   const [carouselId, setCarouselId] = useState<string | null>(null);
-  const [status, setStatus] = useState<'generating' | 'ready' | 'error'>('generating');
-  const [pollInterval, setPollInterval] = useState<number | null>(null);
-  const [generatedSlides, setGeneratedSlides] = useState<string[]>([]);
+
+  // Styles Query
+  const { data: styles = [], isLoading: loadingStyles } = useQuery({
+    queryKey: ['carouselStyles'],
+    queryFn: () => api.carousels.listStyles(),
+  });
+
+  // Polling Status Query
+  const { data: carouselStatus } = useQuery({
+    queryKey: ['carousel', carouselId],
+    queryFn: () => api.carousels.get(carouselId!),
+    enabled: !!carouselId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return (status === 'ready' || status === 'error') ? false : 3000;
+    }
+  });
+
+  // Watch for status change to transition to success step
+  useEffect(() => {
+    if (carouselStatus?.status === 'ready') {
+      setStep('success');
+    }
+  }, [carouselStatus?.status]);
 
   useEffect(() => {
-    fetchStyles();
-  }, []);
-
-  const fetchStyles = async () => {
-    setLoadingStyles(true);
-    try {
-      const res = await fetch('/api/carousel/styles', {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      const data = await res.json();
-      setStyles(data);
-      if (data.length > 0) setSelectedStyleId(data[0].id);
-    } catch (err) {
-      console.error("Failed to fetch styles", err);
-    } finally {
-      setLoadingStyles(false);
+    if (styles.length > 0 && !selectedStyleId) {
+      setSelectedStyleId(styles[0].id);
     }
-  };
+  }, [styles, selectedStyleId]);
 
   const startGeneration = async () => {
     if (!selectedStyleId) return;
     setStep('progress');
     try {
-      const res = await fetch('/api/carousel/generate', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ clipId: clip.id, styleId: selectedStyleId, topic, targetAudience })
+      const data = await api.carousels.generate({ 
+        clipId: clip.id, 
+        styleId: selectedStyleId, 
+        topic, 
+        targetAudience 
       });
-      const data = await res.json();
-      setCarouselId(data.carouselId);
-      
-      // Start polling
-      const interval = window.setInterval(async () => {
-        const pollRes = await fetch(`/api/carousel/${data.carouselId}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        const pollData = await pollRes.json();
-        if (pollData.status === 'ready') {
-          setStatus('ready');
-          setGeneratedSlides(pollData.slides || []);
-          setStep('success');
-          window.clearInterval(interval);
-        } else if (pollData.status === 'error') {
-          setStatus('error');
-          window.clearInterval(interval);
-        }
-      }, 3000);
-      setPollInterval(interval);
+      if (data.carouselId) {
+        setCarouselId(data.carouselId);
+      }
     } catch (err) {
-      setStatus('error');
+      console.error("Failed to start generation", err);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-    };
-  }, [pollInterval]);
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
@@ -223,22 +205,12 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
                 </div>
                 <div className="text-center space-y-2 mb-4">
                   <h4 className="text-3xl font-black uppercase italic tracking-tighter">Готово!</h4>
-                  <p className="text-white/60">Ваша карусель сгенерирована и отправлена в Telegram.</p>
+                  <p className="text-white/60">Ваша карусель сгенерирована и скоро придет в Telegram.</p>
                 </div>
-
-                {generatedSlides.length > 0 && (
-                  <div className="w-full overflow-x-auto flex gap-4 pb-4 snap-x no-scrollbar">
-                    {generatedSlides.map((slideUrl, idx) => (
-                      <div key={idx} className="shrink-0 w-32 md:w-40 aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 snap-center shadow-2xl">
-                        <img src={slideUrl} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 <button 
                   onClick={onClose}
-                  className="w-full mt-4 h-16 bg-white text-black rounded-2xl font-bold text-lg hover:bg-blue-600 transition-all shadow-xl"
+                  className="w-full h-16 bg-white text-black rounded-2xl font-bold text-lg hover:bg-blue-600 transition-all shadow-xl"
                 >
                   Шикарно!
                 </button>
