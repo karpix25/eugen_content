@@ -23,7 +23,7 @@ export interface VideoData {
   ai_evaluation: string | null;
   detected_language: string | null;
   target_language: string | null;
-  status: 'pending' | 'evaluating' | 'approved' | 'rejected' | 'sent_to_vizard' | 'completed';
+  status: 'pending' | 'evaluating' | 'approved' | 'rejected' | 'sent_to_vizard' | 'vizard_creating' | 'vizard_processing' | 'vizard_fallback_running' | 'failed' | 'completed';
   is_public?: boolean;
   user_evaluation_status?: 'evaluating' | null;
 }

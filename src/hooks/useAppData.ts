@@ -38,7 +38,10 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
       const hasActiveStates = query.state.data?.some((v: any) => 
         (v.status === 'pending' && !v.ai_evaluation) || 
         v.status === 'approved' || 
-        v.status === 'sent_to_vizard'
+        v.status === 'sent_to_vizard' ||
+        v.status === 'vizard_creating' ||
+        v.status === 'vizard_processing' ||
+        v.status === 'vizard_fallback_running'
       );
       return hasActiveStates ? 5000 : false;
     }

@@ -176,7 +176,7 @@ export class VideoManager {
     });
     
     if (vizardId) {
-      await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, id]);
+      await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard', vizard_requested_at = NOW() WHERE id = $2", [vizardId, id]);
       return vizardId;
     } else {
       await query("UPDATE videos SET status = 'pending' WHERE id = $1", [id]);

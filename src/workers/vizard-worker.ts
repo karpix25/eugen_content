@@ -20,14 +20,21 @@ const normalizeLang = (lang: string | null): string | null => {
 
 async function recoverLostVizardIds() {
   const stuckVideos = await query(
-    "SELECT id FROM videos WHERE status IN ('approved', 'vizard_creating', 'sent_to_vizard', 'vizard_processing') AND (vizard_project_id IS NULL OR vizard_project_id IN ('unknown_id', 'project_exists_but_no_id')) LIMIT 10"
+    "SELECT id FROM videos WHERE status IN ('approved', 'vizard_creating', 'sent_to_vizard', 'vizard_processing') AND (vizard_project_id IS NULL OR vizard_project_id IN ('unknown_id', 'project_exists_but_no_id')) LIMIT 25"
   );
   
   if (stuckVideos.rows.length === 0) return;
 
   console.log(`[Recovery] Attempting to recover IDs for ${stuckVideos.rows.length} stuck videos...`);
   try {
-    const vizardProjects = await listVizardProjects(1, 100);
+    const vizardProjects: any[] = [];
+    for (let pageNo = 1; pageNo <= 10; pageNo++) {
+      const page = await listVizardProjects(pageNo, 100);
+      if (!page || page.length === 0) break;
+      vizardProjects.push(...page);
+      if (page.length < 100) break;
+    }
+
     if (!vizardProjects || vizardProjects.length === 0) return;
 
     for (const video of stuckVideos.rows) {
@@ -35,13 +42,14 @@ async function recoverLostVizardIds() {
       const match = vizardProjects.find((p: any) => 
         p.projectName === expectedName || 
         p.projectName === video.id || 
-        p.external_id === video.id
+        p.external_id === video.id ||
+        p.externalId === video.id
       );
 
       if (match) {
         const vizardId = match.projectId || match.id;
         console.log(`[Recovery] Found lost ID for ${video.id}: ${vizardId}`);
-        await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, video.id]);
+        await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard', vizard_requested_at = COALESCE(vizard_requested_at, NOW()) WHERE id = $2", [vizardId, video.id]);
       }
     }
   } catch (err: any) {
@@ -82,7 +90,7 @@ export const handleVizardFallback = async (videoId: string) => {
       autoBrollSwitch: Number(settings.vizard_auto_broll || 0)
     });
     if (newProjectId) {
-      await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard', error_message = 'Resent via S3 fallback' WHERE id = $2", [newProjectId, videoId]);
+      await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard', vizard_requested_at = NOW(), error_message = 'Resent via S3 fallback' WHERE id = $2", [newProjectId, videoId]);
       console.log(`[Vizard Fallback] Success! New Project ID: ${newProjectId}`);
     } else {
       throw new Error("Failed to resend to Vizard after S3 upload");
@@ -110,7 +118,7 @@ export const autoSendToVizard = async () => {
       console.log(`[Auto] Sending approved video ${video.id} to Vizard...`);
       
       // Mark as sending to prevent duplicate triggers
-      await query("UPDATE videos SET status = 'vizard_creating' WHERE id = $1", [video.id]);
+      await query("UPDATE videos SET status = 'vizard_creating', vizard_requested_at = NOW() WHERE id = $1", [video.id]);
 
       const videoUrl = `https://www.youtube.com/watch?v=${video.id}`;
       try {
@@ -121,7 +129,7 @@ export const autoSendToVizard = async () => {
         });
 
         if (vizardId) {
-          await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard' WHERE id = $2", [vizardId, video.id]);
+          await query("UPDATE videos SET vizard_project_id = $1, status = 'sent_to_vizard', vizard_requested_at = NOW() WHERE id = $2", [vizardId, video.id]);
           console.log(`[Auto] Successfully sent ${video.id} to Vizard. ID: ${vizardId}`);
         } else {
           // If null, it might have failed or project already exists without ID
@@ -138,7 +146,7 @@ export const autoSendToVizard = async () => {
       UPDATE videos 
       SET status = 'approved', error_message = 'Recovered from vizard_creating timeout' 
       WHERE status = 'vizard_creating' 
-      AND created_at < NOW() - INTERVAL '30 minutes'
+      AND COALESCE(vizard_requested_at, created_at) < NOW() - INTERVAL '30 minutes'
     `);
   } catch (err) {
     console.error("Auto-Vizard error:", err);

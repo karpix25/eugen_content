@@ -41,7 +41,9 @@ export const sendToVizard = async (
             ext: ext, 
             subtitleSwitch: 0, // Disable subtitles
             headlineSwitch: 0, // Disable headlines
-            projectName: `Youtube_${videoId}`
+            projectName: `Youtube_${videoId}`,
+            externalId: videoId,
+            external_id: videoId
         };
 
         console.log(`Sending payload to Vizard:`, JSON.stringify(payload, null, 2));

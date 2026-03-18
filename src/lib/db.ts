@@ -74,12 +74,13 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
             transcript TEXT,
             ai_score INTEGER,
             ai_evaluation TEXT,
-            status TEXT DEFAULT 'pending',
-            vizard_project_id TEXT,
-            user_id TEXT REFERENCES users(telegram_id),
-            is_public BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
+          status TEXT DEFAULT 'pending',
+          vizard_project_id TEXT,
+          vizard_requested_at TIMESTAMP,
+          user_id TEXT REFERENCES users(telegram_id),
+          is_public BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
         `
       },
       {
@@ -290,6 +291,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS target_language TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS error_message TEXT",
       "ALTER TABLE videos ADD COLUMN IF NOT EXISTS approved_by TEXT REFERENCES users(telegram_id)",
+      "ALTER TABLE videos ADD COLUMN IF NOT EXISTS vizard_requested_at TIMESTAMP",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS language TEXT",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS hook TEXT",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT",
