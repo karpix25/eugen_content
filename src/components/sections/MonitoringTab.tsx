@@ -57,7 +57,7 @@ export function MonitoringTab({
 }: MonitoringTabProps) {
   const [newChannelUrl, setNewChannelUrl] = useState('');
   const [monitoringInterval, setMonitoringInterval] = useState('daily');
-  const [scrapeDays, setScrapeDays] = useState(7);
+  const [scrapeDays, setScrapeDays] = useState<number | ''>(7);
   const [addingChannel, setAddingChannel] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -68,7 +68,8 @@ export function MonitoringTab({
     setAddingChannel(true);
     try {
       const intervalToUse = currentUserProfile?.is_admin ? monitoringInterval : 'manual';
-      await onAddChannel(newChannelUrl, intervalToUse, scrapeDays);
+      const daysToScrape = scrapeDays === '' ? 0 : scrapeDays;
+      await onAddChannel(newChannelUrl, intervalToUse, daysToScrape);
       setNewChannelUrl('');
     } finally {
       setAddingChannel(false);
@@ -124,7 +125,15 @@ export function MonitoringTab({
                 type="number"
                 min="0"
                 value={scrapeDays}
-                onChange={(e) => setScrapeDays(parseInt(e.target.value) || 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setScrapeDays('');
+                  } else {
+                    const parsed = parseInt(val);
+                    if (!isNaN(parsed)) setScrapeDays(parsed);
+                  }
+                }}
                 className="w-full bg-transparent px-2 py-3 outline-none text-sm text-center font-bold"
                 title="Сканировать видео за последние X дней (0 = все)"
                 placeholder="0"
