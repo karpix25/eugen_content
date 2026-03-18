@@ -250,14 +250,14 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                   <button
                     key={plaque.id}
                     onClick={() => handleSend(plaque.id)}
-                    className="w-full relative aspect-video rounded-2xl overflow-hidden group border border-white/5 hover:border-blue-500/50 transition-all duration-500 shadow-xl"
+                    className="w-full relative h-28 rounded-2xl overflow-hidden group border border-white/5 hover:border-blue-500/50 transition-all duration-500 shadow-xl bg-white/[0.02]"
                   >
                     <img 
                       src={plaque.image_url} 
                       alt="" 
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                      className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700" 
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40" />
                     
                     <div className="absolute top-3 left-3 px-3 py-1.5 bg-black/40 backdrop-blur-xl rounded-lg border border-white/10 flex items-center gap-2 group-hover:bg-blue-600/20 group-hover:border-blue-500/30 transition-all">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -265,8 +265,6 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                         {plaque.name}
                       </p>
                     </div>
-
-                    <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-500/20 rounded-2xl transition-all pointer-events-none" />
                   </button>
                 ))}
               </div>
