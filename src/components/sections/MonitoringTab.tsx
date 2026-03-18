@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  Play, 
-  Trash2, 
-  Plus, 
+import {
+  Play,
+  Trash2,
+  Plus,
   RefreshCw,
   Tv,
   Eye,
@@ -103,7 +103,7 @@ export function MonitoringTab({
             value={newChannelUrl}
             onChange={(e) => setNewChannelUrl(e.target.value)}
             disabled={addingChannel}
-            placeholder="YouTube URL или ID канала"
+            placeholder="YouTube URL, ID канала или ссылка на видео"
             className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-600 outline-none transition-all disabled:opacity-50"
           />
           <div className="flex gap-3">
@@ -122,9 +122,9 @@ export function MonitoringTab({
               )}
             </select>
             <div className={cn(
-               "flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 transition-all items-center",
-               addingChannel ? "opacity-50 pointer-events-none" : "focus-within:border-blue-600"
-             )}>
+              "flex bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 transition-all items-center",
+              addingChannel ? "opacity-50 pointer-events-none" : "focus-within:border-blue-600"
+            )}>
               <span className="pl-4 text-white/40 text-[10px] uppercase font-bold whitespace-nowrap">Видео за:</span>
               <input
                 type="number"
@@ -170,13 +170,13 @@ export function MonitoringTab({
             {channels.map(channel => {
               const isSelected = selectedChannelId === channel.id;
               return (
-                <div 
-                  key={channel.id} 
+                <div
+                  key={channel.id}
                   onClick={() => setSelectedChannelId(isSelected ? null : channel.id)}
                   className={cn(
                     "relative bg-black/30 border rounded-xl p-4 flex items-center gap-3 group transition-all cursor-pointer",
-                    isSelected 
-                      ? "border-blue-600 bg-blue-600/10 shadow-[0_0_15px_rgba(37,99,235,0.15)] ring-1 ring-blue-600/50" 
+                    isSelected
+                      ? "border-blue-600 bg-blue-600/10 shadow-[0_0_15px_rgba(37,99,235,0.15)] ring-1 ring-blue-600/50"
                       : "border-white/5 hover:bg-white/5 hover:border-white/10"
                   )}
                 >
@@ -208,22 +208,20 @@ export function MonitoringTab({
                           e.stopPropagation();
                           onToggleChannelPublic(channel.id, !channel.is_public);
                         }}
-                        className={`p-1.5 rounded-lg border transition-all ${
-                          channel.is_public 
-                            ? "bg-blue-600/20 text-blue-600 border-blue-600/20 hover:bg-blue-600/30" 
+                        className={`p-1.5 rounded-lg border transition-all ${channel.is_public
+                            ? "bg-blue-600/20 text-blue-600 border-blue-600/20 hover:bg-blue-600/30"
                             : "bg-white/5 text-white/20 border-white/10 hover:bg-white/10"
-                        }`}
+                          }`}
                         title={channel.is_public ? "Сделать приватным" : "Сделать публичным"}
                       >
                         {channel.is_public ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       </button>
                     ) : (
-                      <span 
-                        className={`p-1.5 rounded-lg border ${
-                          channel.is_public 
-                            ? "bg-blue-600/20 text-blue-600 border-blue-600/20" 
+                      <span
+                        className={`p-1.5 rounded-lg border ${channel.is_public
+                            ? "bg-blue-600/20 text-blue-600 border-blue-600/20"
                             : "bg-white/5 text-white/20 border-white/10"
-                        }`}
+                          }`}
                         title={channel.is_public ? "Публичный" : "Приватный"}
                       >
                         {channel.is_public ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
@@ -244,20 +242,19 @@ export function MonitoringTab({
                         }
                       }}
                       disabled={syncingId === channel.id || channel.sync_status === 'syncing'}
-                      className={`p-1.5 rounded-lg border transition-all ${
-                        syncingId === channel.id + '-success' || (channel.sync_status === 'idle' && (syncingId === null || syncingId === channel.id + '-success'))
+                      className={`p-1.5 rounded-lg border transition-all ${syncingId === channel.id + '-success' || (channel.sync_status === 'idle' && (syncingId === null || syncingId === channel.id + '-success'))
                           ? "bg-green-600/20 text-green-500 border-green-600/20"
                           : syncingId === channel.id || channel.sync_status === 'syncing'
                             ? "bg-blue-600/20 text-blue-500 border-blue-600/20"
                             : syncingId === channel.id + '-error' || channel.sync_status === 'error'
                               ? "bg-red-600/20 text-red-500 border-red-600/20"
                               : "bg-white/5 text-white/40 border-white/10 hover:bg-white/10"
-                      }`}
+                        }`}
                       title={
-                        channel.sync_status === 'syncing' 
-                          ? "Синхронизация..." 
-                          : channel.sync_status === 'error' 
-                            ? `Ошибка: ${channel.sync_error || 'Неизвестная ошибка'}` 
+                        channel.sync_status === 'syncing'
+                          ? "Синхронизация..."
+                          : channel.sync_status === 'error'
+                            ? `Ошибка: ${channel.sync_error || 'Неизвестная ошибка'}`
                             : "Синхронизировать сейчас"
                       }
                     >
@@ -284,9 +281,9 @@ export function MonitoringTab({
                   </div>
 
                   {!currentUserProfile?.is_admin && (
-                     <div className="absolute top-2 right-2 group-hover:hidden transition-all">
-                        <span className={`w-2 h-2 rounded-full block ${channel.is_public ? 'bg-blue-600' : 'bg-white/20'}`} />
-                     </div>
+                    <div className="absolute top-2 right-2 group-hover:hidden transition-all">
+                      <span className={`w-2 h-2 rounded-full block ${channel.is_public ? 'bg-blue-600' : 'bg-white/20'}`} />
+                    </div>
                   )}
                 </div>
               );
@@ -310,7 +307,7 @@ export function MonitoringTab({
               )}
             </p>
             {selectedChannelId && (
-              <button 
+              <button
                 onClick={() => setSelectedChannelId(null)}
                 className="text-[10px] text-red-400/60 hover:text-red-400 underline uppercase tracking-tighter shrink-0"
               >
@@ -332,8 +329,8 @@ export function MonitoringTab({
                 onClick={() => setStatusFilter(f.id as any)}
                 className={cn(
                   "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
-                  statusFilter === f.id 
-                    ? "bg-blue-600 text-black shadow-lg" 
+                  statusFilter === f.id
+                    ? "bg-blue-600 text-black shadow-lg"
                     : "text-white/40 hover:text-white"
                 )}
               >
@@ -366,9 +363,9 @@ export function MonitoringTab({
           <div className="py-20 text-center text-white/20 bg-white/5 rounded-2xl border border-white/5">
             <Play className="w-12 h-12 mx-auto mb-4 opacity-20" />
             <p>
-              {statusFilter === 'pending' 
-                ? "Нет новых видео для мониторинга." 
-                : statusFilter === 'completed' 
+              {statusFilter === 'pending'
+                ? "Нет новых видео для мониторинга."
+                : statusFilter === 'completed'
                   ? "У вас пока нет нарезанных (готовых) видео."
                   : "Видео не найдены."}
             </p>
