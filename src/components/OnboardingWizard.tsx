@@ -117,6 +117,7 @@ export default function OnboardingWizard({ currentUser, authToken, plaques, onCo
         use_face_in_carousels: useFace,
         default_plaque_id: defaultPlaqueId,
         plaque_position: plaquePosition,
+        onboarding_completed: true,
         // Default values for remaining schema fields
         subtitle_enabled: true,
         subtitle_font_size: 48,

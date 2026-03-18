@@ -58,15 +58,21 @@ function App() {
   const [selectedCarouselClip, setSelectedCarouselClip] = React.useState<any>(null);
   const { isComplete } = useProfileSetup(currentUser);
   const onboardingKey = React.useMemo(
-    () => currentUser ? `onboarding_done_${currentUser.id}` : null,
+    () => currentUser ? `onboarding_done_${currentUser.telegram_id || currentUser.id}` : null,
     [currentUser]
   );
 
   React.useEffect(() => {
-    if (!onboardingKey) return;
-    const stored = localStorage.getItem(onboardingKey);
-    setOnboardingCompleted(stored === 'true');
-  }, [onboardingKey]);
+    if (!onboardingKey || !currentUser) return;
+    // Prefer server flag, fallback to local storage
+    if (currentUser.onboarding_completed) {
+      setOnboardingCompleted(true);
+      localStorage.setItem(onboardingKey, 'true');
+      return;
+    }
+    const stored = localStorage.getItem(onboardingKey) === 'true';
+    setOnboardingCompleted(stored);
+  }, [onboardingKey, currentUser]);
 
   const handleOnboardingComplete = () => {
     if (onboardingKey) {
@@ -180,7 +186,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex overflow-hidden font-sans selection:bg-blue-600/30 selection:text-blue-500">
-      {!isComplete && !onboardingCompleted && (
+      {!isComplete && !onboardingCompleted && !currentUser.onboarding_completed && (
         <OnboardingWizard
           currentUser={currentUser}
           authToken={authToken}

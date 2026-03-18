@@ -91,6 +91,8 @@ export interface User {
   auto_mode_videos_per_day?: number;
   face_image_url?: string;
   use_face_in_carousels?: boolean;
+  onboarding_completed?: boolean;
+  id?: string;
 }
 
 export interface AdPlaque {
