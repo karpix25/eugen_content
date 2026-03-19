@@ -175,6 +175,18 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
           </div>
         </div>
 
+        {message && (
+          <div className="sticky top-3 z-20">
+            <div className={cn(
+              "p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in slide-in-from-top-2 shadow-2xl backdrop-blur-xl",
+              message.type === 'success' ? "bg-blue-600/15 border border-blue-600/30 text-blue-500" : "bg-red-500/15 border border-red-500/30 text-red-400"
+            )}>
+              {message.type === 'success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+              <span>{message.text}</span>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           <div className="p-6 bg-black/40 border border-white/5 rounded-2xl space-y-5">
             <div className="flex items-center gap-4">
@@ -266,15 +278,6 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
           </div>
         </div>
 
-        {message && (
-          <div className={cn(
-            "p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 animate-in fade-in slide-in-from-top-2",
-            message.type === 'success' ? "bg-blue-600/10 border border-blue-600/20 text-blue-600" : "bg-red-500/10 border border-red-500/20 text-red-500"
-          )}>
-            {message.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-            {message.text}
-          </div>
-        )}
       </div>
     </div>
   );
