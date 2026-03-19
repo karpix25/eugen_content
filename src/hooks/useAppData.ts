@@ -3,10 +3,38 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { User } from '../types';
 
+const DEFAULT_TARGET_AUDIENCE = 'Предприниматели, интересующиеся ИИ и автоматизацией';
+
 export function useAppData(authToken: string | null, currentUser: User | null, onUnauthorized: () => void) {
   const queryClient = useQueryClient();
-  const [targetAudience, setTargetAudience] = useState('Предприниматели, интересующиеся ИИ и автоматизацией');
+  const [targetAudience, setTargetAudience] = useState(DEFAULT_TARGET_AUDIENCE);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    if (!authToken) return;
+
+    let cancelled = false;
+    const fetchTargetAudience = async () => {
+      try {
+        const res = await fetch('/api/settings/analysis-target-audience', {
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (!cancelled && data?.value) {
+          setTargetAudience(data.value);
+        }
+      } catch (err) {
+        console.error('Failed to fetch analysis target audience:', err);
+      }
+    };
+
+    fetchTargetAudience();
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
 
   // Channels Query
   const { data: channels = [] } = useQuery({

@@ -39,6 +39,29 @@ router.post("/logo", authenticateToken, requireAdmin, upload.single('logo'), asy
   }
 });
 
+router.get("/analysis-target-audience", authenticateToken, async (req, res) => {
+  try {
+    const value = await SettingsManager.getAnalysisTargetAudience();
+    res.json({ value });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch analysis target audience" });
+  }
+});
+
+router.post("/analysis-target-audience", authenticateToken, requireAdmin, async (req, res) => {
+  const value = typeof req.body?.value === 'string' ? req.body.value.trim() : '';
+  if (!value) {
+    return res.status(400).json({ error: "Target audience is required" });
+  }
+
+  try {
+    await SettingsManager.setAnalysisTargetAudience(value);
+    res.json({ success: true, value });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update analysis target audience" });
+  }
+});
+
 router.get("/vizard", authenticateToken, async (req, res) => {
   try {
     const settings = await SettingsManager.getVizardSettings();

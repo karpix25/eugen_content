@@ -3,6 +3,7 @@ import { query } from "../lib/db.js";
 import { getTranscript, getLatestVideos, getChannelInfo } from "../services/apify.js";
 import { evaluateContent } from "../services/gemini.js";
 import { videoProcessingQueue } from "../lib/queues.js";
+import { SettingsManager } from "../services/SettingsManager.js";
 
 export function calculateNextCheck(interval: string): Date {
   const now = new Date();
@@ -64,7 +65,8 @@ export const syncChannel = async (channelId: string, name: string, monitoringInt
           await query("UPDATE videos SET transcript = $1 WHERE id = $2", [transcript, videoId]);
 
           console.log(`[AI] Starting evaluation for video: ${item.title}`);
-          const evaluation = await evaluateContent(item.title, transcript, "Предприниматели, интересующиеся ИИ и автоматизацией");
+          const targetAudience = await SettingsManager.getAnalysisTargetAudience();
+          const evaluation = await evaluateContent(item.title, transcript, targetAudience);
           if (evaluation) {
             await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4",
               [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);

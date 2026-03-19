@@ -1,6 +1,7 @@
 import { query } from '../lib/db';
 import { getTranscript, getLatestVideos, getChannelInfo } from './apify';
 import { evaluateContent } from './gemini';
+import { SettingsManager } from './SettingsManager';
 import { sendToVizard } from './vizard';
 
 export class VideoManager {
@@ -115,7 +116,8 @@ export class VideoManager {
           WHERE id = $5
         `, [transcript, title || '', description || '', thumbnail || '', videoId]);
 
-        const evaluation = await evaluateContent(title || item.title, transcript || '', "Предприниматели, интересующиеся ИИ и автоматизацией");
+        const targetAudience = await SettingsManager.getAnalysisTargetAudience();
+        const evaluation = await evaluateContent(title || item.title, transcript || '', targetAudience);
         if (evaluation) {
           await query("UPDATE videos SET ai_score = $1, ai_evaluation = $2, detected_language = $3 WHERE id = $4", 
             [evaluation.score, evaluation.evaluation, evaluation.detected_language, videoId]);

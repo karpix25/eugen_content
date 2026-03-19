@@ -1,5 +1,7 @@
 import { query } from '../lib/db.js';
 
+const DEFAULT_ANALYSIS_TARGET_AUDIENCE = 'Предприниматели, интересующиеся ИИ и автоматизацией';
+
 export class SettingsManager {
   static async getSetting(key: string): Promise<string | null> {
     const result = await query("SELECT value FROM global_settings WHERE key = $1", [key]);
@@ -25,5 +27,13 @@ export class SettingsManager {
     const keys = ['vizard_prefer_length', 'vizard_remove_silence', 'vizard_auto_broll'];
     const result = await query("SELECT key, value FROM global_settings WHERE key = ANY($1)", [keys]);
     return result.rows.reduce((acc: any, row: any) => ({ ...acc, [row.key]: row.value }), {});
+  }
+
+  static async getAnalysisTargetAudience(): Promise<string> {
+    return (await this.getSetting('analysis_target_audience')) || DEFAULT_ANALYSIS_TARGET_AUDIENCE;
+  }
+
+  static async setAnalysisTargetAudience(value: string): Promise<void> {
+    return this.setSetting('analysis_target_audience', value || DEFAULT_ANALYSIS_TARGET_AUDIENCE);
   }
 }

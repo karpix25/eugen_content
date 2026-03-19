@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ImageIcon, Loader2, Upload, CheckCircle, XCircle, Globe } from 'lucide-react';
+import { ImageIcon, Loader2, Upload, CheckCircle, XCircle, Globe, Users } from 'lucide-react';
 
 interface GlobalSettingsProps {
   authToken: string;
@@ -7,25 +7,38 @@ interface GlobalSettingsProps {
 
 export function GlobalSettings({ authToken }: GlobalSettingsProps) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [targetAudience, setTargetAudience] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [savingAudience, setSavingAudience] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
-    fetchLogo();
+    fetchSettings();
   }, [authToken]);
 
-  const fetchLogo = async () => {
+  const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/settings/logo', {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const [logoRes, audienceRes] = await Promise.all([
+        fetch('/api/settings/logo', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        }),
+        fetch('/api/settings/analysis-target-audience', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+      ]);
+
+      if (logoRes.ok) {
+        const data = await logoRes.json();
         setLogoUrl(data.url);
       }
+
+      if (audienceRes.ok) {
+        const data = await audienceRes.json();
+        setTargetAudience(data.value || '');
+      }
     } catch (e) {
-      console.error("Failed to fetch logo:", e);
+      console.error("Failed to fetch global settings:", e);
     } finally {
       setLoading(false);
     }
@@ -62,6 +75,39 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
     }
   };
 
+  const handleSaveAudience = async () => {
+    if (!targetAudience.trim()) {
+      setMessage({ type: 'error', text: 'Укажите целевую аудиторию для анализа.' });
+      return;
+    }
+
+    setSavingAudience(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/settings/analysis-target-audience', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ value: targetAudience.trim() })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setTargetAudience(data.value);
+        setMessage({ type: 'success', text: 'Целевая аудитория для анализа сохранена!' });
+      } else {
+        setMessage({ type: 'error', text: 'Ошибка при сохранении целевой аудитории.' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Ошибка сети при сохранении.' });
+    } finally {
+      setSavingAudience(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -86,6 +132,35 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
         </div>
 
         <div className="space-y-4">
+          <div className="p-6 bg-black/40 border border-white/5 rounded-2xl space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-600/20">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-tight">ЦА для AI-анализа</h4>
+                <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mt-1">Используется для оценки транскриптов и автопроверки новых видео</p>
+              </div>
+            </div>
+
+            <textarea
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all resize-none"
+              placeholder="Например: предприниматели, эксперты и владельцы онлайн-бизнесов, интересующиеся AI и автоматизацией"
+            />
+
+            <button
+              onClick={handleSaveAudience}
+              disabled={savingAudience}
+              className="inline-flex items-center gap-2 bg-blue-600 text-black px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 transition-all disabled:opacity-50"
+            >
+              {savingAudience ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              {savingAudience ? 'СОХРАНЯЕМ...' : 'СОХРАНИТЬ ЦА'}
+            </button>
+          </div>
+
           <div className="p-6 bg-black/40 border border-white/5 rounded-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
