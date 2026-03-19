@@ -21,10 +21,11 @@ interface CarouselWizardProps {
 }
 
 export default function CarouselWizard({ clip, authToken, targetAudience, onClose }: CarouselWizardProps) {
-  const [step, setStep] = useState<'style' | 'progress' | 'success'>('style');
+  const [step, setStep] = useState<'style' | 'progress' | 'success' | 'error'>('style');
   const [topic, setTopic] = useState(clip.hook || clip.title);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
   const [carouselId, setCarouselId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Styles Query
   const { data: styles = [], isLoading: loadingStyles } = useQuery({
@@ -48,6 +49,10 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
     if (carouselStatus?.status === 'ready') {
       setStep('success');
     }
+    if (carouselStatus?.status === 'error') {
+      setErrorMessage(carouselStatus?.error_message || 'Не удалось сгенерировать карусель.');
+      setStep('error');
+    }
   }, [carouselStatus?.status]);
 
   useEffect(() => {
@@ -58,25 +63,36 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
 
   const startGeneration = async () => {
     if (!selectedStyleId) return;
+    setErrorMessage(null);
     setStep('progress');
     try {
-      const data = await api.carousels.generate({ 
-        clipId: clip.id, 
-        styleId: selectedStyleId, 
-        topic, 
-        targetAudience 
+      const data = await api.carousels.generate({
+        clipId: clip.id,
+        styleId: selectedStyleId,
+        topic,
+        targetAudience
       });
+      if (data?.error) {
+        setErrorMessage(data.error);
+        setStep('error');
+        return;
+      }
       if (data.carouselId) {
         setCarouselId(data.carouselId);
+      } else {
+        setErrorMessage('Не удалось запустить генерацию карусели.');
+        setStep('error');
       }
     } catch (err) {
       console.error("Failed to start generation", err);
+      setErrorMessage('Произошла ошибка при запуске генерации карусели.');
+      setStep('error');
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-[#111] border border-white/10 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
@@ -101,7 +117,7 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
         <div className="flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait">
             {step === 'style' && (
-              <motion.div 
+              <motion.div
                 key="style"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -113,7 +129,7 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
                     <ImageIcon className="w-3 h-3" /> Визуальный стиль
                   </label>
                   <p className="text-sm text-white/60">Выберите стиль оформления для ваших карточек.</p>
-                  
+
                   {loadingStyles ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-4">
                       <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -145,13 +161,13 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
                   )}
                 </div>
                 <div className="flex gap-4">
-                  <button 
+                  <button
                     onClick={onClose}
                     className="flex-1 h-16 bg-white/5 text-white rounded-2xl font-bold hover:bg-white/10 transition-all border border-white/5"
                   >
                     Отмена
                   </button>
-                  <button 
+                  <button
                     onClick={startGeneration}
                     disabled={!selectedStyleId}
                     className="flex-[2] h-16 bg-blue-600 text-black rounded-2xl font-bold text-lg hover:bg-blue-500 disabled:opacity-50 transition-all"
@@ -163,7 +179,7 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
             )}
 
             {step === 'progress' && (
-              <motion.div 
+              <motion.div
                 key="progress"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -194,7 +210,7 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
             )}
 
             {step === 'success' && (
-              <motion.div 
+              <motion.div
                 key="success"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -208,12 +224,44 @@ export default function CarouselWizard({ clip, authToken, targetAudience, onClos
                   <p className="text-white/60">Ваша карусель сгенерирована и скоро придет в Telegram.</p>
                 </div>
 
-                <button 
+                <button
                   onClick={onClose}
                   className="w-full h-16 bg-white text-black rounded-2xl font-bold text-lg hover:bg-blue-600 transition-all shadow-xl"
                 >
                   Шикарно!
                 </button>
+              </motion.div>
+            )}
+
+            {step === 'error' && (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-12 gap-8"
+              >
+                <div className="w-32 h-32 bg-red-500/20 rounded-[2.5rem] flex items-center justify-center border border-red-500/20">
+                  <AlertCircle className="w-16 h-16 text-red-400" />
+                </div>
+                <div className="text-center space-y-3 max-w-lg">
+                  <h4 className="text-3xl font-black uppercase italic tracking-tighter">Не удалось</h4>
+                  <p className="text-white/70">{errorMessage || 'Во время генерации произошла ошибка.'}</p>
+                </div>
+
+                <div className="w-full flex gap-4">
+                  <button
+                    onClick={() => setStep('style')}
+                    className="flex-1 h-16 bg-white/5 text-white rounded-2xl font-bold hover:bg-white/10 transition-all border border-white/5"
+                  >
+                    Назад
+                  </button>
+                  <button
+                    onClick={startGeneration}
+                    className="flex-1 h-16 bg-blue-600 text-black rounded-2xl font-bold text-lg hover:bg-blue-500 transition-all"
+                  >
+                    Попробовать снова
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
