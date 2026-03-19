@@ -48,6 +48,15 @@ router.get("/analysis-target-audience", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/carousel-limit", authenticateToken, async (req, res) => {
+  try {
+    const value = await SettingsManager.getCarouselDailyLimitPerUser();
+    res.json({ value });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch carousel limit" });
+  }
+});
+
 router.post("/analysis-target-audience", authenticateToken, requireAdmin, async (req, res) => {
   const value = typeof req.body?.value === 'string' ? req.body.value.trim() : '';
   if (!value) {
@@ -59,6 +68,20 @@ router.post("/analysis-target-audience", authenticateToken, requireAdmin, async 
     res.json({ success: true, value });
   } catch (err) {
     res.status(500).json({ error: "Failed to update analysis target audience" });
+  }
+});
+
+router.post("/carousel-limit", authenticateToken, requireAdmin, async (req, res) => {
+  const value = Number(req.body?.value);
+  if (!Number.isFinite(value) || value < 0) {
+    return res.status(400).json({ error: "Carousel limit must be a non-negative number" });
+  }
+
+  try {
+    await SettingsManager.setCarouselDailyLimitPerUser(value);
+    res.json({ success: true, value: Math.floor(value) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update carousel limit" });
   }
 });
 

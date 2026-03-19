@@ -1,6 +1,7 @@
 import { query } from '../lib/db.js';
 
 const DEFAULT_ANALYSIS_TARGET_AUDIENCE = 'Предприниматели, интересующиеся ИИ и автоматизацией';
+const DEFAULT_CAROUSEL_DAILY_LIMIT_PER_USER = 0;
 
 export class SettingsManager {
   static async getSetting(key: string): Promise<string | null> {
@@ -35,5 +36,16 @@ export class SettingsManager {
 
   static async setAnalysisTargetAudience(value: string): Promise<void> {
     return this.setSetting('analysis_target_audience', value || DEFAULT_ANALYSIS_TARGET_AUDIENCE);
+  }
+
+  static async getCarouselDailyLimitPerUser(): Promise<number> {
+    const value = await this.getSetting('carousel_daily_limit_per_user');
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_CAROUSEL_DAILY_LIMIT_PER_USER;
+  }
+
+  static async setCarouselDailyLimitPerUser(value: number): Promise<void> {
+    const normalized = Number.isFinite(value) && value >= 0 ? Math.floor(value) : DEFAULT_CAROUSEL_DAILY_LIMIT_PER_USER;
+    return this.setSetting('carousel_daily_limit_per_user', String(normalized));
   }
 }

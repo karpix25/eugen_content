@@ -14,6 +14,27 @@ import { carouselQueue } from "../lib/queues.js";
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+const ensureCarouselDailyLimit = async (userId: string) => {
+  const dailyLimit = await SettingsManager.getCarouselDailyLimitPerUser();
+  if (!dailyLimit) return null;
+
+  const usageRes = await query(
+    `SELECT COUNT(*)::int AS count
+     FROM carousels
+     WHERE user_id = $1
+       AND created_at >= CURRENT_DATE
+       AND created_at < CURRENT_DATE + INTERVAL '1 day'`,
+    [userId]
+  );
+
+  const usedToday = usageRes.rows[0]?.count || 0;
+  if (usedToday >= dailyLimit) {
+    return { dailyLimit, usedToday };
+  }
+
+  return null;
+};
+
 router.get("/styles", authenticateToken, async (req: any, res) => {
   try {
     const templates = [
@@ -86,6 +107,13 @@ router.post("/generate", authenticateToken, async (req: any, res) => {
   const userId = String(req.user.id);
 
   try {
+    const limitState = await ensureCarouselDailyLimit(userId);
+    if (limitState) {
+      return res.status(429).json({
+        error: `Достигнут суточный лимит генерации каруселей: ${limitState.dailyLimit} на пользователя.`
+      });
+    }
+
     // Deterministic ID based on clip and style
     const hash = crypto
       .createHash("sha256")

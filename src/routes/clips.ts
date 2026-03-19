@@ -12,9 +12,31 @@ import { sanitizeFolderName } from "../lib/sanitize.js";
 import { PreviewGenerator } from "../services/preview-generator.js";
 import { uploadToS3 } from "../lib/s3.js";
 import { renderingQueue } from "../lib/queues.js";
+import { SettingsManager } from "../services/SettingsManager.js";
 
 const router = Router();
 // Removed hardcoded JWT_SECRET fallback
+
+const ensureCarouselDailyLimit = async (userId: string) => {
+  const dailyLimit = await SettingsManager.getCarouselDailyLimitPerUser();
+  if (!dailyLimit) return null;
+
+  const usageRes = await query(
+    `SELECT COUNT(*)::int AS count
+     FROM carousels
+     WHERE user_id = $1
+       AND created_at >= CURRENT_DATE
+       AND created_at < CURRENT_DATE + INTERVAL '1 day'`,
+    [userId]
+  );
+
+  const usedToday = usageRes.rows[0]?.count || 0;
+  if (usedToday >= dailyLimit) {
+    return { dailyLimit, usedToday };
+  }
+
+  return null;
+};
 
 router.get("/", authenticateToken, async (req: any, res) => {
   try {
@@ -181,6 +203,13 @@ router.post("/:id/carousel", authenticateToken, async (req: any, res) => {
   const { styleId = 'ios-notes', topic, targetAudience } = req.body;
 
   try {
+    const limitState = await ensureCarouselDailyLimit(String(req.user.id));
+    if (limitState) {
+      return res.status(429).json({
+        error: `Достигнут суточный лимит генерации каруселей: ${limitState.dailyLimit} на пользователя.`
+      });
+    }
+
     const clipRes = await query("SELECT transcript, title FROM clips WHERE id = $1", [id]);
     if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
     const { transcript, title } = clipRes.rows[0];

@@ -8,8 +8,10 @@ interface GlobalSettingsProps {
 export function GlobalSettings({ authToken }: GlobalSettingsProps) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [targetAudience, setTargetAudience] = useState('');
+  const [carouselDailyLimit, setCarouselDailyLimit] = useState('0');
   const [uploading, setUploading] = useState(false);
   const [savingAudience, setSavingAudience] = useState(false);
+  const [savingCarouselLimit, setSavingCarouselLimit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -19,11 +21,14 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
 
   const fetchSettings = async () => {
     try {
-      const [logoRes, audienceRes] = await Promise.all([
+      const [logoRes, audienceRes, carouselLimitRes] = await Promise.all([
         fetch('/api/settings/logo', {
           headers: { 'Authorization': `Bearer ${authToken}` }
         }),
         fetch('/api/settings/analysis-target-audience', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        }),
+        fetch('/api/settings/carousel-limit', {
           headers: { 'Authorization': `Bearer ${authToken}` }
         })
       ]);
@@ -36,6 +41,11 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
       if (audienceRes.ok) {
         const data = await audienceRes.json();
         setTargetAudience(data.value || '');
+      }
+
+      if (carouselLimitRes.ok) {
+        const data = await carouselLimitRes.json();
+        setCarouselDailyLimit(String(data.value ?? '0'));
       }
     } catch (e) {
       console.error("Failed to fetch global settings:", e);
@@ -108,6 +118,40 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
     }
   };
 
+  const handleSaveCarouselLimit = async () => {
+    const value = Number(carouselDailyLimit);
+    if (!Number.isFinite(value) || value < 0) {
+      setMessage({ type: 'error', text: 'Лимит каруселей должен быть неотрицательным числом.' });
+      return;
+    }
+
+    setSavingCarouselLimit(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/settings/carousel-limit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ value })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setCarouselDailyLimit(String(data.value));
+        setMessage({ type: 'success', text: 'Суточный лимит каруселей сохранен!' });
+      } else {
+        setMessage({ type: 'error', text: 'Ошибка при сохранении лимита каруселей.' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Ошибка сети при сохранении лимита.' });
+    } finally {
+      setSavingCarouselLimit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -158,6 +202,36 @@ export function GlobalSettings({ authToken }: GlobalSettingsProps) {
             >
               {savingAudience ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
               {savingAudience ? 'СОХРАНЯЕМ...' : 'СОХРАНИТЬ ЦА'}
+            </button>
+          </div>
+
+          <div className="p-6 bg-black/40 border border-white/5 rounded-2xl space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-600/20">
+                <Globe className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-tight">Лимит каруселей в сутки</h4>
+                <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mt-1">0 = без лимита, значение применяется на пользователя</p>
+              </div>
+            </div>
+
+            <input
+              type="number"
+              min="0"
+              value={carouselDailyLimit}
+              onChange={(e) => setCarouselDailyLimit(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all"
+              placeholder="0"
+            />
+
+            <button
+              onClick={handleSaveCarouselLimit}
+              disabled={savingCarouselLimit}
+              className="inline-flex items-center gap-2 bg-blue-600 text-black px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 transition-all disabled:opacity-50"
+            >
+              {savingCarouselLimit ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              {savingCarouselLimit ? 'СОХРАНЯЕМ...' : 'СОХРАНИТЬ ЛИМИТ'}
             </button>
           </div>
 

@@ -223,6 +223,7 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       VALUES 
         ('carousel_logo_url', NULL),
         ('analysis_target_audience', 'Предприниматели, интересующиеся ИИ и автоматизацией'),
+        ('carousel_daily_limit_per_user', '0'),
         ('vizard_prefer_length', '2'),
         ('vizard_remove_silence', '0'),
         ('vizard_auto_broll', '0')
