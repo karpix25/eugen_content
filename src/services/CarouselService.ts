@@ -31,22 +31,12 @@ export class CarouselService {
             const { transcript, title } = clipRes.rows[0];
 
             let analysis: any;
-            if (['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(styleId)) {
+            if (styleId === 'ios-notes') {
                 // Template prompt mappings (copied from routes/carousels.ts logic)
                 const templates: Record<string, any> = {
                     'ios-notes': { 
                         styleDescription: "iOS Notes app style, clean white background, San Francisco typography, minimalist UI elements",
                         design_dna: { vibe: "Clean, productivity-focused, minimalist" },
-                        visual_elements: { art_style: "Flat Graphic" }
-                    },
-                    'dark-luxury': { 
-                        styleDescription: "Luxury dark aesthetic, deep black and gold accents, elegant serif typography, high-end product photography style",
-                        design_dna: { vibe: "Premium, exclusive, high-value" },
-                        visual_elements: { art_style: "Realistic Photo" }
-                    },
-                    'cyber-brutalist': { 
-                        styleDescription: "Cyber Brutalist style, high contrast, bold neon colors, glitch effects, raw industrial typography",
-                        design_dna: { vibe: "Edgy, technical, bold" },
                         visual_elements: { art_style: "Flat Graphic" }
                     }
                 };

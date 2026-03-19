@@ -345,7 +345,7 @@ export default function StyleManager({ authToken, isAdmin }: StyleManagerProps) 
               </div>
               
               <div className="absolute top-4 right-4 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
-                {!['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(style.id) && (
+                {!['ios-notes'].includes(style.id) && (
                   <button 
                     onClick={() => handleDelete(style.id)}
                     className="p-3 bg-red-500 text-white rounded-2xl shadow-xl hover:bg-red-600 transition-all"

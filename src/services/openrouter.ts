@@ -121,10 +121,6 @@ export const generateCarouselScript = async (transcript: string, topic: string, 
   let styleInstruction = "Corporate professional, minimalist, and authoritative. Avoid fluff.";
   if (styleId === 'ios-notes') {
     styleInstruction = "Aesthetic: Digital Sticky Note / iOS Notes app. Text should look like handwritten-but-clean notes or quick thoughts. Use bullet points (-) for the body. Use professional emojis sparingly (💡, ✅, 📌). Layout should feel spacious and informal but clear.";
-  } else if (styleId === 'dark-luxury') {
-    styleInstruction = "High-end, sophisticated, extremely minimalist. Punchy headers and high-value insights. Very professional.";
-  } else if (styleId === 'cyber-brutalist') {
-    styleInstruction = "Direct, edgy, tech-focused. Use technical jargon where appropriate. Bold and uncompromising.";
   }
 
   const prompt = `

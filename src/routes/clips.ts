@@ -33,7 +33,7 @@ router.get("/", authenticateToken, async (req: any, res) => {
       JOIN videos v ON c.video_id = v.id
       LEFT JOIN channels ch ON v.channel_id = ch.id
     `;
-    
+
     let countQueryText = `
       SELECT COUNT(*) as total 
       FROM clips c 
@@ -72,7 +72,7 @@ router.post("/:id/toggle-public", authenticateToken, requireAdmin, async (req: a
   if (!req.user.is_admin && !isEnvAdmin(req.user.id)) return res.sendStatus(403);
   const { id } = req.params;
   const { is_public } = req.body;
-  
+
   try {
     await query("UPDATE clips SET is_public = $1 WHERE id = $2", [is_public, id]);
     res.json({ success: true });
@@ -187,7 +187,7 @@ router.post("/:id/carousel", authenticateToken, async (req: any, res) => {
 
     // Get style analysis
     let analysis: any;
-    if (['ios-notes', 'dark-luxury', 'cyber-brutalist'].includes(styleId)) {
+    if (styleId === 'ios-notes') {
       // Default analysis for templates (can be enriched if needed)
       analysis = { styleDescription: styleId };
     } else {
@@ -208,27 +208,27 @@ router.post("/:id/carousel", authenticateToken, async (req: any, res) => {
 
         console.log(`[Carousel] Detecting language for transcript...`);
         const detectedLang = await detectLanguage(transcript) || 'ru';
-        
+
         console.log(`[Carousel] Generating script (lang: ${detectedLang})...`);
         const script = await generateCarouselScript(transcript, topic || title, styleId, detectedLang, targetAudience);
-        
+
         console.log(`[Carousel] Generating grid image (faceRef: ${faceRef ? 'yes' : 'no'})...`);
         const gridUrl = await generateGridImage(script, analysis, faceRef);
         console.log(`[Carousel] Grid image generated: ${gridUrl}`);
 
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'carousels');
         console.log(`[Carousel] Slicing grid reached. UploadsDir: ${uploadsDir}`);
-        
+
         const slices = await sliceCarouselGrid(gridUrl, uploadsDir);
         console.log(`[Carousel] Slices created: ${slices.length} items`);
 
         console.log(`[Carousel] Updating database...`);
         await query("UPDATE carousels SET script = $1, image_url = $2, slides = $3, status = 'ready' WHERE id = $4", [JSON.stringify(script), gridUrl, slices, carouselId]);
-        
+
         console.log(`[Carousel] Sending to Telegram id: ${telegramId}...`);
         const absoluteSlicePaths = slices.map(s => path.join(process.cwd(), 'public', s));
         console.log(`[Carousel] Absolute paths: ${JSON.stringify(absoluteSlicePaths)}`);
-        
+
         await sendCarouselToTelegram(String(telegramId), absoluteSlicePaths, id);
         console.log(`[Carousel] Successfully completed for clip ${id}`);
       } catch (err: any) {
@@ -286,7 +286,7 @@ router.post("/:id/reprocess", authenticateToken, async (req: any, res) => {
 
     // Still check if plaqueImageUrl is resolved
     if (!plaqueImageUrl) {
-       return res.status(400).json({ error: "Для переработки видео требуется рекламная плашка (выберите её или установите плашку по умолчанию в настройках)." });
+      return res.status(400).json({ error: "Для переработки видео требуется рекламная плашка (выберите её или установите плашку по умолчанию в настройках)." });
     }
 
     const tLang = target_lang || clip.language || video?.target_language;
