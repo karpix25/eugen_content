@@ -89,6 +89,15 @@ export function ClipsTab({
     ? visibleClips.filter(c => c.video_id === selectedFolderId)
     : visibleClips;
 
+  useEffect(() => {
+    if (!selectedFolderId) return;
+
+    const folderStillExists = visibleClips.some(c => c.video_id === selectedFolderId);
+    if (!folderStillExists) {
+      setSelectedFolderId(null);
+    }
+  }, [selectedFolderId, visibleClips]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

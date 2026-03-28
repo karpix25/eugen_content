@@ -102,9 +102,12 @@ export function useAppStore() {
         const errData = await res.json().catch(() => ({}));
         throw { status: res.status, ...errData };
       }
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (deletedVideoId: string) => {
+      data.setClips(prev => prev.filter(c => c.video_id !== deletedVideoId));
       queryClient.invalidateQueries({ queryKey: ['videos'] });
+      queryClient.invalidateQueries({ queryKey: ['clips', 0] });
     },
     onError: (err: any) => {
       if (err.status === 403) alert('У вас нет прав на удаление этого видео.');
