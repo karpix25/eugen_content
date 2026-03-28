@@ -3,7 +3,9 @@ import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '../lib/db.js';
+import axios from 'axios';
 import fs from 'fs';
+import path from 'path';
 import { PreviewGenerator } from './preview-generator';
 import { ensurePlayableClipUrl } from './vizard.js';
 
@@ -17,6 +19,37 @@ const buildReportKeyboard = (publicationId: string) => ({
         [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
     ]
 });
+
+const isTelegramRemoteVideoFetchError = (err: any) => {
+    const message = String(err?.message || '').toLowerCase();
+    return (
+        message.includes('wrong type of the web page content') ||
+        message.includes('failed to get http url content') ||
+        message.includes('wrong file identifier/http url specified')
+    );
+};
+
+const downloadVideoToTempFile = async (videoUrl: string, clipId: string) => {
+    const tempDir = path.join('/tmp', 'telegram-video-fallback');
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    const tempFilePath = path.join(tempDir, `${clipId}_${Date.now()}.mp4`);
+    const writer = fs.createWriteStream(tempFilePath);
+    const response = await axios({
+        url: videoUrl,
+        method: 'GET',
+        responseType: 'stream'
+    });
+
+    response.data.pipe(writer);
+
+    await new Promise<void>((resolve, reject) => {
+        writer.on('finish', () => resolve());
+        writer.on('error', reject);
+    });
+
+    return tempFilePath;
+};
 
 const splitTextIntoTelegramMessages = (header: string, lines: string[]) => {
     const chunks: string[] = [];
@@ -117,7 +150,7 @@ export const sendClipToTelegram = async (
         [String(telegramId)]
     );
 
-    const message = await bot.telegram.sendVideo(telegramId, playableUrl, {
+    const sendVideoOptions = {
         width: 1080,
         height: 1920,
         supports_streaming: true,
@@ -128,7 +161,31 @@ export const sendClipToTelegram = async (
                 [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]
             ]
         }
-    });
+    };
+
+    let message;
+
+    try {
+        message = await bot.telegram.sendVideo(telegramId, playableUrl, sendVideoOptions);
+    } catch (err: any) {
+        if (!isTelegramRemoteVideoFetchError(err)) {
+            throw err;
+        }
+
+        console.warn(`Telegram rejected remote video URL for clip ${clip.id}. Falling back to local file upload.`, err.message);
+
+        let tempFilePath: string | null = null;
+        try {
+            tempFilePath = await downloadVideoToTempFile(playableUrl, clip.id);
+            message = await bot.telegram.sendVideo(telegramId, {
+                source: fs.createReadStream(tempFilePath)
+            }, sendVideoOptions);
+        } finally {
+            if (tempFilePath && fs.existsSync(tempFilePath)) {
+                fs.unlinkSync(tempFilePath);
+            }
+        }
+    }
 
     const pubRes = await query(
         "INSERT INTO publications (clip_id, user_id, plaque_id, message_id, type, status) VALUES ($1, $2, $3, $4, 'video', 'sent') RETURNING id",
