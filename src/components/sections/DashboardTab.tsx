@@ -10,7 +10,8 @@ import {
   ArrowUpRight,
   RefreshCcw,
   LayoutGrid,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -61,6 +62,17 @@ interface StatsData {
 export function DashboardTab({ authToken }: { authToken: string }) {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [projectId, setProjectId] = useState('');
+  const [reimporting, setReimporting] = useState(false);
+  const [reimportError, setReimportError] = useState('');
+  const [reimportResult, setReimportResult] = useState<null | {
+    projectId: string;
+    videoId: string;
+    total: number;
+    created: number;
+    updated: number;
+    failed: number;
+  }>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -102,6 +114,100 @@ export function DashboardTab({ authToken }: { authToken: string }) {
           <Calendar className="w-3 h-3" />
           Обновлено сегодня
         </div>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
+            <RefreshCcw className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black tracking-tight">Повторный Импорт Из Vizard</h3>
+            <p className="text-xs text-white/40">Подтягивает проект по `projectId`, переливает все нарезки в S3 и сохраняет/обновляет клипы в БД.</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-3">
+          <input
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            placeholder="Например: 40794940-486a1c60f9fa49c4b539196cac4ffbe1"
+            disabled={reimporting}
+            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-600 transition-all disabled:opacity-50"
+          />
+          <button
+            type="button"
+            disabled={!projectId.trim() || reimporting}
+            onClick={async () => {
+              setReimportError('');
+              setReimportResult(null);
+              setReimporting(true);
+              try {
+                const res = await fetch('/api/admin/vizard/reimport', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authToken}`
+                  },
+                  body: JSON.stringify({ projectId: projectId.trim() })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                  throw new Error(data.error || 'Не удалось повторно импортировать проект');
+                }
+                setReimportResult(data);
+              } catch (err: any) {
+                setReimportError(err.message || 'Не удалось повторно импортировать проект');
+              } finally {
+                setReimporting(false);
+              }
+            }}
+            className="px-6 py-3 bg-blue-600 text-black font-black uppercase text-[11px] tracking-[0.2em] rounded-xl transition-all disabled:opacity-30 flex items-center justify-center gap-2 min-w-[220px]"
+          >
+            {reimporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Импорт...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="w-4 h-4" />
+                <span>Подтянуть Проект</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {reimportError && (
+          <div className="px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/10 text-sm text-red-300">
+            {reimportError}
+          </div>
+        )}
+
+        {reimportResult && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="bg-black/30 border border-white/10 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-white/30 font-black mb-1">Video</p>
+              <p className="text-sm font-bold text-white truncate">{reimportResult.videoId}</p>
+            </div>
+            <div className="bg-black/30 border border-white/10 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-white/30 font-black mb-1">Всего</p>
+              <p className="text-2xl font-black text-white">{reimportResult.total}</p>
+            </div>
+            <div className="bg-black/30 border border-white/10 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-white/30 font-black mb-1">Создано</p>
+              <p className="text-2xl font-black text-blue-500">{reimportResult.created}</p>
+            </div>
+            <div className="bg-black/30 border border-white/10 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-white/30 font-black mb-1">Обновлено</p>
+              <p className="text-2xl font-black text-white">{reimportResult.updated}</p>
+            </div>
+            <div className="bg-black/30 border border-white/10 rounded-xl p-4">
+              <p className="text-[10px] uppercase tracking-widest text-white/30 font-black mb-1">Ошибки</p>
+              <p className="text-2xl font-black text-red-400">{reimportResult.failed}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Stats Grid */}

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../lib/db.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 import { UserManager } from "../services/UserManager.js";
+import { reimportVizardProjectToS3 } from "../services/vizard-project-import.js";
 
 const router = Router();
 
@@ -131,6 +132,22 @@ router.delete("/users/:id", authenticateToken, requireAdmin, async (req, res) =>
   } catch (err) {
     console.error("Error deleting user:", err);
     res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+router.post("/vizard/reimport", authenticateToken, requireAdmin, async (req, res) => {
+  const { projectId } = req.body || {};
+
+  if (!projectId || typeof projectId !== 'string') {
+    return res.status(400).json({ error: "projectId is required" });
+  }
+
+  try {
+    const result = await reimportVizardProjectToS3(projectId.trim());
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    console.error("Error reimporting Vizard project:", err);
+    res.status(500).json({ error: err.message || "Failed to reimport Vizard project" });
   }
 });
 
