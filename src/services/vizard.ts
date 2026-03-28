@@ -102,7 +102,7 @@ const findMatchingProjectClip = (
     return bestScore > 0 ? bestCandidate : null;
 };
 
-const mirrorClipToS3 = async (sourceUrl: string, clipId: string, videoId: string) => {
+export const storeVizardClipInS3 = async (sourceUrl: string, clipId: string, videoId: string) => {
     const response = await axios.get<ArrayBuffer>(sourceUrl, {
         responseType: 'arraybuffer'
     });
@@ -143,7 +143,7 @@ export const refreshClipUrlFromVizard = async (clipId: string) => {
     let finalUrl = refreshedUrl;
 
     try {
-        const mirroredUrl = await mirrorClipToS3(refreshedUrl, clip.id, clip.video_id);
+        const mirroredUrl = await storeVizardClipInS3(refreshedUrl, clip.id, clip.video_id);
         if (mirroredUrl) {
             finalUrl = mirroredUrl;
         }
