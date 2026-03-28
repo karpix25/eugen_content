@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { query } from '../lib/db.js';
 import fs from 'fs';
 import { PreviewGenerator } from './preview-generator';
+import { ensurePlayableClipUrl } from './vizard.js';
 
 dotenv.config();
 
@@ -91,10 +92,15 @@ export const sendClipToTelegram = async (
     clip: { id: string; title: string; url: string },
     options: { plaqueId?: string | null; caption?: string } = {}
 ) => {
+    const playableUrl = await ensurePlayableClipUrl(clip.id, clip.url);
+    if (!playableUrl) {
+        throw new Error(`No playable Telegram source found for clip ${clip.id}`);
+    }
+
     let thumbBuffer: Buffer | undefined;
 
     try {
-        thumbBuffer = await PreviewGenerator.generateVideoThumbnail(clip.url, clip.title);
+        thumbBuffer = await PreviewGenerator.generateVideoThumbnail(playableUrl, clip.title);
     } catch (videoThumbErr) {
         console.warn('Failed to generate video thumb for clip, falling back to font hook:', videoThumbErr);
         try {
@@ -111,7 +117,7 @@ export const sendClipToTelegram = async (
         [String(telegramId)]
     );
 
-    const message = await bot.telegram.sendVideo(telegramId, clip.url, {
+    const message = await bot.telegram.sendVideo(telegramId, playableUrl, {
         width: 1080,
         height: 1920,
         supports_streaming: true,

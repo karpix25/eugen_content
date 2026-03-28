@@ -2,6 +2,7 @@ import { Worker, Job } from "bullmq";
 import { redisConnection } from "../lib/redis.js";
 import { processClip } from "../services/processor.js";
 import { query } from "../lib/db.js";
+import { ensurePlayableClipUrl, isTemporaryVizardUrl } from "../services/vizard.js";
 
 interface RenderingJobData {
   clipId: string;
@@ -32,8 +33,9 @@ export const renderingWorker = new Worker(
       const currentRes = await query("SELECT status, title, url FROM clips WHERE id = $1", [clipId]);
       const currentClip = currentRes.rows[0];
       const clipTitle = currentClip?.title || 'Видео';
+      const reusableProcessedVideo = currentClip?.status === 'processed' && currentClip?.url && !isTemporaryVizardUrl(currentClip.url);
 
-      if (currentClip?.status === 'processed' && currentClip?.url) {
+      if (reusableProcessedVideo) {
         console.log(`[Worker: Rendering] Clip ${clipId} is already processed. Reusing existing file.`);
 
         if (telegramId && telegramId !== 'dev') {
@@ -48,11 +50,16 @@ export const renderingWorker = new Worker(
         return { success: true, url: currentClip.url };
       }
 
+      const playableSourceUrl = await ensurePlayableClipUrl(clipId, currentClip?.url || videoUrl);
+      if (!playableSourceUrl) {
+        throw new Error(`No playable source URL found for clip ${clipId}`);
+      }
+
       await query("UPDATE clips SET status = 'processing' WHERE id = $1", [clipId]);
       
       const resultUrl = await processClip(
         clipId,
-        videoUrl,
+        playableSourceUrl,
         plaqueImageUrl,
         targetLang,
         sourceLang,
