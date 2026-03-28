@@ -6,8 +6,9 @@ import { query } from '../lib/db.js';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { normalizeRemoteUrl } from '../lib/s3.js';
 import { PreviewGenerator } from './preview-generator';
-import { ensurePlayableClipUrl } from './vizard.js';
+import { ensurePlayableClipUrl, isExpiredOrNearExpiryUrl, isTemporaryVizardUrl } from './vizard.js';
 
 dotenv.config();
 
@@ -125,7 +126,11 @@ export const sendClipToTelegram = async (
     clip: { id: string; title: string; url: string },
     options: { plaqueId?: string | null; caption?: string } = {}
 ) => {
-    const playableUrl = await ensurePlayableClipUrl(clip.id, clip.url);
+    const normalizedClipUrl = normalizeRemoteUrl(clip.url);
+    const playableUrl = normalizedClipUrl && (!isTemporaryVizardUrl(normalizedClipUrl) || !isExpiredOrNearExpiryUrl(normalizedClipUrl))
+        ? normalizedClipUrl
+        : await ensurePlayableClipUrl(clip.id, clip.url);
+
     if (!playableUrl) {
         throw new Error(`No playable Telegram source found for clip ${clip.id}`);
     }

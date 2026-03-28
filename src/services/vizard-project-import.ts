@@ -1,6 +1,12 @@
 import { query } from '../lib/db.js';
+import { mapWithConcurrency } from '../lib/concurrency.js';
 import { generateThumbnail } from './processor.js';
 import { getVizardProjectStatus, storeVizardClipInS3 } from './vizard.js';
+
+const VIZARD_CLIP_IMPORT_CONCURRENCY = Math.max(
+  1,
+  parseInt(process.env.VIZARD_CLIP_IMPORT_CONCURRENCY || '3', 10) || 3
+);
 
 const normalizeText = (value?: string | null) => (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -146,11 +152,17 @@ export const reimportVizardProjectToS3 = async (projectId: string) => {
   let failed = 0;
   let primaryVideoThumbnail = normalizeText(video?.thumbnail) ? video.thumbnail : null;
 
-  for (const projectClip of projectClips) {
+  const plannedClips = projectClips.map((projectClip) => {
     const sourceUrl = getClipUrlFromProjectClip(projectClip);
     if (!sourceUrl) {
-      failed += 1;
-      continue;
+      return {
+        sourceUrl: null,
+        matchedClip: null,
+        clipId: null,
+        title: '',
+        hook: '',
+        transcript: ''
+      };
     }
 
     const matchedClip = findMatchingDbClip(projectClip, existingClips, usedClipIds);
@@ -159,56 +171,100 @@ export const reimportVizardProjectToS3 = async (projectId: string) => {
     const hook = projectClip?.hook || projectClip?.headline || matchedClip?.hook || '';
     const transcript = projectClip?.transcript || matchedClip?.transcript || '';
 
-    try {
-      const storedClipUrl = await storeVizardClipInS3(sourceUrl, clipId, video.id);
-      if (!storedClipUrl) {
-        throw new Error('S3 upload returned empty URL');
+    if (matchedClip) {
+      usedClipIds.add(clipId);
+    }
+
+    return {
+      sourceUrl,
+      matchedClip,
+      clipId,
+      title,
+      hook,
+      transcript
+    };
+  });
+
+  const importResults = await mapWithConcurrency(
+    plannedClips,
+    VIZARD_CLIP_IMPORT_CONCURRENCY,
+    async (plannedClip, index) => {
+      const projectClip = projectClips[index];
+
+      if (!plannedClip.sourceUrl || !plannedClip.clipId) {
+        return { status: 'failed' as const, thumbnailUrl: null as string | null };
       }
 
-      let thumbnailUrl = projectClip?.thumbnail_url || projectClip?.thumbnailUrl || projectClip?.thumbnail || matchedClip?.thumbnail || '';
       try {
-        const generatedThumb = await generateThumbnail(storedClipUrl, clipId);
-        if (generatedThumb) thumbnailUrl = generatedThumb;
-      } catch (thumbErr: any) {
-        console.warn(`[Vizard Reimport] Thumbnail generation failed for ${clipId}:`, thumbErr.message);
-      }
+        const storedClipUrl = await storeVizardClipInS3(plannedClip.sourceUrl, plannedClip.clipId, video.id);
+        if (!storedClipUrl) {
+          throw new Error('S3 upload returned empty URL');
+        }
 
-      if (matchedClip) {
-        await query(
-          `UPDATE clips
-           SET url = $1,
-               title = $2,
-               hook = $3,
-               thumbnail = $4,
-               transcript = $5,
-               status = 'processed',
-               language = COALESCE($6, language)
-           WHERE id = $7`,
-          [storedClipUrl, title, hook, thumbnailUrl, transcript, language, clipId]
-        );
-        usedClipIds.add(clipId);
-        updated += 1;
-      } else {
-        await query(
-          `INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 'processed', $8)`,
-          [clipId, video.id, storedClipUrl, title, hook, thumbnailUrl, transcript, language]
-        );
-        created += 1;
-      }
+        let thumbnailUrl =
+          projectClip?.thumbnail_url ||
+          projectClip?.thumbnailUrl ||
+          projectClip?.thumbnail ||
+          plannedClip.matchedClip?.thumbnail ||
+          '';
+        try {
+          const generatedThumb = await generateThumbnail(storedClipUrl, plannedClip.clipId);
+          if (generatedThumb) thumbnailUrl = generatedThumb;
+        } catch (thumbErr: any) {
+          console.warn(`[Vizard Reimport] Thumbnail generation failed for ${plannedClip.clipId}:`, thumbErr.message);
+        }
 
-      if (!primaryVideoThumbnail && thumbnailUrl) {
-        primaryVideoThumbnail = thumbnailUrl;
+        if (plannedClip.matchedClip) {
+          await query(
+            `UPDATE clips
+             SET url = $1,
+                 source_url = $1,
+                 title = $2,
+                 hook = $3,
+                 thumbnail = $4,
+                 transcript = $5,
+                 status = 'processed',
+                 language = COALESCE($6, language)
+             WHERE id = $7`,
+            [storedClipUrl, plannedClip.title, plannedClip.hook, thumbnailUrl, plannedClip.transcript, language, plannedClip.clipId]
+          );
+          return { status: 'updated' as const, thumbnailUrl: thumbnailUrl || null };
+        }
+
+        await query(
+          `INSERT INTO clips (id, video_id, url, source_url, title, hook, thumbnail, transcript, status, language)
+           VALUES ($1, $2, $3, $3, $4, $5, $6, $7, 'processed', $8)`,
+          [plannedClip.clipId, video.id, storedClipUrl, plannedClip.title, plannedClip.hook, thumbnailUrl, plannedClip.transcript, language]
+        );
+        return { status: 'created' as const, thumbnailUrl: thumbnailUrl || null };
+      } catch (err: any) {
+        console.error(`[Vizard Reimport] Failed for clip ${plannedClip.clipId} in project ${projectId}:`, err.message);
+        return { status: 'failed' as const, thumbnailUrl: null as string | null };
       }
-    } catch (err: any) {
+    }
+  );
+
+  for (const result of importResults) {
+    if (result.status === 'created') {
+      created += 1;
+    } else if (result.status === 'updated') {
+      updated += 1;
+    } else {
       failed += 1;
-      console.error(`[Vizard Reimport] Failed for clip ${clipId} in project ${projectId}:`, err.message);
+    }
+
+    if (!primaryVideoThumbnail && result.thumbnailUrl) {
+      primaryVideoThumbnail = result.thumbnailUrl;
     }
   }
 
   if (primaryVideoThumbnail) {
     await query("UPDATE videos SET thumbnail = $1 WHERE id = $2", [primaryVideoThumbnail, video.id]);
   }
+
+  console.log(
+    `[Vizard Reimport] Project ${projectId}: processed ${projectClips.length} clips with concurrency ${VIZARD_CLIP_IMPORT_CONCURRENCY}. Created: ${created}, updated: ${updated}, failed: ${failed}.`
+  );
 
   return {
     projectId,

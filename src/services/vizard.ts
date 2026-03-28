@@ -24,6 +24,17 @@ const getClipUrlFromProjectClip = (clip: any): string | null => {
     return clip?.videoUrl || clip?.url || clip?.video_url || null;
 };
 
+const isProcessedClipUrl = (url?: string | null) => {
+    if (!url) return false;
+
+    try {
+        const parsed = new URL(url);
+        return parsed.pathname.includes('/processed/') || parsed.pathname.endsWith('_branded.mp4');
+    } catch {
+        return false;
+    }
+};
+
 export const isTemporaryVizardUrl = (url?: string | null) => {
     if (!url) return false;
 
@@ -118,7 +129,7 @@ export const storeVizardClipInS3 = async (sourceUrl: string, clipId: string, vid
 
 export const refreshClipUrlFromVizard = async (clipId: string) => {
     const clipRes = await query(
-        `SELECT c.id, c.video_id, c.title, c.hook, c.transcript, c.thumbnail, c.url, v.vizard_project_id
+        `SELECT c.id, c.video_id, c.title, c.hook, c.transcript, c.thumbnail, c.url, c.source_url, v.vizard_project_id
          FROM clips c
          JOIN videos v ON v.id = c.video_id
          WHERE c.id = $1`,
@@ -127,7 +138,7 @@ export const refreshClipUrlFromVizard = async (clipId: string) => {
     const clip = clipRes.rows[0];
 
     if (!clip?.vizard_project_id) {
-        return clip?.url || null;
+        return clip?.source_url || clip?.url || null;
     }
 
     const statusData = await getVizardProjectStatus(clip.vizard_project_id);
@@ -137,7 +148,7 @@ export const refreshClipUrlFromVizard = async (clipId: string) => {
     const refreshedThumb = matchedClip?.thumbnail_url || matchedClip?.thumbnailUrl || matchedClip?.thumbnail || clip.thumbnail || null;
 
     if (!refreshedUrl) {
-        return clip.url || null;
+        return clip.source_url || clip.url || null;
     }
 
     let finalUrl = refreshedUrl;
@@ -152,7 +163,7 @@ export const refreshClipUrlFromVizard = async (clipId: string) => {
     }
 
     await query(
-        "UPDATE clips SET url = $1, thumbnail = COALESCE($2, thumbnail) WHERE id = $3",
+        "UPDATE clips SET url = $1, source_url = $1, thumbnail = COALESCE($2, thumbnail) WHERE id = $3",
         [finalUrl, refreshedThumb, clipId]
     );
 
@@ -164,10 +175,11 @@ export const ensurePlayableClipUrl = async (clipId: string, currentUrl?: string 
 
     if (
         normalizedCurrentUrl &&
+        !isProcessedClipUrl(normalizedCurrentUrl) &&
         (!isTemporaryVizardUrl(normalizedCurrentUrl) || !isExpiredOrNearExpiryUrl(normalizedCurrentUrl))
     ) {
         if (normalizedCurrentUrl !== currentUrl) {
-            await query("UPDATE clips SET url = $1 WHERE id = $2", [normalizedCurrentUrl, clipId]);
+            await query("UPDATE clips SET url = $1, source_url = COALESCE(source_url, $1) WHERE id = $2", [normalizedCurrentUrl, clipId]);
         }
 
         return normalizedCurrentUrl;

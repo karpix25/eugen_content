@@ -30,27 +30,14 @@ export const renderingWorker = new Worker(
     console.log(`[Worker: Rendering] Processing clip ${clipId} (Job: ${job.id})`);
     
     try {
-      const currentRes = await query("SELECT status, title, url FROM clips WHERE id = $1", [clipId]);
+      const currentRes = await query(
+        "SELECT status, title, url, source_url, processed_url FROM clips WHERE id = $1",
+        [clipId]
+      );
       const currentClip = currentRes.rows[0];
       const clipTitle = currentClip?.title || 'Видео';
-      const reusableProcessedVideo = currentClip?.status === 'processed' && currentClip?.url && !isTemporaryVizardUrl(currentClip.url);
-
-      if (reusableProcessedVideo) {
-        console.log(`[Worker: Rendering] Clip ${clipId} is already processed. Reusing existing file.`);
-
-        if (telegramId && telegramId !== 'dev') {
-          const { sendClipToTelegram } = await import("../services/telegram.js");
-          await sendClipToTelegram(String(telegramId), {
-            id: clipId,
-            title: clipTitle,
-            url: currentClip.url
-          });
-        }
-
-        return { success: true, url: currentClip.url };
-      }
-
-      const playableSourceUrl = await ensurePlayableClipUrl(clipId, currentClip?.url || videoUrl);
+      const storedSourceUrl = currentClip?.source_url || currentClip?.url || videoUrl;
+      const playableSourceUrl = await ensurePlayableClipUrl(clipId, storedSourceUrl);
       if (!playableSourceUrl) {
         throw new Error(`No playable source URL found for clip ${clipId}`);
       }

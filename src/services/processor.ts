@@ -344,7 +344,10 @@ export const processClip = async (
                         const fileBuffer = fs.readFileSync(outputPath);
                         const res = await uploadToS3(fileBuffer, `processed/${outputFileName}`, 'video/mp4');
                         console.log(`[Processor] S3 Upload success for ${clipId}: ${res.Location}`);
-                        await query("UPDATE clips SET status = 'processed', url = $1 WHERE id = $2", [res.Location, clipId]);
+                        await query(
+                            "UPDATE clips SET status = 'processed', processed_url = $1 WHERE id = $2",
+                            [res.Location, clipId]
+                        );
                         cleanupFiles();
                         resolve(res.Location || "");
                     } catch (uploadErr) {

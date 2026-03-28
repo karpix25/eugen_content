@@ -32,6 +32,8 @@ export interface Clip {
   id: string;
   video_id: string;
   url: string;
+  source_url?: string | null;
+  processed_url?: string | null;
   thumbnail: string;
   title: string;
   status: 'raw' | 'processed';

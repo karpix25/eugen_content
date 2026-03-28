@@ -26,7 +26,7 @@ export const autoPublish = async (bot: Telegraf) => {
 
       const videosNeeded = user.auto_mode_videos_per_day - alreadySentCount;
       const clipsToPublish = await query(`
-        SELECT c.*, v.title as video_title 
+        SELECT c.*, v.title as video_title, v.detected_language as video_detected_language
         FROM clips c
         JOIN videos v ON c.video_id = v.id
         WHERE NOT EXISTS (
@@ -82,7 +82,7 @@ export const autoPublish = async (bot: Telegraf) => {
 
         const folderName = sanitizeFolderName(clip.video_title);
         const localFilePath = await processClip(
-          clip.id, clip.url, plaqueImageUrl, clip.language, null, true, 
+          clip.id, clip.source_url || clip.url, plaqueImageUrl, clip.language, clip.video_detected_language || null, true, 
           watermarkConfig as any, plaqueConfig, subtitleConfig, folderName
         );
 

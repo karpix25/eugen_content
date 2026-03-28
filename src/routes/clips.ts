@@ -172,16 +172,18 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
       timerange: dbUser.plaque_timerange ? Number(dbUser.plaque_timerange) : 0
     };
 
-    const videoRes = await query("SELECT title FROM videos WHERE id = $1", [clip.video_id]);
-    const folderName = sanitizeFolderName(videoRes.rows[0]?.title || "Unknown_Video");
+    const videoRes = await query("SELECT title, detected_language FROM videos WHERE id = $1", [clip.video_id]);
+    const videoMeta = videoRes.rows[0];
+    const folderName = sanitizeFolderName(videoMeta?.title || "Unknown_Video");
+    const sourceLang = videoMeta?.detected_language || null;
 
     // Add to BullMQ instead of direct execution
     await renderingQueue.add(`render-${id}`, {
       clipId: id,
-      videoUrl: clip.url,
+      videoUrl: clip.source_url || clip.url,
       plaqueImageUrl,
       targetLang: clip.language,
-      sourceLang: null,
+      sourceLang,
       watermarkConfig,
       plaqueConfig,
       subtitleConfig,

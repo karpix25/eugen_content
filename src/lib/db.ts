@@ -90,6 +90,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
             id TEXT PRIMARY KEY,
             video_id TEXT REFERENCES videos(id) ON DELETE CASCADE,
             url TEXT,
+            source_url TEXT,
+            processed_url TEXT,
             thumbnail TEXT,
             title TEXT,
             hook TEXT,
@@ -101,6 +103,8 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
             ad_plaque_id TEXT,
             transcript TEXT,
             srt_url TEXT,
+            deepgram_words JSONB,
+            deepgram_language TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `
@@ -297,6 +301,10 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS language TEXT",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS hook TEXT",
       "ALTER TABLE clips ADD COLUMN IF NOT EXISTS srt_url TEXT",
+      "ALTER TABLE clips ADD COLUMN IF NOT EXISTS source_url TEXT",
+      "ALTER TABLE clips ADD COLUMN IF NOT EXISTS processed_url TEXT",
+      "ALTER TABLE clips ADD COLUMN IF NOT EXISTS deepgram_words JSONB",
+      "ALTER TABLE clips ADD COLUMN IF NOT EXISTS deepgram_language TEXT",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_text TEXT",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_opacity NUMERIC DEFAULT 0.08",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark_position TEXT DEFAULT 'center'",

@@ -8,6 +8,7 @@ import { processClip, generateThumbnail } from "../services/processor.js";
 import { sanitizeFolderName } from "../lib/sanitize.js";
 import { detectLanguage, translateText } from "../services/gemini.js";
 import { videoProcessingQueue, renderingQueue } from "../lib/queues.js";
+import { mapWithConcurrency } from "../lib/concurrency.js";
 
 const normalizeLang = (lang: string | null): string | null => {
   if (!lang) return null;
@@ -16,6 +17,115 @@ const normalizeLang = (lang: string | null): string | null => {
   if (l.includes('english') || l === 'en') return 'en';
   if (l.includes('spanish') || l === 'es') return 'es';
   return l;
+};
+
+const VIZARD_CLIP_IMPORT_CONCURRENCY = Math.max(
+  1,
+  parseInt(process.env.VIZARD_CLIP_IMPORT_CONCURRENCY || "3", 10) || 3
+);
+
+type VizardClipProcessingContext = {
+  videoId: string;
+  detectedLanguage: string | null;
+  finalLanguage: string | null;
+  needsTranslation: boolean;
+  approverPlaqueUrl: string | null;
+  folderName: string;
+};
+
+const processIncomingVizardClip = async (clipData: any, context: VizardClipProcessingContext) => {
+  const originalClipId = Math.random().toString(36).substr(2, 9);
+  const originalTitle = clipData.title || "Vizard Clip";
+  const originalTranscript = clipData.transcript || '';
+  const originalHook = clipData.hook || clipData.headline || "";
+  const finalInsertLang = normalizeLang(context.detectedLanguage);
+  const vizardClipUrl = clipData.videoUrl || clipData.url || clipData.video_url;
+
+  let originalSuccess = false;
+  let dubbedSuccess = false;
+
+  if (!vizardClipUrl) {
+    console.error(`[Vizard] Skipping clip for video ${context.videoId} because Vizard did not return a clip URL.`);
+    return { originalSuccess, dubbedSuccess };
+  }
+
+  try {
+    const storedClipUrl = await storeVizardClipInS3(vizardClipUrl, originalClipId, context.videoId);
+    if (!storedClipUrl) {
+      throw new Error('Failed to store Vizard clip in S3');
+    }
+
+    const thumbUrl = await generateThumbnail(storedClipUrl, originalClipId);
+    await query(
+      "INSERT INTO clips (id, video_id, url, source_url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $3, $4, $5, $6, $7, 'raw', $8)",
+      [originalClipId, context.videoId, storedClipUrl, originalTitle, originalHook, thumbUrl || clipData.thumbnail_url || '', originalTranscript, finalInsertLang]
+    );
+    await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
+    originalSuccess = true;
+  } catch (insErr: any) {
+    console.error(`[Vizard] Failed to insert clip ${originalClipId}:`, insErr.message);
+  }
+
+  if (!context.needsTranslation || !context.finalLanguage) {
+    return { originalSuccess, dubbedSuccess };
+  }
+
+  const dubbedClipId = Math.random().toString(36).substr(2, 9);
+  let translatedTitle = originalTitle;
+  let translatedTranscript = originalTranscript;
+  let translatedHook = originalHook;
+  let storedDubbedSourceUrl: string | null = null;
+
+  const [tTitle, tTranscript, tHook] = await Promise.all([
+    translateText(originalTitle, context.finalLanguage),
+    translateText(originalTranscript, context.finalLanguage),
+    translateText(originalHook, context.finalLanguage)
+  ]);
+
+  if (tTitle) translatedTitle = tTitle;
+  if (tTranscript) translatedTranscript = tTranscript;
+  if (tHook) translatedHook = tHook;
+
+  try {
+    storedDubbedSourceUrl = await storeVizardClipInS3(vizardClipUrl, dubbedClipId, context.videoId);
+    if (!storedDubbedSourceUrl) {
+      throw new Error('Failed to store dubbed Vizard clip source in S3');
+    }
+
+    await query(
+      "INSERT INTO clips (id, video_id, url, source_url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $3, $4, $5, $6, $7, 'raw', $8)",
+      [dubbedClipId, context.videoId, storedDubbedSourceUrl, translatedTitle, translatedHook, clipData.thumbnail_url || '', translatedTranscript, context.finalLanguage]
+    );
+
+    const dubbedThumbUrl = await generateThumbnail(storedDubbedSourceUrl, dubbedClipId);
+    if (dubbedThumbUrl) {
+      await query("UPDATE clips SET thumbnail = $1 WHERE id = $2", [dubbedThumbUrl, dubbedClipId]);
+    }
+  } catch (insErr: any) {
+    console.error(`[Vizard] Failed to insert dubbed clip ${dubbedClipId}:`, insErr.message);
+    return { originalSuccess, dubbedSuccess };
+  }
+
+  if (!context.approverPlaqueUrl) {
+    console.error(`[Vizard] Skipping dubbed clip ${dubbedClipId} - no default plaque for approver`);
+    return { originalSuccess, dubbedSuccess };
+  }
+
+  try {
+    await renderingQueue.add(`render-dub-${dubbedClipId}`, {
+      clipId: dubbedClipId,
+      videoUrl: storedDubbedSourceUrl || vizardClipUrl,
+      plaqueImageUrl: context.approverPlaqueUrl,
+      targetLang: context.finalLanguage,
+      sourceLang: finalInsertLang,
+      videoFolderName: context.folderName
+    });
+    dubbedSuccess = true;
+  } catch (err) {
+    console.error(`Error processing dubbed clip ${dubbedClipId}:`, err);
+  }
+
+  return { originalSuccess, dubbedSuccess };
 };
 
 async function recoverLostVizardIds() {
@@ -230,92 +340,23 @@ export const pollVizardStatus = async () => {
             }
           }
 
-          for (const c of clips) {
-            const originalClipId = Math.random().toString(36).substr(2, 9);
-            const originalTitle = c.title || "Vizard Clip";
-            const originalTranscript = c.transcript || '';
-            const originalHook = c.hook || c.headline || "";
-            const finalInsertLang = normalizeLang(video?.detected_language);
-            const vizardClipUrl = c.videoUrl || c.url || c.video_url;
+          const folderName = sanitizeFolderName(v.title || "Unknown_Video");
+          const clipResults = await mapWithConcurrency(
+            clips,
+            VIZARD_CLIP_IMPORT_CONCURRENCY,
+            async (clipData) => processIncomingVizardClip(clipData, {
+              videoId: v.id,
+              detectedLanguage: video?.detected_language || null,
+              finalLanguage,
+              needsTranslation: Boolean(needsTranslation),
+              approverPlaqueUrl,
+              folderName
+            })
+          );
 
-            if (!vizardClipUrl) {
-              console.error(`[Vizard] Skipping clip for video ${v.id} because Vizard did not return a clip URL.`);
-              continue;
-            }
-
-            try {
-              const storedClipUrl = await storeVizardClipInS3(vizardClipUrl, originalClipId, v.id);
-              if (!storedClipUrl) {
-                throw new Error('Failed to store Vizard clip in S3');
-              }
-
-              const thumbUrl = await generateThumbnail(storedClipUrl, originalClipId);
-              await query(
-                "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
-                [originalClipId, v.id, storedClipUrl, originalTitle, originalHook, thumbUrl || c.thumbnail_url || '', originalTranscript, finalInsertLang]
-              );
-              await query("UPDATE clips SET status = 'processed' WHERE id = $1", [originalClipId]);
-            } catch (insErr: any) {
-              console.error(`[Vizard] Failed to insert clip ${originalClipId}:`, insErr.message);
-            }
-
-            if (needsTranslation && finalLanguage) {
-              const dubbedClipId = Math.random().toString(36).substr(2, 9);
-              let translatedTitle = originalTitle;
-              let translatedTranscript = originalTranscript;
-              let translatedHook = originalHook;
-              let storedDubbedSourceUrl: string | null = null;
-
-              const [tTitle, tTranscript, tHook] = await Promise.all([
-                translateText(originalTitle, finalLanguage),
-                translateText(originalTranscript, finalLanguage),
-                translateText(originalHook, finalLanguage)
-              ]);
-
-              if (tTitle) translatedTitle = tTitle;
-              if (tTranscript) translatedTranscript = tTranscript;
-              if (tHook) translatedHook = tHook;
-
-              try {
-                storedDubbedSourceUrl = await storeVizardClipInS3(vizardClipUrl, dubbedClipId, v.id);
-                if (!storedDubbedSourceUrl) {
-                  throw new Error('Failed to store dubbed Vizard clip source in S3');
-                }
-
-                await query(
-                  "INSERT INTO clips (id, video_id, url, title, hook, thumbnail, transcript, status, language) VALUES ($1, $2, $3, $4, $5, $6, $7, 'raw', $8)",
-                  [dubbedClipId, v.id, storedDubbedSourceUrl, translatedTitle, translatedHook, c.thumbnail_url || '', translatedTranscript, finalLanguage]
-                );
-
-                const dubbedThumbUrl = await generateThumbnail(storedDubbedSourceUrl, dubbedClipId);
-                if (dubbedThumbUrl) {
-                  await query("UPDATE clips SET thumbnail = $1 WHERE id = $2", [dubbedThumbUrl, dubbedClipId]);
-                }
-              } catch (insErr: any) {
-                console.error(`[Vizard] Failed to insert dubbed clip ${dubbedClipId}:`, insErr.message);
-                continue;
-              }
-
-              if (!approverPlaqueUrl) {
-                console.error(`[Vizard] Skipping dubbed clip ${dubbedClipId} - no default plaque for approver ${approvedBy}`);
-                continue;
-              }
-
-              try {
-                const folderName = sanitizeFolderName(v.title || "Unknown_Video");
-                await renderingQueue.add(`render-dub-${dubbedClipId}`, {
-                  clipId: dubbedClipId,
-                  videoUrl: storedDubbedSourceUrl || vizardClipUrl,
-                  plaqueImageUrl: approverPlaqueUrl,
-                  targetLang: finalLanguage,
-                  sourceLang: finalInsertLang,
-                  videoFolderName: folderName
-                });
-              } catch (err) {
-                console.error(`Error processing dubbed clip ${dubbedClipId}:`, err);
-              }
-            }
-          }
+          const importedOriginals = clipResults.filter(result => result.originalSuccess).length;
+          const queuedDubbed = clipResults.filter(result => result.dubbedSuccess).length;
+          console.log(`[Vizard] Imported ${importedOriginals}/${clips.length} clips for video ${v.id} with concurrency ${VIZARD_CLIP_IMPORT_CONCURRENCY}. Dubbed queued: ${queuedDubbed}.`);
         } else if (!isPending) {
           await query("UPDATE videos SET status = 'rejected' WHERE id = $1", [v.id]);
         }
