@@ -80,6 +80,7 @@ export function useAppData(authToken: string | null, currentUser: User | null, o
     queryKey: ['clips', 0], // Key for the first page
     queryFn: () => api.clips.list(20, 0),
     enabled: !!authToken,
+    refetchInterval: authToken ? 10000 : false,
   });
 
   // Manual clips management for pagination

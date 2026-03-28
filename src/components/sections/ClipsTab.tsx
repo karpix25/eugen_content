@@ -44,6 +44,8 @@ export function ClipsTab({
   
   const observerTarget = useRef<HTMLDivElement>(null);
 
+  const isPublishedClip = (clip: Clip) => Boolean(clip.published_by_me);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
@@ -62,8 +64,10 @@ export function ClipsTab({
   }, [clips.length, totalClips, loading, loadMoreClips, selectedFolderId]);
 
   const visibleClips = clips.filter(c => {
-    if (filterMode === 'new' && c.is_available === false) return false;
-    if (filterMode === 'published' && c.is_available === true) return false;
+    const isPublished = isPublishedClip(c);
+
+    if (filterMode === 'new' && isPublished) return false;
+    if (filterMode === 'published' && !isPublished) return false;
     if (languageFilter !== 'all' && c.language !== languageFilter) return false;
     return true;
   });

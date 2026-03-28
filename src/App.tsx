@@ -109,7 +109,7 @@ function App() {
 
     switch (activeTab) {
       case 'dashboard':
-        return currentUser.is_admin && <DashboardTab authToken={authToken} />;
+        return currentUser.is_admin && <DashboardTab authToken={authToken} onUpdate={updateData} />;
 
       case 'monitor':
         return (

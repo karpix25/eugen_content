@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 
   Video, 
@@ -59,7 +59,7 @@ interface StatsData {
   }>;
 }
 
-export function DashboardTab({ authToken }: { authToken: string }) {
+export function DashboardTab({ authToken, onUpdate }: { authToken: string; onUpdate?: () => void }) {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [projectId, setProjectId] = useState('');
@@ -74,22 +74,25 @@ export function DashboardTab({ authToken }: { authToken: string }) {
     failed: number;
   }>(null);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch('/api/admin/stats', {
-          headers: { Authorization: `Bearer ${authToken}` }
-        });
-        const data = await res.json();
-        setStats(data);
-      } catch (err) {
-        console.error("Failed to fetch dashboard stats:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/stats', {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [authToken]);
+
+  useEffect(() => {
+    fetchStats();
+    const interval = window.setInterval(fetchStats, 10000);
+    return () => window.clearInterval(interval);
+  }, [fetchStats]);
 
   if (loading) {
     return (
@@ -156,6 +159,8 @@ export function DashboardTab({ authToken }: { authToken: string }) {
                   throw new Error(data.error || 'Не удалось повторно импортировать проект');
                 }
                 setReimportResult(data);
+                await fetchStats();
+                onUpdate?.();
               } catch (err: any) {
                 setReimportError(err.message || 'Не удалось повторно импортировать проект');
               } finally {

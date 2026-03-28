@@ -20,7 +20,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
   const [isSending, setIsSending] = useState(false);
   const [isSendingCarousel, setIsSendingCarousel] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const entry = useIntersectionObserver(containerRef, {
     threshold: 0.1,
     freezeOnceVisible: true,
@@ -50,7 +50,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
 
   return (
     <>
-      <div 
+      <div
         ref={containerRef}
         className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-blue-600/50 transition-all duration-300"
       >
@@ -58,17 +58,17 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
           {!isPlaying ? (
             <>
               {isVisible && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5 }}
                   className="w-full h-full"
                 >
                   {clip.thumbnail ? (
-                    <img 
-                      src={clip.thumbnail} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                      alt="" 
+                    <img
+                      src={clip.thumbnail}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      alt=""
                       loading="lazy"
                     />
                   ) : (
@@ -119,7 +119,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                Wait, App.tsx has randomPlaque state. In ClipCard it seems it was also used.
             */}
           </AnimatePresence>
-          
+
           {clip.published_by_me && (
             <div className="absolute top-3 left-3 z-30 pointer-events-none">
               <span className="px-2 py-1 bg-blue-600/90 backdrop-blur-md text-black rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
@@ -147,7 +147,7 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
               <p className="text-xs font-bold uppercase tracking-widest text-[#229ED9]">Создание карусели...</p>
             </div>
           )}
-          
+
           <div className="absolute top-3 right-3 z-30 flex flex-col gap-2">
             {onTogglePublic ? (
               <button
@@ -157,8 +157,8 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                 }}
                 className={cn(
                   "p-2 rounded-lg backdrop-blur-md border transition-all shadow-lg",
-                  clip.is_public 
-                    ? "bg-blue-600/20 border-blue-600/50 text-blue-500 hover:bg-blue-600/30" 
+                  clip.is_public
+                    ? "bg-blue-600/20 border-blue-600/50 text-blue-500 hover:bg-blue-600/30"
                     : "bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30"
                 )}
                 title={clip.is_public ? "Сделать приватным" : "Сделать публичным"}
@@ -168,8 +168,8 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
             ) : (
               <div className={cn(
                 "p-2 rounded-lg backdrop-blur-md border shadow-lg",
-                clip.is_public 
-                  ? "bg-blue-600/20 border-blue-600/50 text-blue-500" 
+                clip.is_public
+                  ? "bg-blue-600/20 border-blue-600/50 text-blue-500"
                   : "bg-amber-500/20 border-amber-500/50 text-amber-400"
               )}>
                 {clip.is_public ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -252,13 +252,13 @@ export function ClipCard({ clip, plaques, onSendToTelegram, onSendCarousel, curr
                     onClick={() => handleSend(plaque.id)}
                     className="w-full relative h-28 rounded-2xl overflow-hidden group border border-white/5 hover:border-blue-500/50 transition-all duration-500 shadow-xl bg-white/[0.02]"
                   >
-                    <img 
-                      src={plaque.image_url} 
-                      alt="" 
-                      className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700" 
+                    <img
+                      src={plaque.image_url}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40" />
-                    
+
                     <div className="absolute top-3 left-3 px-3 py-1.5 bg-black/40 backdrop-blur-xl rounded-lg border border-white/10 flex items-center gap-2 group-hover:bg-blue-600/20 group-hover:border-blue-500/30 transition-all">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                       <p className="font-black text-[10px] uppercase tracking-[0.2em] text-white/90 group-hover:text-white transition-colors">
