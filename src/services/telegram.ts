@@ -9,6 +9,7 @@ import path from 'path';
 import { normalizeRemoteUrl } from '../lib/s3.js';
 import { PreviewGenerator } from './preview-generator';
 import { ensurePlayableClipUrl, isExpiredOrNearExpiryUrl, isTemporaryVizardUrl } from './vizard.js';
+import { getAccessibleClipById, listAccessibleProcessedClips } from './clip-access.js';
 
 dotenv.config();
 
@@ -312,15 +313,13 @@ bot.start(async (ctx) => {
 });
 
 bot.command('videos', authMiddleware, async (ctx) => {
-    const res = await query(
-        'SELECT id, title FROM clips WHERE is_available = TRUE AND status = \'processed\' ORDER BY created_at DESC'
-    );
+    const res = await listAccessibleProcessedClips(String(ctx.from!.id), false, { requireAvailable: true });
 
-    if (res.rows.length === 0) {
+    if (res.length === 0) {
         return ctx.reply('На данный момент нет доступных видео для скачивания.');
     }
 
-    const lines = res.rows.map((clip, index) => `${index + 1}. ${clip.title}\nСкачать: /dl_${clip.id}\n\n`);
+    const lines = res.map((clip, index) => `${index + 1}. ${clip.title}\nСкачать: /dl_${clip.id}\n\n`);
     const chunks = splitTextIntoTelegramMessages('Доступные видео:\n\n', lines);
 
     for (const chunk of chunks) {
@@ -335,16 +334,11 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
     const clipId = ctx.match[1];
     const from = ctx.from!;
 
-    const res = await query(
-        'SELECT * FROM clips WHERE id = $1 AND is_available = TRUE AND status = \'processed\'',
-        [clipId]
-    );
+    const clip = await getAccessibleClipById(clipId, String(from.id), false);
 
-    if (res.rows.length === 0) {
+    if (!clip || !clip.is_available || clip.status !== 'processed') {
         return ctx.reply('Это видео уже скачано кем-то другим или недоступно.');
     }
-
-    const clip = res.rows[0];
 
     // Mark as downloaded
     await query(

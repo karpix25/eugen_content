@@ -13,6 +13,7 @@ import { PreviewGenerator } from "../services/preview-generator.js";
 import { uploadToS3 } from "../lib/s3.js";
 import { renderingQueue } from "../lib/queues.js";
 import { SettingsManager } from "../services/SettingsManager.js";
+import { buildClipAccessCondition, getAccessibleClipById, resolveUserAdminAccess } from "../services/clip-access.js";
 
 const router = Router();
 // Removed hardcoded JWT_SECRET fallback
@@ -41,7 +42,7 @@ const ensureCarouselDailyLimit = async (userId: string) => {
 router.get("/", authenticateToken, async (req: any, res) => {
   try {
     const userId = String(req.user.id);
-    const isUserAdmin = req.user.is_admin || isEnvAdmin(userId);
+    const isUserAdmin = await resolveUserAdminAccess(userId, req.user.is_admin === true);
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -66,7 +67,7 @@ router.get("/", authenticateToken, async (req: any, res) => {
     const queryParams: any[] = [userId];
 
     if (!isUserAdmin) {
-      const filter = " WHERE (c.is_public = true OR ch.is_public = true OR v.is_public = true OR ch.user_id = $1 OR (v.channel_id IS NULL AND v.user_id = $1))";
+      const filter = ` WHERE ${buildClipAccessCondition("$1")}`;
       queryText += filter;
       countQueryText += filter;
     }
@@ -120,10 +121,6 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
   const { plaque_id } = req.body;
 
   try {
-    const clipRes = await query("SELECT * FROM clips WHERE id = $1", [id]);
-    if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
-    const clip = clipRes.rows[0];
-
     let plaqueImageUrl = null;
     if (plaque_id) {
       const plaqueRes = await query("SELECT * FROM ad_plaques WHERE id = $1", [plaque_id]);
@@ -132,6 +129,8 @@ router.post("/:id/apply-plaque", async (req: any, res) => {
 
     const { bot } = await import("../services/telegram.js");
     const telegramId = user.telegram_id || user.id;
+    const clip = await getAccessibleClipById(id, String(telegramId), user.is_admin === true);
+    if (!clip) return res.status(404).json({ error: "Clip not found or access denied" });
 
     await query("INSERT INTO users (telegram_id, username, first_name) VALUES ($1, $2, $3) ON CONFLICT (telegram_id) DO NOTHING", [telegramId, user.username || '', user.first_name || 'Worker']);
 
@@ -212,9 +211,9 @@ router.post("/:id/carousel", authenticateToken, async (req: any, res) => {
       });
     }
 
-    const clipRes = await query("SELECT transcript, title FROM clips WHERE id = $1", [id]);
-    if (clipRes.rows.length === 0) return res.status(404).json({ error: "Clip not found" });
-    const { transcript, title } = clipRes.rows[0];
+    const clip = await getAccessibleClipById(id, String(req.user.id), req.user?.is_admin === true);
+    if (!clip) return res.status(404).json({ error: "Clip not found or access denied" });
+    const { transcript, title } = clip;
 
     // Get style analysis
     let analysis: any;
@@ -295,8 +294,10 @@ router.post("/:id/reprocess", authenticateToken, async (req: any, res) => {
   const { id } = req.params;
   const { plaque_id, target_lang, source_lang } = req.body;
   try {
-    const clipRes = await query("SELECT * FROM clips WHERE id = $1", [id]);
-    const clip = clipRes.rows[0];
+    const clip = await getAccessibleClipById(id, String(req.user.id), req.user?.is_admin === true);
+    if (!clip) {
+      return res.status(404).json({ error: "Clip not found or access denied" });
+    }
     const videoRes = await query("SELECT * FROM videos WHERE id = $1", [clip.video_id]);
     const video = videoRes.rows[0];
 
@@ -324,7 +325,7 @@ router.post("/:id/reprocess", authenticateToken, async (req: any, res) => {
     const sLang = source_lang || video?.detected_language;
     const folderName = sanitizeFolderName(video?.title || "Unknown_Video");
 
-    processClip(id, clip.url, plaqueImageUrl, tLang, sLang, false, undefined, undefined, undefined, folderName).catch(console.error);
+    processClip(id, clip.source_url || clip.url, plaqueImageUrl, tLang, sLang, false, undefined, undefined, undefined, folderName).catch(console.error);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Reprocess failed" });
