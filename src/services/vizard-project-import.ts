@@ -144,6 +144,7 @@ export const reimportVizardProjectToS3 = async (projectId: string) => {
   let created = 0;
   let updated = 0;
   let failed = 0;
+  let primaryVideoThumbnail = normalizeText(video?.thumbnail) ? video.thumbnail : null;
 
   for (const projectClip of projectClips) {
     const sourceUrl = getClipUrlFromProjectClip(projectClip);
@@ -195,10 +196,18 @@ export const reimportVizardProjectToS3 = async (projectId: string) => {
         );
         created += 1;
       }
+
+      if (!primaryVideoThumbnail && thumbnailUrl) {
+        primaryVideoThumbnail = thumbnailUrl;
+      }
     } catch (err: any) {
       failed += 1;
       console.error(`[Vizard Reimport] Failed for clip ${clipId} in project ${projectId}:`, err.message);
     }
+  }
+
+  if (primaryVideoThumbnail) {
+    await query("UPDATE videos SET thumbnail = $1 WHERE id = $2", [primaryVideoThumbnail, video.id]);
   }
 
   return {
