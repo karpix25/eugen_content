@@ -9,6 +9,34 @@ import { PreviewGenerator } from './preview-generator';
 dotenv.config();
 
 export const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
+const TELEGRAM_MESSAGE_SAFE_LIMIT = 3500;
+
+const buildReportKeyboard = (publicationId: string) => ({
+    inline_keyboard: [
+        [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
+    ]
+});
+
+const splitTextIntoTelegramMessages = (header: string, lines: string[]) => {
+    const chunks: string[] = [];
+    let currentChunk = header;
+
+    for (const line of lines) {
+        if ((currentChunk + line).length > TELEGRAM_MESSAGE_SAFE_LIMIT) {
+            chunks.push(currentChunk.trimEnd());
+            currentChunk = `${header}${line}`;
+            continue;
+        }
+
+        currentChunk += line;
+    }
+
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trimEnd());
+    }
+
+    return chunks;
+};
 
 const getCarouselControlText = (status: 'ready' | 'generating' | 'error') => {
     if (status === 'generating') return 'Статус карусели: генерируется...';
@@ -57,6 +85,65 @@ export const updateCarouselControlMessage = async (
 
     return Number(controlMessageId);
 };
+
+export const sendClipToTelegram = async (
+    telegramId: string,
+    clip: { id: string; title: string; url: string },
+    options: { plaqueId?: string | null; caption?: string } = {}
+) => {
+    let thumbBuffer: Buffer | undefined;
+
+    try {
+        thumbBuffer = await PreviewGenerator.generateVideoThumbnail(clip.url, clip.title);
+    } catch (videoThumbErr) {
+        console.warn('Failed to generate video thumb for clip, falling back to font hook:', videoThumbErr);
+        try {
+            thumbBuffer = await PreviewGenerator.generateFontHook(clip.title);
+        } catch (fontThumbErr) {
+            console.warn('Failed fallback font hook thumb:', fontThumbErr);
+        }
+    }
+
+    await query(
+        `INSERT INTO users (telegram_id)
+         VALUES ($1)
+         ON CONFLICT (telegram_id) DO NOTHING`,
+        [String(telegramId)]
+    );
+
+    const message = await bot.telegram.sendVideo(telegramId, clip.url, {
+        width: 1080,
+        height: 1920,
+        supports_streaming: true,
+        thumbnail: thumbBuffer ? { source: thumbBuffer } : undefined,
+        caption: options.caption || `⬜️ ${clip.title}`,
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]
+            ]
+        }
+    });
+
+    const pubRes = await query(
+        "INSERT INTO publications (clip_id, user_id, plaque_id, message_id, type, status) VALUES ($1, $2, $3, $4, 'video', 'sent') RETURNING id",
+        [clip.id, String(telegramId), options.plaqueId || null, message.message_id]
+    );
+    const publicationId = pubRes.rows[0].id;
+
+    await bot.telegram.editMessageReplyMarkup(telegramId, message.message_id, undefined, buildReportKeyboard(publicationId));
+
+    return {
+        publicationId,
+        messageId: message.message_id
+    };
+};
+
+bot.catch((err, ctx) => {
+    console.error('Unhandled Telegram bot error:', err, {
+        update_id: ctx.update.update_id,
+        update_type: ctx.updateType
+    });
+});
 
 // Authorization check middleware
 const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
@@ -165,12 +252,14 @@ bot.command('videos', authMiddleware, async (ctx) => {
         return ctx.reply('На данный момент нет доступных видео для скачивания.');
     }
 
-    let message = 'Доступные видео:\n\n';
-    res.rows.forEach((clip, index) => {
-        message += `${index + 1}. ${clip.title}\n Скачать: /dl_${clip.id}\n\n`;
-    });
+    const lines = res.rows.map((clip, index) => `${index + 1}. ${clip.title}\nСкачать: /dl_${clip.id}\n\n`);
+    const chunks = splitTextIntoTelegramMessages('Доступные видео:\n\n', lines);
 
-    return ctx.reply(message);
+    for (const chunk of chunks) {
+        await ctx.reply(chunk);
+    }
+
+    return;
 });
 
 // Handle /dl_CLIPID
@@ -197,44 +286,10 @@ bot.hears(/^\/dl_([\w-]+)$/, authMiddleware, async (ctx) => {
 
     await ctx.reply(`Вы скачали: ${clip.title}`);
     
-    // Generate Real Video Thumbnail with Overlay
-    let thumbBuffer: Buffer | undefined;
-    try {
-        // use url for ffmpeg extraction
-        thumbBuffer = await PreviewGenerator.generateVideoThumbnail(clip.url, clip.title);
-    } catch (e) {
-        console.warn('Failed to generate video thumb for clip, falling back to font hook:', e);
-        try {
-            thumbBuffer = await PreviewGenerator.generateFontHook(clip.title);
-        } catch (e2) {
-            console.warn('Failed fallback font hook thumb:', e2);
-        }
-    }
-
-    const message = await ctx.replyWithVideo(clip.url, { 
-        width: 1080, 
-        height: 1920,
-        thumbnail: thumbBuffer ? { source: thumbBuffer } : undefined,
-        caption: `⬜️ ${clip.title}`,
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]
-            ]
-        }
-    });
-
-    // Create publication record
-    const pubRes = await query(
-        "INSERT INTO publications (clip_id, user_id, message_id, type, status) VALUES ($1, $2, $3, 'video', 'sent') RETURNING id",
-        [clipId, String(from.id), message.message_id]
-    );
-    const publicationId = pubRes.rows[0].id;
-
-    // Update button with real publication ID
-    await bot.telegram.editMessageReplyMarkup(from.id, message.message_id, undefined, {
-        inline_keyboard: [
-            [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
-        ]
+    await sendClipToTelegram(String(from.id), {
+        id: clipId,
+        title: clip.title,
+        url: clip.url
     });
 
     return;

@@ -29,10 +29,23 @@ export const renderingWorker = new Worker(
     console.log(`[Worker: Rendering] Processing clip ${clipId} (Job: ${job.id})`);
     
     try {
-      const currentRes = await query("SELECT status FROM clips WHERE id = $1", [clipId]);
-      if (currentRes.rows.length > 0 && currentRes.rows[0].status === 'processed') {
-        console.log(`[Worker: Rendering] Clip ${clipId} is already processed. Skipping.`);
-        return { success: true };
+      const currentRes = await query("SELECT status, title, url FROM clips WHERE id = $1", [clipId]);
+      const currentClip = currentRes.rows[0];
+      const clipTitle = currentClip?.title || 'Видео';
+
+      if (currentClip?.status === 'processed' && currentClip?.url) {
+        console.log(`[Worker: Rendering] Clip ${clipId} is already processed. Reusing existing file.`);
+
+        if (telegramId && telegramId !== 'dev') {
+          const { sendClipToTelegram } = await import("../services/telegram.js");
+          await sendClipToTelegram(String(telegramId), {
+            id: clipId,
+            title: clipTitle,
+            url: currentClip.url
+          });
+        }
+
+        return { success: true, url: currentClip.url };
       }
 
       await query("UPDATE clips SET status = 'processing' WHERE id = $1", [clipId]);
@@ -53,47 +66,11 @@ export const renderingWorker = new Worker(
       console.log(`[Worker: Rendering] Successfully processed ${clipId}: ${resultUrl}`);
 
       if (telegramId && telegramId !== 'dev') {
-        const { bot } = await import("../services/telegram.js");
-        const { PreviewGenerator } = await import("../services/preview-generator.js");
-        const fs = await import("fs");
-
-        // We need the local file path if we want to send to Telegram directly, 
-        // but processClip currently uploads to S3 and deletes local file if skipS3Upload is false.
-        // Let's modify processClip or handle it here.
-        // For now, let's assume we can send via URL if it's on S3.
-        
-        const clipRes = await query("SELECT title FROM clips WHERE id = $1", [clipId]);
-        const clip = clipRes.rows[0];
-
-        let videoThumb: any = undefined;
-        try {
-           const thumbBuffer = await PreviewGenerator.generateFontHook(clip.title);
-           if (thumbBuffer) videoThumb = { source: thumbBuffer };
-        } catch (e) {}
-
-        const message = await bot.telegram.sendVideo(telegramId, resultUrl, { 
-            caption: `⬜️ ${clip.title}`,
-            thumbnail: videoThumb,
-            width: 1080,
-            height: 1920,
-            supports_streaming: true,
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_temp` }]
-              ]
-            }
-        });
-
-        const pubRes = await query(
-            "INSERT INTO publications (clip_id, user_id, plaque_id, message_id, status) VALUES ($1, $2, $3, $4, 'sent') RETURNING id", 
-            [clipId, String(telegramId), null, message.message_id]
-        );
-        const publicationId = pubRes.rows[0].id;
-
-        await bot.telegram.editMessageReplyMarkup(telegramId, message.message_id, undefined, {
-            inline_keyboard: [
-              [{ text: "Отчитаться ссылкой 🔗", callback_data: `report_link_${publicationId}` }]
-            ]
+        const { sendClipToTelegram } = await import("../services/telegram.js");
+        await sendClipToTelegram(String(telegramId), {
+          id: clipId,
+          title: clipTitle,
+          url: resultUrl
         });
       }
 
