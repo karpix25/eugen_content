@@ -260,12 +260,31 @@ export function useAppStore() {
     },
     handleToggleClipPublic,
     handleToggleFolderPublic: async (videoId: string, isPublic: boolean) => {
-      const res = await fetch(`/api/videos/${videoId}/toggle-public`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ isPublic: isPublic })
-      });
-      if (res.ok) queryClient.invalidateQueries({ queryKey: ['clips'] });
+      const previousClips = [...data.clips];
+      data.setClips(prev =>
+        prev.map(c => c.video_id === videoId ? { ...c, video_is_public: isPublic } : c)
+      );
+
+      try {
+        const res = await fetch(`/api/videos/${videoId}/toggle-public`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ isPublic: isPublic })
+        });
+
+        if (!res.ok) {
+          data.setClips(previousClips);
+          const err = await res.json().catch(() => ({}));
+          alert(err.error || "Ошибка при изменении приватности папки");
+          return;
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['videos'] });
+        queryClient.invalidateQueries({ queryKey: ['clips', 0] });
+      } catch (err) {
+        console.error(err);
+        data.setClips(previousClips);
+      }
     },
     manualYoutubeUrl,
     setManualYoutubeUrl,
