@@ -1,7 +1,7 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { query } from '../lib/db.js';
-import { uploadToS3 } from '../lib/s3.js';
+import { normalizeRemoteUrl, uploadToS3 } from '../lib/s3.js';
 
 dotenv.config();
 
@@ -160,8 +160,17 @@ export const refreshClipUrlFromVizard = async (clipId: string) => {
 };
 
 export const ensurePlayableClipUrl = async (clipId: string, currentUrl?: string | null) => {
-    if (currentUrl && (!isTemporaryVizardUrl(currentUrl) || !isExpiredOrNearExpiryUrl(currentUrl))) {
-        return currentUrl;
+    const normalizedCurrentUrl = normalizeRemoteUrl(currentUrl);
+
+    if (
+        normalizedCurrentUrl &&
+        (!isTemporaryVizardUrl(normalizedCurrentUrl) || !isExpiredOrNearExpiryUrl(normalizedCurrentUrl))
+    ) {
+        if (normalizedCurrentUrl !== currentUrl) {
+            await query("UPDATE clips SET url = $1 WHERE id = $2", [normalizedCurrentUrl, clipId]);
+        }
+
+        return normalizedCurrentUrl;
     }
 
     return refreshClipUrlFromVizard(clipId);
